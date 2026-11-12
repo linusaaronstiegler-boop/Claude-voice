@@ -67,9 +67,17 @@ class Pipeline(
     }
 
     /** Ein laufender Antwort-Aufruf. Seine Ergebnisse sammeln sich in [events], bis jemand sie abholt. */
-    private class Run(val key: String, val voice: Voice, val events: Channel<Event>, val job: Job)
+    private class Run(val key: String, val voice: Voice, val verified: Boolean, val events: Channel<Event>, val job: Job)
 
-    private class Trigger(val line: Line, val hot: Boolean, val named: Boolean, val woken: Boolean, val run: Run?)
+    private class Trigger(
+        val line: Line, val hot: Boolean, val named: Boolean, val woken: Boolean,
+        /** Die Stimme passt nach Lautstärke und Stimmlage zum Träger (nicht bloß, weil sein Name fiel). */
+        val trusted: Boolean,
+        val run: Run?,
+    )
+
+    /** Ergebnis der Stimm-Einschätzung für eine Äußerung. */
+    private class Heard(val voice: Voice, val trusted: Boolean)
 
     /** Signal "Modell hat SKIP gesagt, Rest nicht nötig". Ohne Stacktrace, weil es kein Fehler ist. */
     private class Skipped : RuntimeException(null, null, false, false)
@@ -126,7 +134,6 @@ class Pipeline(
      */
     fun onWakeWord() {
         wokeAtMs = clock()
-        if (mutedUntilMs != 0L) unmute()
     }
 
     /** Rohes Mikrofon-Audio: wird nur vermessen (Lautstärke, Stimmlage), nicht gespeichert. */
@@ -171,7 +178,8 @@ class Pipeline(
         val woken = wokeAtMs?.let { now - it < WAKE_WINDOW_MS } ?: false
         wokeAtMs = null
         val named = woken || Heuristics.mentionsAny(t, names)
-        val voice = voiceOf(features, speakerId, t, named, learn = true)
+        val heard = voiceOf(features, speakerId, t, named, learn = true)
+        val voice = heard.voice
         val line = buffer.add(t, voice, now, speakers.label(speakerId)) ?: return
         if (segment != null) rememberSegment(segment, line.id)
         state.update { it.copy(partial = "", transcript = (it.transcript + display(line)).takeLast(60)) }
@@ -185,13 +193,15 @@ class Pipeline(
         }
         scheduleTidy(now)
 
-        // Wer ihn beim Namen ruft, hebt eine Stummschaltung auf ("Alfred, du darfst wieder").
-        if (named && mutedUntilMs != 0L) unmute()
+        // Nur der Träger selbst hebt eine Stummschaltung auf ("Alfred, du darfst wieder"). Dass sein Name
+        // irgendwo fällt, ein Fremder ihn ruft oder ein Film "Jarvis" sagt, reicht dafür nicht.
+        val muted = now < mutedUntilMs
+        if (muted && named && heard.trusted) unmute()
         val heat = Heuristics.heat(t, names)
         val followUp = isFollowUp(now, voice, t)
         val hot = named || followUp || heat == Heuristics.Heat.HOT
         val wanted = hot || heat == Heuristics.Heat.MAYBE
-        val permitted = named || (now >= mutedUntilMs && allowed(voice, hot))
+        val permitted = if (muted) named && heard.trusted else named || allowed(voice, hot)
         // Während der Assistent spricht, unterbricht ihn nur eine direkte Anrede.
         if (!wanted || !permitted || (speaking && !named)) {
             spec?.job?.cancel()
@@ -199,9 +209,9 @@ class Pipeline(
         }
         if (speaking) stopSpeaking()
 
-        val adopted = spec?.takeIf { it.key == normalize(t) && it.voice == voice }
+        val adopted = spec?.takeIf { it.key == normalize(t) && it.voice == voice && it.verified == heard.trusted }
         if (adopted == null) spec?.job?.cancel()
-        triggers.trySend(Trigger(line, hot = hot, named = named, woken = woken, run = adopted))
+        triggers.trySend(Trigger(line, hot = hot, named = named, woken = woken, trusted = heard.trusted, run = adopted))
     }
 
     /** Die Diarisierung liefert nach, wer in einer früheren Äußerung gesprochen hat. */
@@ -247,27 +257,35 @@ class Pipeline(
     // ------------------------------------------------------------------------------------------
     // Wer spricht?
 
-    private fun voiceOf(f: VoiceFeatures?, speakerId: String?, text: String, named: Boolean, learn: Boolean): Voice {
-        var voice = classifier.classify(f, record = learn)
+    private fun voiceOf(f: VoiceFeatures?, speakerId: String?, text: String, named: Boolean, learn: Boolean): Heard {
+        val raw = classifier.classify(f, record = learn)
+        var voice = raw
+        // "Gesichert" heißt: Die Akustik selbst hält die Stimme für die des Trägers. Nur dann darf eine
+        // Äußerung etwas Dauerhaftes bewirken (merken, stummschalten, Stimmprofil lernen).
+        var trusted = raw == Voice.ICH
         if (learn) {
-            // Selbstkalibrierung: Wer den Satz mit dem Namen des Assistenten beginnt, ist fast sicher der Träger.
-            // Mit dessen Pegel und Stimmlage wird das Profil der eigenen Stimme nachgeführt.
+            // Selbstkalibrierung: Wer den Satz mit dem Namen des Assistenten beginnt, ist meist der Träger.
+            // Gelernt wird aber nur, wenn auch die Akustik dazu passt. Sonst würde der Erste, der den Namen
+            // ruft (ein Freund, ein Film), als "Träger" gespeichert.
             val addressed = named && Heuristics.words(text).take(3).any { Heuristics.mentionsAny(it, names) }
-            val plausible = classifier.profile == null || voice == Voice.ICH
-            if (addressed && plausible && f != null) {
+            val plausible = f != null && if (classifier.profile == null) {
+                config.mic == MicMode.AIRPODS && f.levelDb >= OWN_MIN_DB
+            } else raw == Voice.ICH
+            if (addressed && plausible) {
                 classifier.learnOwn(f)
                 classifier.profile?.let(env::saveVoiceProfile)
                 voice = Voice.ICH
+                trusted = true
             }
             speakers.observe(speakerId, voice)
         }
         val wearer = speakers.wearer()
         if (speakerId != null && wearer != null) {
             // Die Diarisierung kennt den Träger bereits: sie überstimmt die Akustik in beide Richtungen.
-            if (speakerId == wearer) voice = Voice.ICH
-            else if (voice == Voice.ICH) voice = Voice.NAH
+            if (speakerId == wearer) { voice = Voice.ICH; trusted = true }
+            else if (voice == Voice.ICH) { voice = Voice.NAH; trusted = false }
         }
-        return voice
+        return Heard(voice, trusted)
     }
 
     /**
@@ -300,10 +318,12 @@ class Pipeline(
         if (key.isEmpty() || Heuristics.heat(text, names) != Heuristics.Heat.HOT) return
         val now = clock()
         val named = Heuristics.mentionsAny(text, names)
-        val voice = voiceOf(meter.peekSummary(), null, text, named, learn = false)
-        if (!(named || (now >= mutedUntilMs && allowed(voice, hot = true)))) return
+        val heard = voiceOf(meter.peekSummary(), null, text, named, learn = false)
+        val voice = heard.voice
+        if (now < mutedUntilMs) return // stumm: kein Vorgriff, die fertige Äußerung entscheidet
+        if (!(named || allowed(voice, hot = true))) return
         val line = Line(id = -1, atMs = now, voice = voice, text = text.trim())
-        speculation = startRun(turnFor(line), key, voice)
+        speculation = startRun(turnFor(line, verified = heard.trusted), key, voice, heard.trusted)
     }
 
     @Synchronized
@@ -314,17 +334,17 @@ class Pipeline(
     // ------------------------------------------------------------------------------------------
     // Antwort
 
-    private fun turnFor(line: Line, woken: Boolean = false): Turn {
+    private fun turnFor(line: Line, woken: Boolean = false, verified: Boolean = false): Turn {
         val history = buffer.snapshot(clock()).filter { it.id != line.id }
         val spokeAgo = lastSpokeAtMs?.let { ((line.atMs - it) / 1000).coerceAtLeast(0) }
         return Turn(
             history, line,
-            Situation(env.localTime(), config.mic, env.musicPlaying(), spokeAgo, scene, sessionNotes.toList(), woken),
+            Situation(env.localTime(), config.mic, env.musicPlaying(), spokeAgo, scene, sessionNotes.toList(), woken, verified),
         )
     }
 
     /** Startet den Modell-Aufruf sofort im Hintergrund; die Ergebnisse warten im Kanal auf Abholung. */
-    private fun startRun(turn: Turn, key: String, voice: Voice): Run {
+    private fun startRun(turn: Turn, key: String, voice: Voice, verified: Boolean): Run {
         val events = Channel<Event>(Channel.UNLIMITED)
         val cancel = CancelToken()
         val job = scope.launch(io) {
@@ -358,14 +378,14 @@ class Pipeline(
         }
         // Wird der Auftrag abgebrochen (Stopp, verworfener Vorgriff), schließt das die Netzverbindung sofort.
         job.invokeOnCompletion { cancel.cancel() }
-        return Run(key, voice, events, job)
+        return Run(key, voice, verified, events, job)
     }
 
     private suspend fun handle(trigger: Trigger) {
         try {
             var active = trigger.run
             if (active == null) {
-                val turn = turnFor(trigger.line, trigger.woken)
+                val turn = turnFor(trigger.line, trigger.woken, trigger.trusted)
                 if (!trigger.hot) {
                     val go = withContext(io) { runInterruptible { brain.pregate(turn) } }
                     if (!go) {
@@ -373,7 +393,7 @@ class Pipeline(
                         return
                     }
                 }
-                active = startRun(turn, normalize(trigger.line.text), trigger.line.voice)
+                active = startRun(turn, normalize(trigger.line.text), trigger.line.voice, trigger.trusted)
             }
             try {
                 consume(active, trigger)
@@ -435,7 +455,7 @@ class Pipeline(
                             state.update { it.copy(answer = answer.toString()) }
                             sentences.send(event.text)
                         }
-                        is Event.Direct -> if (said) directive(event.directive)
+                        is Event.Direct -> if (said) directive(event.directive, trigger)
                         is Event.Failed -> throw event.error
                     }
                 } finally {
@@ -485,11 +505,20 @@ class Pipeline(
         return w.intersect(spoken).size.toDouble() / w.size >= 0.6
     }
 
-    private fun directive(d: Directive) {
+    private fun directive(d: Directive, trigger: Trigger) {
+        // Merken und Stummschalten wirken über den Moment hinaus. Das darf nur der Träger selbst auslösen,
+        // nicht der Tischnachbar und nicht der Fernseher, die "Alfred, merk dir ..." sagen.
+        if (!trigger.trusted) {
+            state.update { it.copy(lastDecision = "abgelehnt: Stimme nicht als die des Trägers erkannt") }
+            return
+        }
         when (d) {
             is Directive.Memo -> {
-                sessionNotes += d.text
-                env.saveNote(d.text)
+                // Eine Zeile, begrenzte Länge: Notizen landen später im System-Prompt.
+                val note = d.text.replace('\n', ' ').trim().take(MAX_NOTE_CHARS)
+                if (note.isEmpty()) return
+                sessionNotes += note
+                env.saveNote(note)
             }
             is Directive.Mute -> {
                 mutedUntilMs = clock() + d.minutes * 60_000L
@@ -547,6 +576,9 @@ class Pipeline(
         const val TIDY_EVERY_LINES = 4
         const val TIDY_MIN_GAP_MS = 12_000L
         const val WAKE_WINDOW_MS = 12_000L
+        const val MAX_NOTE_CHARS = 240
+        /** Leiser als das kann die eigene Stimme am Kopfhörer-Mikro kaum sein (dBFS). */
+        const val OWN_MIN_DB = -35.0
         const val HOLD_MS = 1_000L
         const val STALE_MS = 4_000L
         const val BARGE_IN_WORDS = 5

@@ -65,7 +65,12 @@ object EvalRenderer {
         val lines = all.mapIndexed { i, l ->
             Line(id = i + 1L, atMs = NOW_MS - l.agoSec * 1000, voice = tags[i].voice, text = l.text.trim(), speaker = tags[i].speaker)
         }
-        val situation = Situation(LOCAL_TIME, case.mic, case.musicPlaying, case.assistantSpokeAgoSec, scene = null)
+        // "Gesichert" ist der Sprecher, wenn die (im jeweiligen Modus sichtbare) Stimm-Schätzung ICH lautet:
+        // genau so entscheidet es auch die App.
+        val situation = Situation(
+            LOCAL_TIME, case.mic, case.musicPlaying, case.assistantSpokeAgoSec, scene = null,
+            speakerVerified = lines.last().voice == Voice.ICH,
+        )
         return Turn(lines.dropLast(1), lines.last(), situation)
     }
 

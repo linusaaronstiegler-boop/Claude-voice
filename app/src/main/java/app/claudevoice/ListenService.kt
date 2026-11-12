@@ -8,10 +8,13 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import app.claudevoice.core.AnthropicClaude
 import app.claudevoice.core.Brain
@@ -82,6 +85,21 @@ class ListenService : Service() {
     private var live = false
     private val waiting = ArrayDeque<ByteArray>()
     @Volatile private var lastActivityMs = 0L
+    @Volatile private var wokeAtMs = 0L
+
+    /**
+     * Antworten sind nur für den Träger bestimmt und können Persönliches aus dem Gedächtnis enthalten.
+     * Verschwinden die Kopfhörer (Akku leer, zurück ins Etui), würde der Ton aus dem Lautsprecher kommen
+     * und der Raum weiter übertragen. Deshalb endet das Zuhören dann von selbst.
+     */
+    private val deviceWatch = object : AudioDeviceCallback() {
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+            if (headphonesConnected()) return
+            pipeline?.stopSpeaking()
+            AppState.ui.update { it.copy(error = "Kopfhörer getrennt. Das Zuhören wurde beendet.") }
+            stopSelf()
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -104,6 +122,24 @@ class ListenService : Service() {
         wakeLock = getSystemService(PowerManager::class.java)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "claudevoice:listen")
             .apply { acquire(4 * 60 * 60 * 1000L) }
+
+        // Zwei Dinge müssen vor dem ersten Ton feststehen, sonst startet gar nichts ("fail closed"):
+        if (!headphonesConnected()) {
+            AppState.ui.update { it.copy(error = "Bitte zuerst Kopfhörer verbinden: Die Antworten sollen nur Sie hören.") }
+            stopSelf()
+            return
+        }
+        if (prefs.listenMode == "weckwort") {
+            // Bereitschaft verspricht, dass bis zum Weckwort nichts das Gerät verlässt. Ohne Erkenner lässt
+            // sich das nicht halten, also lieber gar nicht zuhören als stillschweigend alles übertragen.
+            wake = WakeWords.create(this)
+            if (wake == null) {
+                AppState.ui.update { it.copy(error = "Weckwort-Erkennung nicht verfügbar. Bitte „Dauer-Zuhören“ wählen oder die App neu installieren.") }
+                stopSelf()
+                return
+            }
+        }
+        getSystemService(AudioManager::class.java).registerAudioDeviceCallback(deviceWatch, Handler(Looper.getMainLooper()))
 
         val microphone = MicSource(this, prefs.useBluetoothMic)
         mic = microphone
@@ -150,7 +186,7 @@ class ListenService : Service() {
                 names = names,
                 mic = micMode,
                 reach = when (prefs.reach) { "ich" -> Reach.ICH; "raum" -> Reach.RAUM; else -> Reach.GESPRAECH },
-                echoRisk = !headphonesConnected(),
+                echoRisk = false, // Kopfhörer sind Pflicht (siehe oben), die Ausgabe schallt nicht ins Mikro zurück
                 voiceProfile = loadVoiceProfile(micMode),
             ),
             object : Pipeline.Env {
@@ -167,10 +203,6 @@ class ListenService : Service() {
         pipe.start()
         notice = problems.joinToString(" ").ifEmpty { null }
 
-        wake = if (prefs.listenMode == "weckwort") WakeWords.create(this) else null
-        if (prefs.listenMode == "weckwort" && wake == null) {
-            notice = listOfNotNull(notice, "Weckwort-Erkennung nicht verfügbar, höre durchgehend zu.").joinToString(" ")
-        }
         if (wake == null) openStream() else standby()
     }
 
@@ -199,6 +231,7 @@ class ListenService : Service() {
         // Kurzer Ton als Bestätigung, wie man es vom Sprachassistenten kennt.
         runCatching { ToneGenerator(AudioManager.STREAM_MUSIC, 55).startTone(ToneGenerator.TONE_PROP_BEEP, 120) }
         lastActivityMs = System.currentTimeMillis()
+        wokeAtMs = lastActivityMs
         // Die Pipeline merkt sich das Weckwort: die folgende Äußerung gilt als Anrede, auch wenn die
         // Transkription "Hey Jarvis" verhört.
         pipeline?.onWakeWord()
@@ -213,7 +246,10 @@ class ListenService : Service() {
             override fun onPartial(text: String, turnProbability: Double?) = pipe.onPartial(text, turnProbability)
 
             override fun onCommitted(text: String, speaker: String?, segment: Int?) {
-                lastActivityMs = System.currentTimeMillis()
+                // Nur die Bitte direkt nach dem Weckwort hält das Fenster offen. Dass danach irgendwer im
+                // Raum weiterredet, darf die Übertragung nicht endlos verlängern.
+                val now = System.currentTimeMillis()
+                if (now - wokeAtMs < ACTIVE_WINDOW_MS) lastActivityMs = now
                 pipe.onCommitted(text, speaker, segment)
             }
 
@@ -271,9 +307,12 @@ class ListenService : Service() {
         standbyWatch = scope.launch {
             while (true) {
                 delay(1_000)
-                // Solange gesprochen wird, bleibt das Fenster offen; danach zählt die Stille.
-                if (AppState.ui.value.speaking) lastActivityMs = System.currentTimeMillis()
-                if (System.currentTimeMillis() - lastActivityMs > ACTIVE_WINDOW_MS) {
+                // Solange der Assistent spricht, bleibt das Fenster offen (für Nachfragen); danach zählt die
+                // Zeit. Spätestens nach MAX_AWAKE_MS ist Schluss, bis das Weckwort erneut fällt.
+                val now = System.currentTimeMillis()
+                val speaking = AppState.ui.value.speaking
+                if (speaking) lastActivityMs = now
+                if (!speaking && (now - lastActivityMs > ACTIVE_WINDOW_MS || now - wokeAtMs > MAX_AWAKE_MS)) {
                     standby()
                     return@launch
                 }
@@ -300,6 +339,7 @@ class ListenService : Service() {
 
     override fun onDestroy() {
         standbyWatch?.cancel()
+        runCatching { getSystemService(AudioManager::class.java).unregisterAudioDeviceCallback(deviceWatch) }
         mic?.stop()
         synchronized(gate) { transcriber.also { transcriber = null; live = false } }?.close()
         pipeline?.stop()
@@ -339,7 +379,8 @@ class ListenService : Service() {
         private const val CHANNEL = "listen"
         private const val NOTIFICATION_ID = 1
         private const val PRE_ROLL_CHUNKS = 25      // 2,5 s bei 100-ms-Stücken
-        private const val ACTIVE_WINDOW_MS = 25_000L // so lange bleibt der Assistent nach dem Weckwort wach
+        private const val ACTIVE_WINDOW_MS = 20_000L // so lange bleibt der Assistent nach Weckwort oder Antwort wach
+        private const val MAX_AWAKE_MS = 120_000L    // Obergrenze je Weckwort, danach zurück in die Bereitschaft
 
         fun start(context: Context) =
             context.startForegroundService(Intent(context, ListenService::class.java))

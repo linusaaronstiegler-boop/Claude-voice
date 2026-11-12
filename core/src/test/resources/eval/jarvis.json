@@ -1,336 +1,1007 @@
 [
-  {
-    "id": "jar-01",
-    "scene": "solo",
-    "mic": "airpods",
-    "music_playing": true,
-    "assistant_spoke_ago_s": null,
-    "history": [],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hey Jarvis."},
-    "expect": {
-      "answer": true,
-      "length": "kurz",
-      "gist": "Nur ein ganz knappes Signal, dass er zuhört, etwa \"Ja?\"; keine Begrüßungsfloskel und keine Aufzählung dessen, was er kann.",
-      "why": "Das blanke Weckwort aus dem Standby ist eine direkte Ansprache durch den Träger und kein zu verwerfendes Fragment; ohne Auftrag meldet sich Alfred nur mit einem Wort."
-    },
-    "ambiguous": false,
-    "tags": ["wake-word", "bare-wake-word", "standby-wake", "empty-history", "acknowledgement", "music-playing"]
+ {
+  "id": "jar-01",
+  "scene": "solo",
+  "mic": "airpods",
+  "music_playing": true,
+  "assistant_spoke_ago_s": null,
+  "history": [],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "Hey Jarvis."
   },
-  {
-    "id": "jar-02",
-    "scene": "medien",
-    "mic": "handy",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 76, "who": "video", "speaker": "medien", "proximity": "nah", "text": "So Leute willkommen zurück auf dem Kanal. Heute wie versprochen Teil zwei vom Sprachassistenten Marke Eigenbau."},
-      {"ago_s": 64, "who": "video", "speaker": "medien", "proximity": "nah", "text": "Der Raspberry hängt jetzt am Mikro und am Lautsprecher und das Weckwort hab ich gestern Nacht noch fertig trainiert."},
-      {"ago_s": 53, "who": "video", "speaker": "medien", "proximity": "nah", "text": "Ich hab ihn natürlich Jarvis genannt, was auch sonst."},
-      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Ha, der nennt seinen genauso wie ich meinen."},
-      {"ago_s": 32, "who": "video", "speaker": "medien", "proximity": "nah", "text": "Wenn euch das Projekt gefällt lasst gern ein Abo da. So und jetzt der Moment der Wahrheit."},
-      {"ago_s": 18, "who": "video", "speaker": "medien", "proximity": "nah", "text": "Ich frag ihn mal was ganz Einfaches, Achtung."}
-    ],
-    "trigger": {"who": "video", "speaker": "medien", "proximity": "nah", "text": "Hey Jarvis, wie hoch ist der Eiffelturm?"},
-    "expect": {
-      "answer": false,
-      "length": "none",
-      "gist": "",
-      "why": "Das Weckwort spricht der Bastler im laufenden Video zu seinem eigenen Selbstbau-Assistenten; aufgezeichnete Sprache weckt Alfred nicht, auch wenn eine beantwortbare Faktenfrage folgt und das Tablet lauter ist als der Träger."
-    },
-    "ambiguous": false,
-    "tags": ["wake-word-in-media", "media-source", "video", "answerable-fact", "media-near", "wearer-far", "handy-mic", "thread-coherence"]
+  "expect": {
+   "answer": true,
+   "length": "kurz",
+   "gist": "Nur ein ganz knappes Signal, dass er zuhört, etwa \"Ja?\"; keine Begrüßungsfloskel und keine Aufzählung dessen, was er kann.",
+   "why": "Das blanke Weckwort aus dem Standby ist eine direkte Ansprache durch den Träger und kein zu verwerfendes Fragment; ohne Auftrag meldet sich Alfred nur mit einem Wort."
   },
-  {
-    "id": "jar-03",
-    "scene": "party",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 63, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee nee warte, n Marathon ist nicht glatt zweiundvierzig, da hängt noch was dran."},
-      {"ago_s": 56, "who": "timo", "speaker": "partner", "proximity": "mittel", "text": "Zweiundvierzig Komma zwei, Punkt. Ich bin den in Köln gelaufen Alter ich werd's ja wohl wissen."},
-      {"ago_s": 48, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Komma zwei ist doch gerundet, das ist irgendwas Krummes."},
-      {"ago_s": 41, "who": "aylin", "speaker": "partner", "proximity": "mittel", "text": "Boah ihr zwei schon wieder. Will noch wer was trinken?"},
-      {"ago_s": 32, "who": "timo", "speaker": "partner", "proximity": "mittel", "text": "Zweiundvierzig zweihundert Meter, da wette ich ein Bier drauf."},
-      {"ago_s": 23, "who": "gast-a", "speaker": "dritte", "proximity": "fern", "text": "Ey wer hat die Playlist geändert, mach das wieder an!"},
-      {"ago_s": 12, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Deal. Moment ich klär das eben."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey javis wer von uns hat recht wie lang ist der genau"},
-    "expect": {
-      "answer": true,
-      "length": "kurz",
-      "gist": "42,195 Kilometer, also nicht glatt 42,2; der Träger liegt mit dem krummen Wert richtig.",
-      "why": "Der Träger ruft mitten in der Wette das (als 'javis' verhörte) Weckwort; 'der' meint den Marathon aus dem Verlauf, und im Gespräch reicht die Zahl in einem Satz."
-    },
-    "ambiguous": false,
-    "tags": ["wake-word", "name-garbled", "deictic-reference", "dispute", "bet", "background-chatter"]
+  "ambiguous": false,
+  "tags": [
+   "wake-word",
+   "bare-wake-word",
+   "standby-wake",
+   "empty-history",
+   "acknowledgement",
+   "music-playing"
+  ]
+ },
+ {
+  "id": "jar-02",
+  "scene": "medien",
+  "mic": "handy",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 76,
+    "who": "video",
+    "speaker": "medien",
+    "proximity": "nah",
+    "text": "So Leute willkommen zurück auf dem Kanal. Heute wie versprochen Teil zwei vom Sprachassistenten Marke Eigenbau."
+   },
+   {
+    "ago_s": 64,
+    "who": "video",
+    "speaker": "medien",
+    "proximity": "nah",
+    "text": "Der Raspberry hängt jetzt am Mikro und am Lautsprecher und das Weckwort hab ich gestern Nacht noch fertig trainiert."
+   },
+   {
+    "ago_s": 53,
+    "who": "video",
+    "speaker": "medien",
+    "proximity": "nah",
+    "text": "Ich hab ihn natürlich Jarvis genannt, was auch sonst."
+   },
+   {
+    "ago_s": 45,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "mittel",
+    "text": "Ha, der nennt seinen genauso wie ich meinen."
+   },
+   {
+    "ago_s": 32,
+    "who": "video",
+    "speaker": "medien",
+    "proximity": "nah",
+    "text": "Wenn euch das Projekt gefällt lasst gern ein Abo da. So und jetzt der Moment der Wahrheit."
+   },
+   {
+    "ago_s": 18,
+    "who": "video",
+    "speaker": "medien",
+    "proximity": "nah",
+    "text": "Ich frag ihn mal was ganz Einfaches, Achtung."
+   }
+  ],
+  "trigger": {
+   "who": "video",
+   "speaker": "medien",
+   "proximity": "nah",
+   "text": "Hey Jarvis, wie hoch ist der Eiffelturm?"
   },
-  {
-    "id": "jar-04",
-    "scene": "party",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 69, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Doch wirklich, der hört die ganze Zeit zu und wenn ich was wissen will sagt er's mir leise ins Ohr."},
-      {"ago_s": 61, "who": "moritz", "speaker": "partner", "proximity": "mittel", "text": "Und der heißt echt Jarvis? Wie bei Iron Man? Du Nerd."},
-      {"ago_s": 54, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Eigentlich Alfred. Aber auf Jarvis hört er auch."},
-      {"ago_s": 46, "who": "greta", "speaker": "partner", "proximity": "mittel", "text": "Kann der mir auch ne Pizza bestellen?"},
-      {"ago_s": 39, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee der kann nur reden, also Antworten geben, sonst nix."},
-      {"ago_s": 27, "who": "moritz", "speaker": "partner", "proximity": "mittel", "text": "Okay das muss ich testen. Seid mal alle kurz leise."},
-      {"ago_s": 18, "who": "greta", "speaker": "partner", "proximity": "mittel", "text": "Moritz du bist so peinlich ey."}
-    ],
-    "trigger": {"who": "moritz", "speaker": "partner", "proximity": "nah", "text": "Hey Jarvis! Mach mal das Licht an! Hallo, Jarvis?"},
-    "expect": {
-      "answer": false,
-      "length": "none",
-      "gist": "",
-      "why": "Moritz ruft dem Träger das Weckwort zum Spaß direkt ins Ohr; er ist nicht der Träger, will das Gerät nur vorführen, und eine Antwort im Ohr des Trägers würde niemandem helfen."
-    },
-    "ambiguous": false,
-    "tags": ["wake-word-by-friend", "joke", "gadget-test", "device-command", "loud-and-near", "talking-about-assistant"]
+  "expect": {
+   "answer": false,
+   "length": "none",
+   "gist": "",
+   "why": "Das Weckwort spricht der Bastler im laufenden Video zu seinem eigenen Selbstbau-Assistenten; aufgezeichnete Sprache weckt Alfred nicht, auch wenn eine beantwortbare Faktenfrage folgt und das Tablet lauter ist als der Träger."
   },
-  {
-    "id": "jar-05",
-    "scene": "alltag",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 66, "who": "hanna", "speaker": "partner", "proximity": "mittel", "text": "Hast du das Licht im Flur angelassen? Das scheint hier voll rein."},
-      {"ago_s": 59, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Oh. Kann sein. Ich lieg aber grad so gut."},
-      {"ago_s": 51, "who": "hanna", "speaker": "partner", "proximity": "mittel", "text": "Ich steh nicht auf, ich hab die Katze auf dem Schoß."},
-      {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Schere Stein Papier?"},
-      {"ago_s": 36, "who": "hanna", "speaker": "partner", "proximity": "mittel", "text": "Vergiss es. Du hast es angelassen, du machst es aus."},
-      {"ago_s": 21, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Na gut. Oder mein Butler im Ohr regelt das, Moment."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hey Jarvis, mach mal bitte das Licht im Flur aus."},
-    "expect": {
-      "answer": true,
-      "length": "kurz",
-      "gist": "Eine knappe Absage: Er kann keine Lampen oder Geräte schalten; er tut nicht so, als hätte er das Licht ausgemacht.",
-      "why": "Der Träger selbst richtet das Weckwort mit einem Auftrag an Alfred; den kann er nicht ausführen, also sagt er das in einem kurzen Satz, statt zu schweigen oder Erfolg vorzutäuschen."
-    },
-    "ambiguous": false,
-    "tags": ["wake-word", "device-command", "cannot-do", "no-false-success", "minimal-pair-jar-04", "partner-present"]
+  "ambiguous": false,
+  "tags": [
+   "wake-word-in-media",
+   "media-source",
+   "video",
+   "answerable-fact",
+   "media-near",
+   "wearer-far",
+   "handy-mic",
+   "thread-coherence"
+  ]
+ },
+ {
+  "id": "jar-03",
+  "scene": "party",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 63,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Nee nee warte, n Marathon ist nicht glatt zweiundvierzig, da hängt noch was dran."
+   },
+   {
+    "ago_s": 56,
+    "who": "timo",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Zweiundvierzig Komma zwei, Punkt. Ich bin den in Köln gelaufen Alter ich werd's ja wohl wissen."
+   },
+   {
+    "ago_s": 48,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Komma zwei ist doch gerundet, das ist irgendwas Krummes."
+   },
+   {
+    "ago_s": 41,
+    "who": "aylin",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Boah ihr zwei schon wieder. Will noch wer was trinken?"
+   },
+   {
+    "ago_s": 32,
+    "who": "timo",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Zweiundvierzig zweihundert Meter, da wette ich ein Bier drauf."
+   },
+   {
+    "ago_s": 23,
+    "who": "gast-a",
+    "speaker": "dritte",
+    "proximity": "fern",
+    "text": "Ey wer hat die Playlist geändert, mach das wieder an!"
+   },
+   {
+    "ago_s": 12,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Deal. Moment ich klär das eben."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "hey javis wer von uns hat recht wie lang ist der genau"
   },
-  {
-    "id": "jar-06",
-    "scene": "alltag",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 75, "who": "renate", "speaker": "partner", "proximity": "mittel", "text": "Und was hast du da die ganze Zeit im Ohr? Telefonierst du nebenbei?"},
-      {"ago_s": 67, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee Mama das ist mein Assistent. Der hört zu und flüstert mir was wenn ich ne Frage hab."},
-      {"ago_s": 58, "who": "renate", "speaker": "partner", "proximity": "mittel", "text": "Aha. Und wie redest du mit dem?"},
-      {"ago_s": 51, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ich sag einfach seinen Namen und dann was ich wissen will."},
-      {"ago_s": 43, "who": "renate", "speaker": "partner", "proximity": "mittel", "text": "Wie heißt er denn?"},
-      {"ago_s": 37, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred. Oder Jarvis, er hört auf beides."},
-      {"ago_s": 27, "who": "renate", "speaker": "partner", "proximity": "mittel", "text": "Jarvis. Wo hast du denn den Namen her?"}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Na aus Iron Man Mama. Da hat der so einen Computer im Haus und sagt ständig Jarvis mach das Licht an, Jarvis wie viel Energie haben wir noch. So ähnlich, bloß dass meiner nur reden kann."},
-    "expect": {
-      "answer": false,
-      "length": "none",
-      "gist": "",
-      "why": "Der Träger erklärt seiner Mutter die Herkunft des Namens und zitiert nur, wie die Filmfigur mit ihrem Computer spricht; das ist Reden über Jarvis, keine Ansprache und kein Auftrag."
-    },
-    "ambiguous": false,
-    "tags": ["talking-about-assistant", "iron-man", "quoted-speech", "command-lookalike", "wearer-speaks", "name-mid-sentence"]
+  "expect": {
+   "answer": true,
+   "length": "kurz",
+   "gist": "42,195 Kilometer, also nicht glatt 42,2; der Träger liegt mit dem krummen Wert richtig.",
+   "why": "Der Träger ruft mitten in der Wette das (als 'javis' verhörte) Weckwort; 'der' meint den Marathon aus dem Verlauf, und im Gespräch reicht die Zahl in einem Satz."
   },
-  {
-    "id": "jar-07",
-    "scene": "party",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 73, "who": "travis", "speaker": "partner", "proximity": "mittel", "text": "Okay next one is for you guys, das ist echte deutsche Schlager, right?"},
-      {"ago_s": 65, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Oh nein. Travis wer hat dir das denn beigebracht?"},
-      {"ago_s": 58, "who": "travis", "speaker": "partner", "proximity": "mittel", "text": "My host family in Bielefeld. They play this every Sunday morning."},
-      {"ago_s": 49, "who": "imke", "speaker": "partner", "proximity": "mittel", "text": "Ich find's mega, dreh auf!"},
-      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Imke bitte nicht."},
-      {"ago_s": 32, "who": "imke", "speaker": "partner", "proximity": "mittel", "text": "Was? Ich versteh dich nicht!"},
-      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Eben, genau das mein ich ja."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hey Travis, mach mal bitte leiser, man versteht hier ja sein eigenes Wort nicht mehr!"},
-    "expect": {
-      "answer": false,
-      "length": "none",
-      "gist": "",
-      "why": "Travis ist der Austauschstudent an der Anlage und kein Name des Assistenten; die Bitte um leisere Musik geht an ihn und ist eine Absprache unter Leuten."
-    },
-    "ambiguous": false,
-    "tags": ["name-lookalike", "travis-not-jarvis", "command-lookalike", "request-to-person", "code-switching", "wearer-speaks"]
+  "ambiguous": false,
+  "tags": [
+   "wake-word",
+   "name-garbled",
+   "deictic-reference",
+   "dispute",
+   "bet",
+   "background-chatter"
+  ]
+ },
+ {
+  "id": "jar-04",
+  "scene": "party",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 69,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Doch wirklich, der hört die ganze Zeit zu und wenn ich was wissen will sagt er's mir leise ins Ohr."
+   },
+   {
+    "ago_s": 61,
+    "who": "moritz",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Und der heißt echt Jarvis? Wie bei Iron Man? Du Nerd."
+   },
+   {
+    "ago_s": 54,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Eigentlich Alfred. Aber auf Jarvis hört er auch."
+   },
+   {
+    "ago_s": 46,
+    "who": "greta",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Kann der mir auch ne Pizza bestellen?"
+   },
+   {
+    "ago_s": 39,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Nee der kann nur reden, also Antworten geben, sonst nix."
+   },
+   {
+    "ago_s": 27,
+    "who": "moritz",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Okay das muss ich testen. Seid mal alle kurz leise."
+   },
+   {
+    "ago_s": 18,
+    "who": "greta",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Moritz du bist so peinlich ey."
+   }
+  ],
+  "trigger": {
+   "who": "moritz",
+   "speaker": "partner",
+   "proximity": "nah",
+   "text": "Hey Jarvis! Mach mal das Licht an! Hallo, Jarvis?"
   },
-  {
-    "id": "jar-08",
-    "scene": "unterricht",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 97, "who": "dozentin", "speaker": "partner", "proximity": "fern", "text": "Die Kosten die auf der Rechnung stehen sind in der Mikroökonomie aber nur die halbe Wahrheit."},
-      {"ago_s": 85, "who": "dozentin", "speaker": "partner", "proximity": "fern", "text": "Wer heute Vormittag hier im Hörsaal sitzt hätte in der Zeit auch jobben können. Das nennen wir Opportunitätskosten, bitte merken, das ist klausurrelevant."},
-      {"ago_s": 70, "who": "dozentin", "speaker": "partner", "proximity": "fern", "text": "Wer von Ihnen kann mir dafür ein eigenes Beispiel nennen? Na, nur Mut."},
-      {"ago_s": 60, "who": "student-a", "speaker": "dritte", "proximity": "mittel", "text": "Äh wenn ich ins Kino gehe statt zu lernen?"},
-      {"ago_s": 52, "who": "dozentin", "speaker": "partner", "proximity": "fern", "text": "Schon nah dran. Und was genau sind dann die Kosten? Überlegen Sie alle mal einen Moment."},
-      {"ago_s": 38, "who": "jule", "speaker": "partner", "proximity": "nah", "text": "Checkst du das? Ich bin komplett raus."},
-      {"ago_s": 30, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee auch nicht. Wart kurz."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "jarwis erklär mir mal leise was die mit opportunitäts kosten meint"},
-    "expect": {
-      "answer": true,
-      "length": "mittel",
-      "gist": "Opportunitätskosten sind der entgangene Nutzen der besten Alternative, auf die man verzichtet; dazu ein Satz Beispiel, etwa der Lohn, den man nicht verdient, während man in der Vorlesung sitzt.",
-      "why": "Die Frage der Dozentin an den Saal allein wäre zu ignorieren, aber der Träger ruft danach flüsternd Alfred mit dem (als 'jarwis' verhörten) Weckwort und bittet ausdrücklich um eine Erklärung."
-    },
-    "ambiguous": false,
-    "tags": ["wake-word", "name-garbled", "whisper", "teacher-question-in-history", "explanation-request", "stt-split-words"]
+  "expect": {
+   "answer": false,
+   "length": "none",
+   "gist": "",
+   "why": "Moritz ruft dem Träger das Weckwort zum Spaß direkt ins Ohr; er ist nicht der Träger, will das Gerät nur vorführen, und eine Antwort im Ohr des Trägers würde niemandem helfen."
   },
-  {
-    "id": "jar-09",
-    "scene": "solo",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 9, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey dschawis"}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "ähm also ich hab grad Zeit, erzähl mir mal richtig ausführlich und in Ruhe wieso wir vom Mond eigentlich immer nur dieselbe Seite sehen"},
-    "expect": {
-      "answer": true,
-      "length": "lang",
-      "gist": "Gebundene Rotation: Der Mond dreht sich in derselben Zeit einmal um sich selbst, in der er die Erde einmal umrundet (gut 27 Tage); Ursache sind die Gezeitenkräfte der Erde, die seine Eigendrehung abgebremst haben, bis sie eingerastet ist. Mehrere Sätze, Antwort zuerst.",
-      "why": "Das Weckwort steht (als 'dschawis' verhört) allein in der einzigen Verlaufszeile, weil die Pausenerkennung es vom Auftrag abgetrennt hat; der Träger ist allein und verlangt ausdrücklich eine ausführliche Erklärung."
-    },
-    "ambiguous": false,
-    "tags": ["wake-word-in-history", "vad-split", "name-garbled", "standby-wake", "one-line-history", "explain-in-detail", "no-name-in-trigger"]
+  "ambiguous": false,
+  "tags": [
+   "wake-word-by-friend",
+   "joke",
+   "gadget-test",
+   "device-command",
+   "loud-and-near",
+   "talking-about-assistant"
+  ]
+ },
+ {
+  "id": "jar-05",
+  "scene": "alltag",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 66,
+    "who": "hanna",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Hast du das Licht im Flur angelassen? Das scheint hier voll rein."
+   },
+   {
+    "ago_s": 59,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Oh. Kann sein. Ich lieg aber grad so gut."
+   },
+   {
+    "ago_s": 51,
+    "who": "hanna",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Ich steh nicht auf, ich hab die Katze auf dem Schoß."
+   },
+   {
+    "ago_s": 43,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Schere Stein Papier?"
+   },
+   {
+    "ago_s": 36,
+    "who": "hanna",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Vergiss es. Du hast es angelassen, du machst es aus."
+   },
+   {
+    "ago_s": 21,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Na gut. Oder mein Butler im Ohr regelt das, Moment."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "Hey Jarvis, mach mal bitte das Licht im Flur aus."
   },
-  {
-    "id": "jar-10",
-    "scene": "alltag",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 68, "who": "caro", "speaker": "partner", "proximity": "mittel", "text": "Spinat darf man ja angeblich nicht noch mal aufwärmen, hat meine Oma immer gesagt."},
-      {"ago_s": 60, "who": "deniz", "speaker": "partner", "proximity": "mittel", "text": "Das ist doch längst überholt. Wenn du den schnell kühlst und im Kühlschrank lagerst ist das kein Problem."},
-      {"ago_s": 51, "who": "caro", "speaker": "partner", "proximity": "mittel", "text": "Echt jetzt? Wegen Nitrat oder was war das noch."},
-      {"ago_s": 44, "who": "deniz", "speaker": "partner", "proximity": "mittel", "text": "Nitrit, ja, aber das bildet sich nur wenn der stundenlang warm rumsteht."},
-      {"ago_s": 34, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Ist der Platz hier noch frei?"},
-      {"ago_s": 25, "who": "caro", "speaker": "partner", "proximity": "mittel", "text": "Hm. Ich trau dem Braten trotzdem nicht."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred meinte neulich übrigens genau dasselbe, als ich ihn wegen dem Reis vom Vortag gefragt hab. Schnell kühlen und gut ist."},
-    "expect": {
-      "answer": false,
-      "length": "none",
-      "gist": "",
-      "why": "Der Träger führt Alfred in der dritten Person als Quelle an; das ist eine Aussage in der Runde, keine Ansprache, und Caros Frage hat Deniz bereits beantwortet."
-    },
-    "ambiguous": false,
-    "tags": ["talking-about-assistant", "name-first-word", "third-person", "statement", "already-answered", "wearer-speaks"]
+  "expect": {
+   "answer": true,
+   "length": "kurz",
+   "gist": "Eine knappe Absage: Er kann keine Lampen oder Geräte schalten; er tut nicht so, als hätte er das Licht ausgemacht.",
+   "why": "Der Träger selbst richtet das Weckwort mit einem Auftrag an Alfred; den kann er nicht ausführen, also sagt er das in einem kurzen Satz, statt zu schweigen oder Erfolg vorzutäuschen."
   },
-  {
-    "id": "jar-11",
-    "scene": "alltag",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": 17,
-    "history": [
-      {"ago_s": 47, "who": "basti", "speaker": "partner", "proximity": "mittel", "text": "Guck mal das Poster da, Everest. Da will ich irgendwann mal hin, wenigstens bis ins Basislager."},
-      {"ago_s": 40, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wer war da eigentlich als Erster oben?"},
-      {"ago_s": 35, "who": "basti", "speaker": "partner", "proximity": "mittel", "text": "Hillary oder? Und noch einer, der Sherpa. Frag mich nicht wann."},
-      {"ago_s": 28, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Jarvis wie hieß der Sherpa von Hillary und wann war das"},
-      {"ago_s": 21, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Tenzing Norgay, am 29. Mai 1953."},
-      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Tensing Norgay, dreiundfünfzig schon."},
-      {"ago_s": 7, "who": "basti", "speaker": "partner", "proximity": "mittel", "text": "Ah ja genau. Krass, mit der Ausrüstung von damals."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und ohne sauerstoff"},
-    "expect": {
-      "answer": true,
-      "length": "kurz",
-      "gist": "Ohne Flaschensauerstoff standen zuerst Reinhold Messner und Peter Habeler oben, 1978.",
-      "why": "Elliptische Anschlussfrage des Trägers 17 Sekunden nach Alfreds Antwort; ohne Namen und trotz zweier Zwischenbeiträge klar derselbe Faden, den niemand am Tisch beantworten kann."
-    },
-    "ambiguous": false,
-    "tags": ["follow-up", "ellipsis", "no-wake-name", "assistant-recent", "relayed-answer", "intervening-turns"]
+  "ambiguous": false,
+  "tags": [
+   "wake-word",
+   "device-command",
+   "cannot-do",
+   "no-false-success",
+   "minimal-pair-jar-04",
+   "partner-present"
+  ]
+ },
+ {
+  "id": "jar-06",
+  "scene": "alltag",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 75,
+    "who": "renate",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Und was hast du da die ganze Zeit im Ohr? Telefonierst du nebenbei?"
+   },
+   {
+    "ago_s": 67,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Nee Mama das ist mein Assistent. Der hört zu und flüstert mir was wenn ich ne Frage hab."
+   },
+   {
+    "ago_s": 58,
+    "who": "renate",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Aha. Und wie redest du mit dem?"
+   },
+   {
+    "ago_s": 51,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Ich sag einfach seinen Namen und dann was ich wissen will."
+   },
+   {
+    "ago_s": 43,
+    "who": "renate",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Wie heißt er denn?"
+   },
+   {
+    "ago_s": 37,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Alfred. Oder Jarvis, er hört auf beides."
+   },
+   {
+    "ago_s": 27,
+    "who": "renate",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Jarvis. Wo hast du denn den Namen her?"
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "Na aus Iron Man Mama. Da hat der so einen Computer im Haus und sagt ständig Jarvis mach das Licht an, Jarvis wie viel Energie haben wir noch. So ähnlich, bloß dass meiner nur reden kann."
   },
-  {
-    "id": "jar-12",
-    "scene": "alltag",
-    "mic": "airpods",
-    "music_playing": false,
-    "assistant_spoke_ago_s": 19,
-    "history": [
-      {"ago_s": 37, "who": "vera", "speaker": "partner", "proximity": "mittel", "text": "Sag mal wie lange lässt du die Eier eigentlich drin? Meine werden immer steinhart."},
-      {"ago_s": 30, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Mach ich nach Gefühl ehrlich gesagt. Alfred wie lange für wachsweich?"},
-      {"ago_s": 23, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Rund sechs Minuten ab kochendem Wasser."},
-      {"ago_s": 17, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Sechs Minuten sagt er."},
-      {"ago_s": 6, "who": "vera", "speaker": "partner", "proximity": "mittel", "text": "Okay stell ich mir. Ach übrigens, was ich dir noch gar nicht erzählt hab, ich hab gestern bei der Agentur gekündigt."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hä und wieso"},
-    "expect": {
-      "answer": false,
-      "length": "none",
-      "gist": "",
-      "why": "Die Nachfrage fällt zwar ins 20-Sekunden-Fenster nach Alfreds Antwort, bezieht sich aber auf Veras Kündigung direkt davor und ist eine persönliche Frage an sie, kein Nachhaken zu den Eiern."
-    },
-    "ambiguous": false,
-    "tags": ["follow-up-lookalike", "assistant-recent", "inside-window", "personal-question", "thread-coherence", "minimal-pair-jar-11"]
+  "expect": {
+   "answer": false,
+   "length": "none",
+   "gist": "",
+   "why": "Der Träger erklärt seiner Mutter die Herkunft des Namens und zitiert nur, wie die Filmfigur mit ihrem Computer spricht; das ist Reden über Jarvis, keine Ansprache und kein Auftrag."
   },
-  {
-    "id": "jar-13",
-    "scene": "call",
-    "mic": "handy",
-    "music_playing": false,
-    "assistant_spoke_ago_s": null,
-    "history": [
-      {"ago_s": 85, "who": "sunita", "speaker": "partner", "proximity": "mittel", "text": "Okay let's get going, I think we're only missing Manchester."},
-      {"ago_s": 76, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Morning zusammen. Sorry bei mir hallt es, ich sitz im großen Besprechungsraum."},
-      {"ago_s": 67, "who": "kollege-uk", "speaker": "partner", "proximity": "mittel", "text": "Hi everyone, Jarvis here, sorry, my train was late again."},
-      {"ago_s": 59, "who": "sunita", "speaker": "partner", "proximity": "mittel", "text": "No worries. First item, the warehouse migration. Hamburg, how far are you?"},
-      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "We're done except for the labels, die Etiketten kommen am Donnerstag."},
-      {"ago_s": 39, "who": "sunita", "speaker": "partner", "proximity": "mittel", "text": "Perfect. And the UK side? Jarvis, over to you."},
-      {"ago_s": 26, "who": "sunita", "speaker": "partner", "proximity": "mittel", "text": "Hello? Did we lose him?"},
-      {"ago_s": 15, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "No he's still in the list, I can see him. Moment."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hey Jarvis, can you hear us? I think you're on mute."},
-    "expect": {
-      "answer": false,
-      "length": "none",
-      "gist": "",
-      "why": "Jarvis ist hier ein menschlicher Kollege aus Manchester, der sich im Call vorgestellt hat und gerade nicht reagiert; der Träger spricht ihn an, nicht den Assistenten, und es geht nur um die Technik im Meeting."
-    },
-    "ambiguous": false,
-    "tags": ["name-collision", "human-named-jarvis", "wake-phrase-exact", "wearer-speaks", "english", "logistics", "handy-mic"]
+  "ambiguous": false,
+  "tags": [
+   "talking-about-assistant",
+   "iron-man",
+   "quoted-speech",
+   "command-lookalike",
+   "wearer-speaks",
+   "name-mid-sentence"
+  ]
+ },
+ {
+  "id": "jar-07",
+  "scene": "party",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 73,
+    "who": "travis",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Okay next one is for you guys, das ist echte deutsche Schlager, right?"
+   },
+   {
+    "ago_s": 65,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Oh nein. Travis wer hat dir das denn beigebracht?"
+   },
+   {
+    "ago_s": 58,
+    "who": "travis",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "My host family in Bielefeld. They play this every Sunday morning."
+   },
+   {
+    "ago_s": 49,
+    "who": "imke",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Ich find's mega, dreh auf!"
+   },
+   {
+    "ago_s": 41,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Imke bitte nicht."
+   },
+   {
+    "ago_s": 32,
+    "who": "imke",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Was? Ich versteh dich nicht!"
+   },
+   {
+    "ago_s": 22,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Eben, genau das mein ich ja."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "Hey Travis, mach mal bitte leiser, man versteht hier ja sein eigenes Wort nicht mehr!"
   },
-  {
-    "id": "jar-14",
-    "scene": "call",
-    "mic": "handy",
-    "music_playing": false,
-    "assistant_spoke_ago_s": 38,
-    "history": [
-      {"ago_s": 72, "who": "ole", "speaker": "partner", "proximity": "mittel", "text": "Also die Nische neben dem Kamin ist ein Meter dreißig breit, da soll der Fernseher rein."},
-      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Und du wolltest den mit fünfundfünfzig Zoll oder?"},
-      {"ago_s": 58, "who": "ole", "speaker": "partner", "proximity": "mittel", "text": "Genau den. Passt der da überhaupt rein was meinst du?"},
-      {"ago_s": 51, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Moment. Jarvis wie viel Zentimeter sind fünfundfünfzig Zoll Diagonale?"},
-      {"ago_s": 43, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Rund 140 Zentimeter Diagonale, das Bild ist dann etwa 122 Zentimeter breit."},
-      {"ago_s": 40, "who": "ole", "speaker": "partner", "proximity": "mittel", "text": "Hallo? Bist du noch dran, bei mir hat's grad geknackt."},
-      {"ago_s": 32, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja ja bin da, sorry, hier haben grad zwei gleichzeitig geredet."},
-      {"ago_s": 23, "who": "ole", "speaker": "partner", "proximity": "mittel", "text": "Na dann. Also wie gesagt ein Meter dreißig hab ich Platz."},
-      {"ago_s": 11, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja hab ich notiert, Sekunde noch."}
-    ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred wiederhol das noch mal bitte ich hab die Zahlen eben nicht mitgekriegt"},
-    "expect": {
-      "answer": true,
-      "length": "kurz",
-      "gist": "Wiederholt seine eigene Auskunft von vorhin: rund 140 Zentimeter Diagonale, etwa 122 Zentimeter breit; nicht Oles 1,30 Meter.",
-      "why": "Der Träger spricht Alfred mit Namen an und verlangt eine Wiederholung; 'das' meint Alfreds eigene, vom Anrufer übertönte Antwort, auch wenn sie schon 38 Sekunden zurückliegt."
-    },
-    "ambiguous": false,
-    "tags": ["command-repeat", "name-alfred", "both-names", "deictic-reference", "outside-follow-up-window", "distractor-number", "speakerphone"]
-  }
+  "expect": {
+   "answer": false,
+   "length": "none",
+   "gist": "",
+   "why": "Travis ist der Austauschstudent an der Anlage und kein Name des Assistenten; die Bitte um leisere Musik geht an ihn und ist eine Absprache unter Leuten."
+  },
+  "ambiguous": false,
+  "tags": [
+   "name-lookalike",
+   "travis-not-jarvis",
+   "command-lookalike",
+   "request-to-person",
+   "code-switching",
+   "wearer-speaks"
+  ]
+ },
+ {
+  "id": "jar-08",
+  "scene": "unterricht",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 97,
+    "who": "dozentin",
+    "speaker": "partner",
+    "proximity": "fern",
+    "text": "Die Kosten die auf der Rechnung stehen sind in der Mikroökonomie aber nur die halbe Wahrheit."
+   },
+   {
+    "ago_s": 85,
+    "who": "dozentin",
+    "speaker": "partner",
+    "proximity": "fern",
+    "text": "Wer heute Vormittag hier im Hörsaal sitzt hätte in der Zeit auch jobben können. Das nennen wir Opportunitätskosten, bitte merken, das ist klausurrelevant."
+   },
+   {
+    "ago_s": 70,
+    "who": "dozentin",
+    "speaker": "partner",
+    "proximity": "fern",
+    "text": "Wer von Ihnen kann mir dafür ein eigenes Beispiel nennen? Na, nur Mut."
+   },
+   {
+    "ago_s": 60,
+    "who": "student-a",
+    "speaker": "dritte",
+    "proximity": "mittel",
+    "text": "Äh wenn ich ins Kino gehe statt zu lernen?"
+   },
+   {
+    "ago_s": 52,
+    "who": "dozentin",
+    "speaker": "partner",
+    "proximity": "fern",
+    "text": "Schon nah dran. Und was genau sind dann die Kosten? Überlegen Sie alle mal einen Moment."
+   },
+   {
+    "ago_s": 38,
+    "who": "jule",
+    "speaker": "partner",
+    "proximity": "nah",
+    "text": "Checkst du das? Ich bin komplett raus."
+   },
+   {
+    "ago_s": 30,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Nee auch nicht. Wart kurz."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "jarwis erklär mir mal leise was die mit opportunitäts kosten meint"
+  },
+  "expect": {
+   "answer": true,
+   "length": "mittel",
+   "gist": "Opportunitätskosten sind der entgangene Nutzen der besten Alternative, auf die man verzichtet; dazu ein Satz Beispiel, etwa der Lohn, den man nicht verdient, während man in der Vorlesung sitzt.",
+   "why": "Die Frage der Dozentin an den Saal allein wäre zu ignorieren, aber der Träger ruft danach flüsternd Alfred mit dem (als 'jarwis' verhörten) Weckwort und bittet ausdrücklich um eine Erklärung."
+  },
+  "ambiguous": false,
+  "tags": [
+   "wake-word",
+   "name-garbled",
+   "whisper",
+   "teacher-question-in-history",
+   "explanation-request",
+   "stt-split-words"
+  ]
+ },
+ {
+  "id": "jar-09",
+  "scene": "solo",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 9,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "hey dschawis"
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "ähm also ich hab grad Zeit, erzähl mir mal richtig ausführlich und in Ruhe wieso wir vom Mond eigentlich immer nur dieselbe Seite sehen"
+  },
+  "expect": {
+   "answer": true,
+   "length": "lang",
+   "gist": "Gebundene Rotation: Der Mond dreht sich in derselben Zeit einmal um sich selbst, in der er die Erde einmal umrundet (gut 27 Tage); Ursache sind die Gezeitenkräfte der Erde, die seine Eigendrehung abgebremst haben, bis sie eingerastet ist. Mehrere Sätze, Antwort zuerst.",
+   "why": "Das Weckwort steht (als 'dschawis' verhört) allein in der einzigen Verlaufszeile, weil die Pausenerkennung es vom Auftrag abgetrennt hat; der Träger ist allein und verlangt ausdrücklich eine ausführliche Erklärung."
+  },
+  "ambiguous": false,
+  "tags": [
+   "wake-word-in-history",
+   "vad-split",
+   "name-garbled",
+   "standby-wake",
+   "one-line-history",
+   "explain-in-detail",
+   "no-name-in-trigger"
+  ]
+ },
+ {
+  "id": "jar-10",
+  "scene": "alltag",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 68,
+    "who": "caro",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Spinat darf man ja angeblich nicht noch mal aufwärmen, hat meine Oma immer gesagt."
+   },
+   {
+    "ago_s": 60,
+    "who": "deniz",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Das ist doch längst überholt. Wenn du den schnell kühlst und im Kühlschrank lagerst ist das kein Problem."
+   },
+   {
+    "ago_s": 51,
+    "who": "caro",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Echt jetzt? Wegen Nitrat oder was war das noch."
+   },
+   {
+    "ago_s": 44,
+    "who": "deniz",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Nitrit, ja, aber das bildet sich nur wenn der stundenlang warm rumsteht."
+   },
+   {
+    "ago_s": 34,
+    "who": "tisch2-a",
+    "speaker": "dritte",
+    "proximity": "fern",
+    "text": "Ist der Platz hier noch frei?"
+   },
+   {
+    "ago_s": 25,
+    "who": "caro",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Hm. Ich trau dem Braten trotzdem nicht."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "Alfred meinte neulich übrigens genau dasselbe, als ich ihn wegen dem Reis vom Vortag gefragt hab. Schnell kühlen und gut ist."
+  },
+  "expect": {
+   "answer": false,
+   "length": "none",
+   "gist": "",
+   "why": "Der Träger führt Alfred in der dritten Person als Quelle an; das ist eine Aussage in der Runde, keine Ansprache, und Caros Frage hat Deniz bereits beantwortet."
+  },
+  "ambiguous": false,
+  "tags": [
+   "talking-about-assistant",
+   "name-first-word",
+   "third-person",
+   "statement",
+   "already-answered",
+   "wearer-speaks"
+  ]
+ },
+ {
+  "id": "jar-11",
+  "scene": "alltag",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": 17,
+  "history": [
+   {
+    "ago_s": 47,
+    "who": "basti",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Guck mal das Poster da, Everest. Da will ich irgendwann mal hin, wenigstens bis ins Basislager."
+   },
+   {
+    "ago_s": 40,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Wer war da eigentlich als Erster oben?"
+   },
+   {
+    "ago_s": 35,
+    "who": "basti",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Hillary oder? Und noch einer, der Sherpa. Frag mich nicht wann."
+   },
+   {
+    "ago_s": 28,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Jarvis wie hieß der Sherpa von Hillary und wann war das"
+   },
+   {
+    "ago_s": 21,
+    "who": "alfred",
+    "speaker": "alfred",
+    "proximity": "nah",
+    "text": "Tenzing Norgay, am 29. Mai 1953."
+   },
+   {
+    "ago_s": 14,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Tensing Norgay, dreiundfünfzig schon."
+   },
+   {
+    "ago_s": 7,
+    "who": "basti",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Ah ja genau. Krass, mit der Ausrüstung von damals."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "und ohne sauerstoff"
+  },
+  "expect": {
+   "answer": true,
+   "length": "kurz",
+   "gist": "Ohne Flaschensauerstoff standen zuerst Reinhold Messner und Peter Habeler oben, 1978.",
+   "why": "Elliptische Anschlussfrage des Trägers 17 Sekunden nach Alfreds Antwort; ohne Namen und trotz zweier Zwischenbeiträge klar derselbe Faden, den niemand am Tisch beantworten kann. Strittig: Ohne Betonung lässt sich die Äußerung auch als Bemerkung an den Gesprächspartner lesen."
+  },
+  "ambiguous": true,
+  "tags": [
+   "follow-up",
+   "ellipsis",
+   "no-wake-name",
+   "assistant-recent",
+   "relayed-answer",
+   "intervening-turns"
+  ]
+ },
+ {
+  "id": "jar-12",
+  "scene": "alltag",
+  "mic": "airpods",
+  "music_playing": false,
+  "assistant_spoke_ago_s": 19,
+  "history": [
+   {
+    "ago_s": 37,
+    "who": "vera",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Sag mal wie lange lässt du die Eier eigentlich drin? Meine werden immer steinhart."
+   },
+   {
+    "ago_s": 30,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Mach ich nach Gefühl ehrlich gesagt. Alfred wie lange für wachsweich?"
+   },
+   {
+    "ago_s": 23,
+    "who": "alfred",
+    "speaker": "alfred",
+    "proximity": "nah",
+    "text": "Rund sechs Minuten ab kochendem Wasser."
+   },
+   {
+    "ago_s": 17,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Sechs Minuten sagt er."
+   },
+   {
+    "ago_s": 6,
+    "who": "vera",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Okay stell ich mir. Ach übrigens, was ich dir noch gar nicht erzählt hab, ich hab gestern bei der Agentur gekündigt."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "hä und wieso"
+  },
+  "expect": {
+   "answer": false,
+   "length": "none",
+   "gist": "",
+   "why": "Die Nachfrage fällt zwar ins 20-Sekunden-Fenster nach Alfreds Antwort, bezieht sich aber auf Veras Kündigung direkt davor und ist eine persönliche Frage an sie, kein Nachhaken zu den Eiern."
+  },
+  "ambiguous": false,
+  "tags": [
+   "follow-up-lookalike",
+   "assistant-recent",
+   "inside-window",
+   "personal-question",
+   "thread-coherence",
+   "minimal-pair-jar-11"
+  ]
+ },
+ {
+  "id": "jar-13",
+  "scene": "call",
+  "mic": "handy",
+  "music_playing": false,
+  "assistant_spoke_ago_s": null,
+  "history": [
+   {
+    "ago_s": 85,
+    "who": "sunita",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Okay let's get going, I think we're only missing Manchester."
+   },
+   {
+    "ago_s": 76,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Morning zusammen. Sorry bei mir hallt es, ich sitz im großen Besprechungsraum."
+   },
+   {
+    "ago_s": 67,
+    "who": "kollege-uk",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Hi everyone, Jarvis here, sorry, my train was late again."
+   },
+   {
+    "ago_s": 59,
+    "who": "sunita",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "No worries. First item, the warehouse migration. Hamburg, how far are you?"
+   },
+   {
+    "ago_s": 49,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "We're done except for the labels, die Etiketten kommen am Donnerstag."
+   },
+   {
+    "ago_s": 39,
+    "who": "sunita",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Perfect. And the UK side? Jarvis, over to you."
+   },
+   {
+    "ago_s": 26,
+    "who": "sunita",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Hello? Did we lose him?"
+   },
+   {
+    "ago_s": 15,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "No he's still in the list, I can see him. Moment."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "Hey Jarvis, can you hear us? I think you're on mute."
+  },
+  "expect": {
+   "answer": false,
+   "length": "none",
+   "gist": "",
+   "why": "Jarvis ist hier ein menschlicher Kollege aus Manchester, der sich im Call vorgestellt hat und gerade nicht reagiert; der Träger spricht ihn an, nicht den Assistenten, und es geht nur um die Technik im Meeting."
+  },
+  "ambiguous": false,
+  "tags": [
+   "name-collision",
+   "human-named-jarvis",
+   "wake-phrase-exact",
+   "wearer-speaks",
+   "english",
+   "logistics",
+   "handy-mic"
+  ]
+ },
+ {
+  "id": "jar-14",
+  "scene": "call",
+  "mic": "handy",
+  "music_playing": false,
+  "assistant_spoke_ago_s": 38,
+  "history": [
+   {
+    "ago_s": 72,
+    "who": "ole",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Also die Nische neben dem Kamin ist ein Meter dreißig breit, da soll der Fernseher rein."
+   },
+   {
+    "ago_s": 64,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Und du wolltest den mit fünfundfünfzig Zoll oder?"
+   },
+   {
+    "ago_s": 58,
+    "who": "ole",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Genau den. Passt der da überhaupt rein was meinst du?"
+   },
+   {
+    "ago_s": 51,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Moment. Jarvis wie viel Zentimeter sind fünfundfünfzig Zoll Diagonale?"
+   },
+   {
+    "ago_s": 43,
+    "who": "alfred",
+    "speaker": "alfred",
+    "proximity": "nah",
+    "text": "Rund 140 Zentimeter Diagonale, das Bild ist dann etwa 122 Zentimeter breit."
+   },
+   {
+    "ago_s": 40,
+    "who": "ole",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Hallo? Bist du noch dran, bei mir hat's grad geknackt."
+   },
+   {
+    "ago_s": 32,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Ja ja bin da, sorry, hier haben grad zwei gleichzeitig geredet."
+   },
+   {
+    "ago_s": 23,
+    "who": "ole",
+    "speaker": "partner",
+    "proximity": "mittel",
+    "text": "Na dann. Also wie gesagt ein Meter dreißig hab ich Platz."
+   },
+   {
+    "ago_s": 11,
+    "who": "ich",
+    "speaker": "ich",
+    "proximity": "nah",
+    "text": "Ja hab ich notiert, Sekunde noch."
+   }
+  ],
+  "trigger": {
+   "who": "ich",
+   "speaker": "ich",
+   "proximity": "nah",
+   "text": "Alfred wiederhol das noch mal bitte ich hab die Zahlen eben nicht mitgekriegt"
+  },
+  "expect": {
+   "answer": true,
+   "length": "kurz",
+   "gist": "Wiederholt seine eigene Auskunft von vorhin: rund 140 Zentimeter Diagonale, etwa 122 Zentimeter breit; nicht Oles 1,30 Meter.",
+   "why": "Der Träger spricht Alfred mit Namen an und verlangt eine Wiederholung; 'das' meint Alfreds eigene, vom Anrufer übertönte Antwort, auch wenn sie schon 38 Sekunden zurückliegt."
+  },
+  "ambiguous": false,
+  "tags": [
+   "command-repeat",
+   "name-alfred",
+   "both-names",
+   "deictic-reference",
+   "outside-follow-up-window",
+   "distractor-number",
+   "speakerphone"
+  ]
+ }
 ]

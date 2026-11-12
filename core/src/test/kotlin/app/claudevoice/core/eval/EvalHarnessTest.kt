@@ -154,6 +154,7 @@ Mikrofon: Kopfhörer-Mikrofon (seine eigene Stimme ist mit Abstand die lauteste)
 Seine Musik läuft: nein
 Du hast zuletzt gesprochen: vor 12 s
 Szene: noch keine Einschätzung
+Sprecher der letzten Äußerung: nicht gesichert
 </lage>
 """.trim()
 
