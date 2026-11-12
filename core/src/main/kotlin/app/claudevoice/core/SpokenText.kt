@@ -88,10 +88,18 @@ object SpokenText {
      * "12." oder "z.", kommen "Heute ist der 12." und "November." als zwei Sätze an, und keine Regel kann
      * das Datum mehr als Ganzes lesen. Nein heißt es deshalb bei
      *  - kurzen Zahlen ("am 12. November", "12.11. um acht", "1. FC Köln"); eine Jahreszahl ("1989.") endet,
-     *  - einzelnen Buchstaben ("z. B.", "d. h.", "J. K. Rowling"),
+     *  - einzelnen Buchstaben ("z. B.", "d. h.", "J. K. Rowling"). Nur wenn der Buchstabe etwas benennt
+     *    ("Vitamin C.", "Plan B."), endet der Satz. Von einem Initial unterscheidet ihn das Wort davor
+     *    und das Wort danach, und beide müssen passen: davor ein Wort aus [NAMED_BY_LETTER], danach ein
+     *    typischer Satzanfang aus [SENTENCE_OPENERS] ("Plan B. Der ist teurer."). Das Wort davor allein
+     *    genügt nicht: Auch hinter "Klasse" oder "Gruppe" kann ein Name mit Initial stehen ("in der
+     *    Klasse A. Müllers", "die Gruppe B. B. King"), und dort darf keine Pause entstehen,
      *  - Abkürzungen, die mitten im Satz stehen ("ca.", "Nr.", "Mio.", "Dr.").
      * Irrt die Antwort in Richtung "kein Satzende", werden nur zwei Sätze zusammen gesprochen; das kostet
-     * etwas Wartezeit, klingt aber richtig. Der umgekehrte Irrtum zerreißt ein Datum.
+     * etwas Wartezeit, klingt aber richtig. Der umgekehrte Irrtum zerreißt ein Datum oder einen Namen.
+     *
+     * Für den Zerleger, der den Text Zeichen für Zeichen bekommt: Ist das Wort nach dem Buchstaben noch
+     * nicht vollständig da, heißt die Antwort vorerst nein. Er fragt mit jedem neuen Stück wieder.
      */
     fun dotEndsSentence(text: CharSequence, dot: Int): Boolean {
         if (dot !in text.indices || text[dot] != '.') return true
@@ -101,10 +109,63 @@ object SpokenText {
         return when {
             token.isEmpty() -> true
             token.all { it.isDigit() } -> token.length > 3
-            token.length == 1 -> false
+            token.length == 1 -> token[0].isUpperCase() && wordBefore(text, i).lowercase() in NAMED_BY_LETTER &&
+                sentenceStartsAfter(text, dot)
             else -> token !in MID_SENTENCE_ABBR
         }
     }
+
+    /**
+     * Gehört zu [dotEndsSentence]: Beginnt hinter dem Punkt an der Stelle [dot] erkennbar ein neuer Satz?
+     * Ja, wenn der Text dort endet, eine neue Zeile beginnt oder ein Wort aus [SENTENCE_OPENERS] folgt.
+     * Nein bei jedem anderen Wort ("A. Müller"), bei einem weiteren Initial ("D. B.") und solange das
+     * nächste Wort noch nicht zu Ende geschrieben ist.
+     */
+    private fun sentenceStartsAfter(text: CharSequence, dot: Int): Boolean {
+        var p = dot + 1
+        if (p == text.length) return true
+        while (p < text.length && text[p] in CLOSING_MARKS) p++
+        while (p < text.length && text[p] != '\n' && text[p].isWhitespace()) p++
+        if (p == text.length) return false
+        if (text[p] == '\n') return true
+        val start = p
+        while (p < text.length && text[p].isLetter()) p++
+        // Ohne ein Zeichen hinter dem Wort ist offen, ob es schon zu Ende ist ("Der" oder "Dermatologe").
+        if (p == text.length) return false
+        // "I" und "A" eröffnen englische Sätze, mit Punkt dahinter sind sie aber das nächste Initial.
+        if (p - start == 1 && text[p] == '.') return false
+        return text.subSequence(start, p).toString() in SENTENCE_OPENERS
+    }
+
+    /**
+     * Wörter, hinter denen ein einzelner Großbuchstabe ein Name ist und kein Initial: "Vitamin C", "Plan B", "Typ A".
+     * Alltagswörter, hinter denen meist etwas anderes steht ("der Fall D. B. Cooper", "at that point J. R. R.
+     * Tolkien"), fehlen mit Absicht.
+     */
+    private val NAMED_BY_LETTER = setOf(
+        "vitamin", "hepatitis", "plan", "typ", "type", "klasse", "class", "gruppe", "group", "blutgruppe", "variante",
+        "option", "kategorie", "category", "stufe", "level", "grade", "antwort", "answer", "lösung", "modell", "model",
+        "serie", "liga", "block", "reihe", "sektor", "zone", "abschnitt", "anhang", "anlage", "buchstabe", "taste",
+        "laufwerk", "drive", "spalte", "column",
+    )
+
+    /**
+     * Typische erste Wörter eines Satzes, deutsch und englisch, so großgeschrieben, wie sie am Satzanfang stehen.
+     * Die Liste muss nicht vollständig sein: Fehlt ein Wort, werden zwei Sätze zusammen gesprochen, mehr nicht.
+     * Wörter, die auch ein Nachname sein können ("Both", "Most", "Wie"), bleiben deshalb lieber draußen.
+     */
+    private val SENTENCE_OPENERS = setOf(
+        "Der", "Die", "Das", "Den", "Dem", "Ein", "Eine", "Es", "Er", "Sie", "Wir", "Ich", "Du", "Dann", "Danach",
+        "Dabei", "Dafür", "Dagegen", "Damit", "Dazu", "Davon", "Deshalb", "Dort", "Hier", "Dieser", "Diese", "Dieses",
+        "Und", "Aber", "Oder", "Denn", "Doch", "Also", "Außerdem", "Wenn", "Weil", "Auch", "Nur", "Noch", "Beide",
+        "Alle", "In", "Im", "Am", "Auf", "Mit", "Für", "Von", "Bei", "Nach", "Vor", "Zu", "Ja", "Nein", "Heute",
+        "Morgen", "Sonst", "Was", "Wer",
+        "The", "It", "This", "That", "These", "Those", "There", "He", "She", "They", "We", "You", "I", "A", "But",
+        "And", "Or", "Then", "If", "When", "Its", "Their", "Yes", "For", "On", "At", "With", "Some",
+    )
+
+    /** Schließende Anführungszeichen und Klammern, die zwischen dem Punkt und dem nächsten Wort stehen dürfen. */
+    private const val CLOSING_MARKS = "\"“”«»‘’')]"
 
     private val MID_SENTENCE_ABBR = setOf(
         "ca", "Ca", "bzw", "evtl", "Evtl", "ggf", "Ggf", "inkl", "Inkl", "bzgl", "Bzgl", "Nr", "Mio", "Mrd", "Std",
