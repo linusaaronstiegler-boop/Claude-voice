@@ -58,10 +58,16 @@ fun main() {
 
     // 1. Sprache erzeugen: liefert zugleich das Testaudio für die Transkription.
     val tts = ElevenTts(eleven, http, voice)
+    // Fällt der schnelle WebSocket-Weg aus, springt still der langsamere HTTP-Weg ein. Für den Rauchtest
+    // wäre das ein falscher Erfolg, deshalb werden solche Meldungen gesammelt und als Fehler gewertet.
+    val ttsTrouble = java.util.concurrent.CopyOnWriteArrayList<String>()
+    tts.onTrouble = { ttsTrouble += it }
+    fun ttsClean() = check(ttsTrouble.isEmpty()) { "schneller Weg nicht sauber: ${ttsTrouble.joinToString("; ")}" }
     var speech16 = ByteArray(0)
     step("1 Sprache erzeugen") {
         val (pcm, firstMs, totalMs) = speak(tts, listOf(question))
         speech16 = resample24to16(pcm)
+        ttsClean()
         "erster Ton nach $firstMs ms, fertig nach $totalMs ms, ${pcm.size / 48} ms Audio"
     }
 
@@ -136,6 +142,7 @@ fun main() {
     step("4 Antwort sprechen") {
         check(sentences.isNotEmpty()) { "keine Antwort aus Schritt 3" }
         val (pcm, firstMs, totalMs) = speak(tts, sentences)
+        ttsClean()
         "erster Ton nach $firstMs ms, fertig nach $totalMs ms, ${pcm.size / 48} ms Audio"
     }
 
