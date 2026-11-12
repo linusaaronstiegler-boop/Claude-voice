@@ -105,9 +105,9 @@
       "answer": false,
       "length": "none",
       "gist": "",
-      "why": "The spoken punctuation shows he is dictating a message to Lina, so the question is addressed to her and not to Alfred, even though an assistant could answer it."
+      "why": "The spoken punctuation shows he is dictating a message to Lina, so the question is addressed to her and not to Alfred, even though an assistant could answer it. Disputed, because it is a real fact question the wearer himself cannot answer and it bears on the call time he is proposing, so a whispered 'eine Stunde' (Lisbon is one hour behind Germany all year) would also be defensible."
     },
-    "ambiguous": false,
+    "ambiguous": true,
     "tags": ["dictation", "spoken-punctuation", "fact-question-lookalike", "addressed-to-other", "walking"]
   },
   {
@@ -233,10 +233,10 @@
     "expect": {
       "answer": true,
       "length": "kurz",
-      "gist": "Bricht die laufende Erklärung sofort ab und bestätigt höchstens mit wenigen Worten, dass es zehn Minuten still bleibt; setzt die Erklärung nicht fort.",
-      "why": "A barge-in stop plus a mute command while Alfred is talking is clearly meant for Alfred even without the name and must be obeyed at once with a minimal confirmation."
+      "gist": "Bricht die laufende Erklärung sofort ab und bestätigt in zwei, drei Worten, dass er zehn Minuten still bleibt (etwa 'Alles klar, zehn Minuten Ruhe'); setzt die Erklärung nicht fort.",
+      "why": "A barge-in stop plus a mute command while Alfred is talking is clearly meant for Alfred even without the name and must be obeyed at once. The preferred reaction is a minimal confirmation, as Alfred gives for the same request in solo-12, so the wearer knows the ten minutes were understood. Disputed, because the wearer did not say the name and asked for quiet, so simply falling silent is also defensible."
     },
-    "ambiguous": false,
+    "ambiguous": true,
     "tags": ["command-stop", "command-mute", "barge-in", "no-name", "desk"]
   },
   {
