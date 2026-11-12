@@ -25,6 +25,11 @@ class Prefs(context: Context) {
         get() = sp.getString("eleven", "") ?: ""
         set(v) = sp.edit().putString("eleven", v.trim()).apply()
 
+    /** Optional: Schlüssel für Soniox als zweiten Transkriptions-Anbieter. Ist er gesetzt, wird Soniox genutzt. */
+    var sonioxKey: String
+        get() = sp.getString("soniox", "") ?: ""
+        set(v) = sp.edit().putString("soniox", v.trim()).apply()
+
     /** Stimme für die Sprachausgabe; Standard ist die Beispielstimme aus der ElevenLabs-Doku. */
     var voiceId: String
         get() = sp.getString("voice", DEFAULT_VOICE) ?: DEFAULT_VOICE

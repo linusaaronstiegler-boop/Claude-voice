@@ -21,6 +21,7 @@ import app.claudevoice.core.Pipeline
 import app.claudevoice.core.Profile
 import app.claudevoice.core.Reach
 import app.claudevoice.core.ScribeClient
+import app.claudevoice.core.SonioxClient
 import app.claudevoice.core.SpokenPart
 import app.claudevoice.core.Transcriber
 import app.claudevoice.core.UiState
@@ -68,6 +69,8 @@ class ListenService : Service() {
     private var standbyWatch: Job? = null
     private lateinit var prefs: Prefs
     private var micName = ""
+    private var keyterms: List<String> = emptyList()
+    private var synth: ElevenTts? = null
     private var notice: String? = null
 
     // --- Audio-Weiche -----------------------------------------------------------------------
@@ -130,10 +133,18 @@ class ListenService : Service() {
             notes = memory.notes(),
         )
 
-        val out = AndroidSpeaker(ElevenTts(prefs.elevenKey, http, prefs.voiceId), microphone.usingBluetooth)
+        val tts = ElevenTts(prefs.elevenKey, http, prefs.voiceId)
+        synth = tts
+        val out = AndroidSpeaker(this, tts, microphone.usingBluetooth, prefs.pauseMusic) { pipeline?.stopSpeaking() }
         speaker = out
+        val brain = Brain(AnthropicClaude(prefs.anthropicKey), profile)
+        // Vorwärmen, während der Nutzer noch gar nichts gesagt hat: Die Verbindung zur Sprachausgabe steht
+        // dann schon, und Claude hat Regeln und Gedächtnis bereits zwischengespeichert.
+        tts.warmUp()
+        scope.launch(Dispatchers.IO) { runCatching { brain.warmUp() } }
+        keyterms = names
         val pipe = Pipeline(
-            Brain(AnthropicClaude(prefs.anthropicKey), profile),
+            brain,
             out, AppState.ui, scope, Dispatchers.IO,
             Pipeline.Config(
                 names = names,
@@ -198,7 +209,7 @@ class ListenService : Service() {
     private fun openStream() {
         val pipe = pipeline ?: return
         AppState.ui.update { it.copy(status = "Verbinde …") }
-        val client = ScribeClient(prefs.elevenKey, http, object : Transcriber.Listener {
+        val listener = object : Transcriber.Listener {
             override fun onPartial(text: String, turnProbability: Double?) = pipe.onPartial(text, turnProbability)
 
             override fun onCommitted(text: String, speaker: String?, segment: Int?) {
@@ -228,7 +239,12 @@ class ListenService : Service() {
                     )
                 }
             }
-        })
+        }
+        // Zwei Anbieter stehen zur Wahl. Soniox (eigener Schlüssel) liefert Sprecher-Kürzel je Wort;
+        // ohne Soniox-Schlüssel läuft die Transkription über ElevenLabs.
+        val client: Transcriber =
+            if (prefs.sonioxKey.isNotEmpty()) SonioxClient(prefs.sonioxKey, http, listener, keyterms = keyterms)
+            else ScribeClient(prefs.elevenKey, http, listener, keyterms = keyterms)
         synchronized(gate) { transcriber = client }
         client.connect()
         if (wake != null) watchForStandby()
@@ -288,6 +304,7 @@ class ListenService : Service() {
         synchronized(gate) { transcriber.also { transcriber = null; live = false } }?.close()
         pipeline?.stop()
         speaker?.release()
+        synth?.close()
         wake?.close()
         scope.cancel()
         wakeLock?.let { if (it.isHeld) it.release() }

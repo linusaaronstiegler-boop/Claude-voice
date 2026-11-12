@@ -52,3 +52,29 @@ extra["wakewordDir"] = file("src/main/assets/wakeword")
 extra["wakewordRequired"] = true
 apply(from = rootProject.file("gradle/wakeword-models.gradle.kts"))
 tasks.named("preBuild") { dependsOn("downloadWakeWordModels") }
+
+// --- Tests der Oberfläche -------------------------------------------------------------------
+// Hier gibt es weder Emulator noch Gerät. Robolectric führt Android-Code direkt auf dem Rechner
+// (in der JVM) aus, Roborazzi speichert davon Bilder. So lässt sich die Oberfläche ansehen und
+// prüfen, ohne ein Handy anzuschließen:  ./gradlew :app:testDebugUnitTest
+// Die Bilder landen in app/build/outputs/roborazzi/ (der Ordner build/ wird nicht eingecheckt).
+android {
+    testOptions {
+        unitTests {
+            // Robolectric braucht das zusammengeführte Manifest und die Ressourcen der App.
+            isIncludeAndroidResources = true
+            all {
+                // "record" = Bilder bei jedem Testlauf neu schreiben (statt mit alten zu vergleichen).
+                it.systemProperty("roborazzi.test.record", "true")
+                it.maxHeapSize = "1g"
+            }
+        }
+    }
+}
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4") // Version kommt aus der Compose-BOM oben
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.76.0")
+}
