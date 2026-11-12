@@ -15,7 +15,9 @@ import android.os.Looper
 import android.view.KeyEvent
 import app.claudevoice.core.Speaker
 import app.claudevoice.core.SpeechSynth
+import app.claudevoice.core.synthesizeGated
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.delay
@@ -92,12 +94,14 @@ class AndroidSpeaker(
     @Volatile private var framesWritten = 0L
     private var session: MediaSession? = null
 
-    override suspend fun speak(sentences: ReceiveChannel<String>, onFirstAudio: () -> Unit) {
+    override suspend fun speak(sentences: ReceiveChannel<String>, release: Deferred<Boolean>?, onFirstAudio: () -> Unit) {
         var started = false
         var odd = -1 // einzelnes Byte, dessen Partner erst im nächsten Stück kommt (ein Sample = 2 Bytes)
         val pair = ByteArray(2)
         try {
-            synth.synthesize(sentences) { pcm, length ->
+            // Mit Schranke ([release]) wird schon Sprache erzeugt, aber noch nichts abgespielt: Fokus,
+            // Taste und Abspieler werden erst angefasst, wenn das erste Stück wirklich freigegeben ist.
+            synth.synthesizeGated(sentences, release) { pcm, length ->
                 if (!started) {
                     started = true
                     begin()
@@ -179,6 +183,8 @@ class AndroidSpeaker(
         stop()
         audio.abandonAudioFocusRequest(focusRequest)
     }
+
+    override fun prepare() = synth.prepare()
 
     override fun stop() {
         runCatching {

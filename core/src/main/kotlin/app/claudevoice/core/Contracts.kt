@@ -1,5 +1,6 @@
 package app.claudevoice.core
 
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.channels.ReceiveChannel
 
 /** Ein Stück einer Äußerung mit Sprecher-ID des Transkriptions-Anbieters (Diarisierung). */
@@ -51,6 +52,12 @@ interface SpeechSynth {
      * Kehrt zurück, wenn alles geliefert wurde. Wird die Coroutine abgebrochen, endet die Übertragung sofort.
      */
     suspend fun synthesize(sentences: ReceiveChannel<String>, onPcm: suspend (ByteArray, Int) -> Unit)
+
+    /**
+     * Verbindung schon einmal aufbauen, damit der nächste Satz schneller klingt.
+     * Kehrt sofort zurück, darf beliebig oft gerufen werden und darf nichts kosten, wenn schon alles bereit ist.
+     */
+    fun prepare() {}
 }
 
 /**
@@ -71,9 +78,20 @@ interface Speaker {
      * Spricht die eintreffenden Sätze nacheinander und kehrt zurück, wenn der letzte ausgespielt ist.
      * Kommt kein einziger Satz, passiert nichts (insbesondere wird fremde Musik nicht unterbrochen).
      * [onFirstAudio] wird aufgerufen, sobald der erste Ton hörbar wird.
+     *
+     * [release] ist eine Schranke vor dem Lautsprecher: Ist sie übergeben, wird sofort Sprache erzeugt,
+     * aber erst abgespielt, wenn sie `true` liefert. Bei `false` wird alles verworfen und nichts erklingt.
+     * So kann die Sprachausgabe schon arbeiten, während noch offen ist, ob ein Mensch selbst antwortet.
      */
-    suspend fun speak(sentences: ReceiveChannel<String>, onFirstAudio: () -> Unit = {})
+    suspend fun speak(
+        sentences: ReceiveChannel<String>,
+        release: Deferred<Boolean>? = null,
+        onFirstAudio: () -> Unit = {},
+    )
 
     /** Bricht die laufende Ausgabe sofort ab. */
     fun stop()
+
+    /** Sprachausgabe vorwärmen, weil gleich eine Antwort kommen könnte. Kehrt sofort zurück. */
+    fun prepare() {}
 }

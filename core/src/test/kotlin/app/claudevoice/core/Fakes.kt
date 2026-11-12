@@ -1,6 +1,7 @@
 package app.claudevoice.core
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlin.math.PI
 import kotlin.math.sin
@@ -32,7 +33,11 @@ class FakeSpeaker(private val gate: CompletableDeferred<Unit>? = null) : Speaker
     val spoken = mutableListOf<String>()
     var stops = 0
 
-    override suspend fun speak(sentences: ReceiveChannel<String>, onFirstAudio: () -> Unit) {
+    var prepares = 0
+
+    override suspend fun speak(sentences: ReceiveChannel<String>, release: Deferred<Boolean>?, onFirstAudio: () -> Unit) {
+        // Wie der echte Lautsprecher: Mit Schranke erklingt nichts, bevor sie sich öffnet; bei Nein gar nichts.
+        if (release != null && !release.await()) return
         var first = true
         for (s in sentences) {
             if (first) { onFirstAudio(); first = false }
@@ -42,6 +47,7 @@ class FakeSpeaker(private val gate: CompletableDeferred<Unit>? = null) : Speaker
     }
 
     override fun stop() { stops++ }
+    override fun prepare() { prepares++ }
 }
 
 class FakeEnv(var music: Boolean = false) : Pipeline.Env {
