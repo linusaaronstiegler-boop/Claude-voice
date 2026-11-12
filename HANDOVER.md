@@ -31,6 +31,11 @@ sieht keinerlei Sprecher-Schätzung, der Stimmfilter ist also komplett ausgefall
 | nachgeschärft (im Repo) | ohne | 126 von 133 (95 %) | 5 | 2 |
 | nachgeschärft (im Repo) | verrauscht, 72 Fälle | 62 von 68 (91 %) | 2 | 4 |
 
+Die Fassung im Repo enthält zusätzlich zwei spätere Klarstellungen (Merken nur auf ausdrückliche Bitte,
+Uhrzeit aus der Lage). Für sie gibt es nur einen Nachtest auf 42 gezielt gewählten Fällen: 30 richtig
+gegenüber 29 davor. Einzelne Fälle kippen von Lauf zu Lauf; Unterschiede von ein, zwei Fällen sind
+bei dieser Messart Rauschen.
+
 Zwei unabhängig geschriebene Alternativen (viele Beispiele; Entscheidungsverfahren) lagen auf
 denselben 72 Fällen mit je 88 % hinter der ersten Fassung (91 %) und wurden verworfen.
 
