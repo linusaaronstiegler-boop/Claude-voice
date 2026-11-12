@@ -203,7 +203,7 @@
     "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und Alfred, wie alt wird der jetzt eigentlich, 70 oder schon drüber"},
     "expect": {"answer": false, "length": "none", "gist": "", "why": "Alfred ist hier der Onkel, über den der Träger in der dritten Person mit seiner Tante spricht; die Frage ist persönlich und geht an sie, nicht an den Assistenten."},
     "ambiguous": false,
-    "tags": ["one-sided-call", "name-collision", "third-person", "personal-question", "name-first-word"]
+    "tags": ["one-sided-call", "name-collision", "third-person", "personal-question", "name-near-start"]
   },
   {
     "id": "call-12",
@@ -249,7 +249,7 @@
       {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja ich steh grad im Baumarkt vor den Leuchtmitteln"},
       {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "die alte Birne im Flur hatte 60 Watt, so eine klassische Glühbirne"},
       {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hier steht bei den LEDs überall nur Lumen drauf, 470, 806, 1055"},
-      {"ago_s": 13, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "keine Ahnung welche davon so hell ist wie die alte"}
+      {"ago_s": 13, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ich weiß echt nicht welche davon so hell ist wie die alte"}
     ],
     "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "weißt du wie viel Lumen so ne 60 Watt Birne hatte"},
     "expect": {"answer": true, "length": "kurz", "gist": "Rund 800 Lumen; von den genannten Packungen entspricht die mit 806 Lumen der alten 60-Watt-Glühbirne.", "why": "Offene Faktenfrage im Telefonat, die der Träger selbst nicht beantworten kann; strittig, weil sie mit 'weißt du' an den Anrufer geht und dessen Antwort über die AirPods nicht zu hören ist."},

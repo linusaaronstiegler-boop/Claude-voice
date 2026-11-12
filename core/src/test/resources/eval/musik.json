@@ -1,0 +1,322 @@
+[
+  {
+    "id": "mus-01",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 63, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "oh oh oh und der Kalender lügt"},
+      {"ago_s": 55, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "sag mir wie viele, wie viele, wie viele"},
+      {"ago_s": 50, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "wie viele, wie viele"},
+      {"ago_s": 44, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "wie viele Tage hat ein Jahr ohne dich, ich zähl sie alle"},
+      {"ago_s": 28, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na na na, zähl sie alle"},
+      {"ago_s": 11, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "sag mir wie viele, wie viele, wie viele"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wie viele Tage hat ein Jahr?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The wearer is singing along with the loudspeaker: the refrain lead-in has just played and the identical line came from the song 44 seconds earlier with its continuation, so his own near voice is delivering a lyric and not a question."
+    },
+    "ambiguous": false,
+    "tags": ["singing-along", "room-speaker", "lyric-echo", "fact-question-lookalike", "wearer-voice-near"]
+  },
+  {
+    "id": "mus-02",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 88, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Mhm mhm mhm."},
+      {"ago_s": 73, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "da da dam, da da"},
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "wo ist jetzt der, ach hier"},
+      {"ago_s": 37, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm mhm, yeah"},
+      {"ago_s": 20, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "und dann kommt doch dieses"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "wie ging das noch mal, na na na na"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Between humming, the wearer mutters a fragment about how a tune in his headphones continues; there is no name, no object and no fact an assistant could supply."
+    },
+    "ambiguous": false,
+    "tags": ["humming", "fragment", "self-talk", "recall-lookalike", "headphone-music"]
+  },
+  {
+    "id": "mus-03",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 66, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "tell me baby are you coming home tonight"},
+      {"ago_s": 54, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "home tonight, yeah yeah"},
+      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Puh. Zwölf Komma drei Kilometer."},
+      {"ago_s": 27, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "are you coming home, mhm mhm"},
+      {"ago_s": 12, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "wenn ich das im Oktober echt laufen will muss ich mehr machen"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "kurze Frage, wie lang ist ein Halbmarathon noch mal genau"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "21,0975 Kilometer, also rund 21,1 km.",
+      "why": "Out running alone, the wearer drops from sung English fragments into plain German and puts a fact question to the assistant; 'kurze Frage' and the running context call for the one-sentence form even though he is alone."
+    },
+    "ambiguous": false,
+    "tags": ["quick-question", "no-name", "after-singing", "wondering-aloud", "brevity-cue", "headphone-music"]
+  },
+  {
+    "id": "mus-04",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 58, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "hands up, hands up, everybody on the floor tonight"},
+      {"ago_s": 50, "who": "mona", "speaker": "partner", "proximity": "mittel", "text": "Tequila ist doch aus Kaktus, oder nicht?"},
+      {"ago_s": 44, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Kaktus? Nee, glaub nicht. Wart, ich frag mal eben."},
+      {"ago_s": 37, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "tell me do you feel it, do you feel it now"},
+      {"ago_s": 30, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey jar aus was"},
+      {"ago_s": 22, "who": "tresen-a", "speaker": "dritte", "proximity": "fern", "text": "Zwei Bier und ein Wasser bitte!"},
+      {"ago_s": 13, "who": "mona", "speaker": "partner", "proximity": "mittel", "text": "Hä? Ich versteh nix, ist so laut hier."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey charvis aus was wird feel it now die kila gemacht kaktus oder was"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Tequila wird aus der blauen Agave (Agave tequilana) hergestellt; die Agave ist kein Kaktus.",
+      "why": "Despite the mangled wake word, the lyric words bleeding into the line and 'die kila' for Tequila, the thread (Mona's cactus claim, 'ich frag mal eben', a first attempt drowned out by the music) shows the wearer putting an unanswered fact question to the assistant."
+    },
+    "ambiguous": false,
+    "tags": ["wake-word-garbled", "room-music", "stt-error", "lyric-intrusion", "party", "retry-after-cut-off"]
+  },
+  {
+    "id": "mus-05",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 67, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "should I stay or should I go now"},
+      {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na na na na, should I stay or should I go"},
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Boah, der Bass da."},
+      {"ago_s": 21, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm mhm mhm"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Von wem ist das eigentlich noch mal?"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "The Clash; der Song heißt 'Should I Stay or Should I Go' und erschien 1982 auf dem Album Combat Rock.",
+      "why": "Alone, the wearer wonders aloud about a fact; the microphone cannot hear the headphone music, but the title line he sang twice a minute earlier identifies the song, while those sung questions themselves needed no answer."
+    },
+    "ambiguous": false,
+    "tags": ["wondering-aloud", "song-identification", "referent-in-history", "sung-question-in-history", "headphone-music"]
+  },
+  {
+    "id": "mus-06",
+    "scene": "medien",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 66, "who": "song", "speaker": "medien", "proximity": "nah", "text": "Hey du, ja du, hörst du mir zu"},
+      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Gib mal den Inbus rüber."},
+      {"ago_s": 53, "who": "nele", "speaker": "partner", "proximity": "mittel", "text": "Welchen, den kleinen?"},
+      {"ago_s": 47, "who": "song", "speaker": "medien", "proximity": "nah", "text": "weißt du wie tief der Ozean ist, weißt du wie weit der Himmel reicht"},
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Ja den kleinen. Danke."},
+      {"ago_s": 24, "who": "song", "speaker": "medien", "proximity": "nah", "text": "sag mir, sag mir, was hält die Welt zusammen"},
+      {"ago_s": 11, "who": "nele", "speaker": "partner", "proximity": "mittel", "text": "So, das Regal steht."}
+    ],
+    "trigger": {"who": "song", "speaker": "medien", "proximity": "nah", "text": "Hey du, sag wie viele Sterne hat die Nacht?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The line comes from the loudspeaker next to the phone and continues the song's 'Hey du / weißt du / sag mir' pattern, while the two people in the room are only assembling a shelf and nobody asked anything."
+    },
+    "ambiguous": false,
+    "tags": ["room-speaker", "lyrics-address-you", "fact-question-lookalike", "media-near", "pseudo-address", "handy-mic"]
+  },
+  {
+    "id": "mus-07",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ha, ja genau."},
+      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hm."},
+      {"ago_s": 9, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Was? Bananen sind radioaktiv?"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ist das echt so oder erzählt der Quatsch"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "Ja, ganz leicht: Bananen enthalten viel Kalium und damit einen winzigen natürlichen Anteil des radioaktiven Kalium-40; die Strahlendosis ist so gering, dass sie gesundheitlich völlig unbedenklich ist.",
+      "why": "Alone with a podcast only he can hear, the wearer repeats the claim aloud and then genuinely wonders whether it is true, so the fact to check is in the transcript even though the podcast is not."
+    },
+    "ambiguous": false,
+    "tags": ["podcast-reaction", "wondering-aloud", "referent-in-history", "fact-check", "headphone-media"]
+  },
+  {
+    "id": "mus-08",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 82, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Mhm."},
+      {"ago_s": 63, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ach krass."},
+      {"ago_s": 36, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja ja, das sagen sie immer."},
+      {"ago_s": 12, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee, oder?"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Moment, ist das wirklich so?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The wearer is reacting to a podcast only he can hear and nothing in the transcript says what 'das' is, so there is no fact to check and any answer would have to be invented. Disputed, because he is alone and plainly wonders whether something is true, so a brief 'Was meinst du?' instead of silence would also be defensible; naming or checking a made-up claim is wrong either way."
+    },
+    "ambiguous": true,
+    "tags": ["podcast-reaction", "no-referent", "backchannel", "no-hallucination", "headphone-media", "minimal-pair-mus-07"]
+  },
+  {
+    "id": "mus-09",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 79, "who": "lenny", "speaker": "partner", "proximity": "fern", "text": "Ey, wie breit ist dein Schreibtisch?"},
+      {"ago_s": 72, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Eins vierzig, wieso?"},
+      {"ago_s": 60, "who": "lenny", "speaker": "partner", "proximity": "fern", "text": "Ich bestell grad den Monitor!"},
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm mhm mhm"},
+      {"ago_s": 15, "who": "lenny", "speaker": "partner", "proximity": "fern", "text": "Du, der hat siebenundzwanzig Zoll in der Diagonale."}
+    ],
+    "trigger": {"who": "lenny", "speaker": "partner", "proximity": "fern", "text": "Wie viel Zentimeter sind das noch mal, weißt du das?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "27 Zoll sind rund 68,6 Zentimeter (ein Zoll = 2,54 cm).",
+      "why": "The voice is far away, but the earlier back-and-forth shows the flatmate in the next room is the wearer's actual conversation partner, and he asks an unanswered conversion fact the wearer can simply shout back."
+    },
+    "ambiguous": false,
+    "tags": ["flatmate", "other-room", "far-voice-partner", "unit-conversion", "proximity-trap", "headphone-music"]
+  },
+  {
+    "id": "mus-10",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 97, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ich hab die Lasagne grad reingeschoben, Wecker läuft!"},
+      {"ago_s": 90, "who": "piet", "speaker": "partner", "proximity": "fern", "text": "Okay!"},
+      {"ago_s": 62, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm mhm, oh yeah"},
+      {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na na na na"},
+      {"ago_s": 17, "who": "piet", "speaker": "partner", "proximity": "fern", "text": "Du, ich hab mega Hunger."}
+    ],
+    "trigger": {"who": "piet", "speaker": "partner", "proximity": "fern", "text": "Wie lange braucht die Lasagne noch?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "It is shaped like a cooking-time fact question but asks about this particular lasagne and the wearer's own timer, a logistical matter between flatmates that only the wearer can answer."
+    },
+    "ambiguous": false,
+    "tags": ["flatmate", "other-room", "logistical", "fact-question-lookalike", "headphone-music", "minimal-pair-mus-09"]
+  },
+  {
+    "id": "mus-11",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 47,
+    "history": [
+      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "wie lang, wie lang hält ein Sommer an"},
+      {"ago_s": 51, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Der astronomische Sommer dauert auf der Nordhalbkugel rund 93 Tage."},
+      {"ago_s": 44, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Oh Mann, ich sing doch bloß mit."},
+      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm mhm mhm"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred, halt dich jetzt mal bitte ne halbe Stunde raus, ich will einfach nur das Album hören."},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Bestätigt in zwei, drei Worten, dass er die nächste halbe Stunde still bleibt (etwa 'Alles klar, halbe Stunde Ruhe'); keine Rückfrage, keine Entschuldigungsrede und keine Zusatzinfo.",
+      "why": "A command addressed to Alfred by name gets a response, and after his false trigger on a sung line the only helpful one is a minimal confirmation that the half-hour of silence was understood."
+    },
+    "ambiguous": false,
+    "tags": ["command-mute", "by-name", "minimal-ack", "after-false-trigger", "length-control", "headphone-music"]
+  },
+  {
+    "id": "mus-12",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 68, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "we will, we will rock you"},
+      {"ago_s": 59, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alexa, lauter!"},
+      {"ago_s": 55, "who": "alexa", "speaker": "medien", "proximity": "mittel", "text": "Okay."},
+      {"ago_s": 41, "who": "song", "speaker": "medien", "proximity": "nah", "text": "we will, we will rock you"},
+      {"ago_s": 24, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na na na, rock you"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alexa, wer singt das eigentlich?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The wearer addresses the smart speaker by its own wake word, exactly as he did a minute earlier for the volume, so the question is meant for that device, which will answer it itself; Alfred talking over it would only add a second voice."
+    },
+    "ambiguous": false,
+    "tags": ["other-assistant", "foreign-wake-word", "song-identification", "room-speaker", "wearer-voice-near", "minimal-pair-mus-05"]
+  },
+  {
+    "id": "mus-13",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 83, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm mhm mhm"},
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Krass wie still das wird sobald man die Dinger reindrückt."},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na na na"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Jarvis, erklär mir mal in Ruhe und gern ausführlich wie dieses Neuss Cancelling eigentlich funktioniert, ich hab grad eh Zeit."},
+    "expect": {
+      "answer": true,
+      "length": "lang",
+      "gist": "Kernaussage zuerst: Mikrofone am Hörer nehmen den Umgebungslärm auf, die Elektronik erzeugt dazu ein gegenphasiges Signal (Antischall), das der Lautsprecher mit abspielt, sodass sich Lärm und Gegenschall weitgehend auslöschen (destruktive Interferenz). Danach Kontext: Das klappt am besten bei tiefen, gleichmäßigen Geräuschen wie Motor- oder Flugzeugbrummen, während hohe und plötzliche Geräusche vor allem durch die Abdichtung der Stöpsel gedämpft werden; insgesamt höchstens etwa sechs Sätze.",
+      "why": "The wearer addresses the assistant by its second name, explicitly asks for a detailed explanation and is alone with time to spare, which is the one situation where the long form is right; 'Neuss Cancelling' is a misrecognised 'Noise Cancelling', as his remark about the earbuds shows."
+    },
+    "ambiguous": false,
+    "tags": ["by-name", "jarvis-alias", "explain-in-detail", "length-lang", "stt-error", "headphone-music"]
+  },
+  {
+    "id": "mus-14",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 6,
+    "history": [
+      {"ago_s": 78, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "seit wann, sag mir seit wann bist du so kalt"},
+      {"ago_s": 65, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "und seit wann, sag mir seit wann, oh oh"},
+      {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na na na na"},
+      {"ago_s": 18, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred, wie viele Tasten hat ein Klavier?"},
+      {"ago_s": 10, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Achtundachtzig, 52 weiße und 36 schwarze."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Und seit wann, sag mir seit wann"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "It lands six seconds after Alfred's answer and reads like a follow-up, but it repeats word for word the chorus line the wearer sang a minute earlier, so he has simply gone back to singing along."
+    },
+    "ambiguous": false,
+    "tags": ["follow-up-lookalike", "singing-along", "assistant-recent", "lyric-repeat", "headphone-music"]
+  }
+]
