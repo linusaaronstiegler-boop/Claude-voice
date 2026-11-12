@@ -11,9 +11,10 @@ package app.claudevoice.core
  *    Spätere Sätze werden erst ab [minLength] Zeichen abgetrennt: größere Stücke klingen flüssiger,
  *    und sobald schon gesprochen wird, kostet das Warten keine Zeit mehr.
  *
- * 2. Ein Punkt nach einer Abkürzung ("z. B.", "Dr."), einem einzelnen Buchstaben oder einer Zahl
+ * 2. Ein Punkt nach einer Abkürzung ("z. B.", "Dr."), einem einzelnen Buchstaben oder einer kurzen Zahl
  *    ("am 3. Mai") ist kein Satzende. Lieber einmal zwei Sätze zusammen sprechen als mitten in
- *    "am dritten Mai" eine Pause setzen.
+ *    "am dritten Mai" eine Pause setzen. Die Regel dafür steht in [SpokenText.dotEndsSentence], weil
+ *    dieselbe Stelle später auch die Zahlen ausschreibt und beide dasselbe unter einem Satz verstehen müssen.
  */
 class SentenceChunker(private val minLength: Int = 25) {
     private val pending = StringBuilder()
@@ -27,7 +28,7 @@ class SentenceChunker(private val minLength: Int = 25) {
         while (i < pending.length - 1) {
             val c = pending[i]
             val endsSentence = (c == '.' || c == '!' || c == '?' || c == '…') &&
-                pending[i + 1].isWhitespace() && !(c == '.' && isAbbreviationBefore(i, start))
+                pending[i + 1].isWhitespace() && (c != '.' || SpokenText.dotEndsSentence(pending, i))
             val longEnough = emitted == 0 || i + 1 - start >= minLength
             if ((endsSentence && longEnough) || c == '\n') {
                 val s = pending.substring(start, i + 1).trim()
@@ -48,23 +49,5 @@ class SentenceChunker(private val minLength: Int = 25) {
         val s = pending.toString().trim()
         pending.setLength(0)
         return s.ifEmpty { null }
-    }
-
-    /** Steht direkt vor dem Punkt an Stelle [dot] ein Wort, nach dem ein Punkt keinen Satz beendet? */
-    private fun isAbbreviationBefore(dot: Int, start: Int): Boolean {
-        var from = dot
-        while (from > start && pending[from - 1].isLetterOrDigit()) from--
-        if (from == dot) return false // kein Wort davor, etwa nach einer Klammer
-        val token = pending.substring(from, dot)
-        if (token.length == 1) return true // "z. B.", "u. a.", Initialen
-        if (token.all { it.isDigit() }) return true // "3. Mai", "1. FC"
-        return token.lowercase() in ABBREVIATIONS
-    }
-
-    private companion object {
-        val ABBREVIATIONS = setOf(
-            "ca", "bzw", "dr", "prof", "nr", "st", "str", "hr", "fr", "mr", "mrs", "ms", "vs", "ggf", "evtl",
-            "inkl", "zzgl", "sog", "bzgl", "abs", "art", "vgl", "tel", "mio", "mrd", "jh", "chr", "approx", "no",
-        )
     }
 }
