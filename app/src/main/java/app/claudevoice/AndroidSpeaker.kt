@@ -82,6 +82,13 @@ class AndroidSpeaker(
         .setTransferMode(AudioTrack.MODE_STREAM)
         .build()
 
+    init {
+        // Ohne diese Zeile wartet Android, bis der ganze Puffer (eine halbe Sekunde) gefüllt ist, bevor
+        // der erste Ton kommt. Ein "Ja." ist kürzer als das und würde nie abgespielt. Mit der Schwelle
+        // beginnt die Wiedergabe nach etwa 20 ms Ton; der große Puffer bleibt als Reserve gegen Ruckler.
+        runCatching { track.setStartThresholdInFrames(synth.sampleRate / 50) }
+    }
+
     @Volatile private var framesWritten = 0L
     private var session: MediaSession? = null
 
@@ -113,9 +120,12 @@ class AndroidSpeaker(
                 }
             }
             if (started) {
-                // Erst zurückkehren, wenn der letzte Satz auch wirklich zu Ende gespielt ist.
-                withTimeoutOrNull(20_000) {
-                    while ((track.playbackHeadPosition.toLong() and 0xFFFFFFFFL) < framesWritten) delay(20)
+                // Erst zurückkehren, wenn der letzte Satz auch wirklich zu Ende gespielt ist. Gewartet wird
+                // höchstens so lange, wie der noch ausstehende Ton dauert, plus etwas Luft. Eine feste lange
+                // Frist würde die App blockieren, falls die Wiedergabe einmal hängt.
+                val outstandingMs = (framesWritten - playedFrames()).coerceAtLeast(0) * 1000 / synth.sampleRate
+                withTimeoutOrNull(outstandingMs + 300) {
+                    while (playedFrames() < framesWritten) delay(20)
                 }
             }
         } catch (e: CancellationException) {
@@ -155,10 +165,18 @@ class AndroidSpeaker(
         track.play()
     }
 
-    /** Antwort vorbei: Taste und Fokus zurückgeben, die Musik läuft von selbst weiter. */
+    /** Wie viele Samples Android seit dem Start dieser Antwort wirklich abgespielt hat. */
+    private fun playedFrames(): Long = track.playbackHeadPosition.toLong() and 0xFFFFFFFFL
+
+    /**
+     * Antwort vorbei: Taste zurückgeben, den Abspieler anhalten und leeren, dann den Fokus abgeben
+     * (die Musik läuft von selbst weiter). Das Leeren sorgt dafür, dass jede Antwort mit einem leeren
+     * Puffer beginnt und kein Rest der vorigen vor ihr erklingt.
+     */
     private fun end() {
         runCatching { session?.release() }
         session = null
+        stop()
         audio.abandonAudioFocusRequest(focusRequest)
     }
 
