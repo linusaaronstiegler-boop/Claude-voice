@@ -57,15 +57,15 @@
     "music_playing": false,
     "assistant_spoke_ago_s": null,
     "history": [
-      {"ago_s": 112, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Good morning everyone and thank you for having me today."},
-      {"ago_s": 103, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Let me start with a question. How long does light from the sun need to reach us? Roughly eight minutes."},
-      {"ago_s": 91, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Eight minutes. So the sun you see is always the sun from eight minutes ago."},
+      {"ago_s": 112, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "good morning everyone and thank you for having me today"},
+      {"ago_s": 103, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "let me start with a question. how long does light from the sun need to reach us? roughly eight minutes"},
+      {"ago_s": 91, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "eight minutes. so the sun you see is always the sun from eight minutes ago"},
       {"ago_s": 78, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "ne das klingt zu steif. nochmal von vorne"},
-      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Good morning everybody. Thanks for having me."},
-      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "I'd like to open with a simple question."},
+      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "good morning everybody. thanks for having me"},
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "I'd like to open with a simple question"},
       {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Folie eins. klick. okay"}
     ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "How long does sunlight actually take to reach the earth?"},
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "how long does sunlight actually take to reach the earth"},
     "expect": {
       "answer": false,
       "length": "none",
@@ -132,15 +132,15 @@
     "music_playing": false,
     "assistant_spoke_ago_s": null,
     "history": [
-      {"ago_s": 104, "who": "tv-crew", "speaker": "medien", "proximity": "nah", "text": "Commander the bulkhead on deck four is solid titanium. The cutter is not getting through."},
-      {"ago_s": 95, "who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Jarvis, seal off deck four."},
-      {"ago_s": 90, "who": "tv-computer", "speaker": "medien", "proximity": "nah", "text": "Deck four sealed, Commander."},
+      {"ago_s": 104, "who": "tv-crew", "speaker": "medien", "proximity": "nah", "text": "Commander the bulkhead on deck four is solid titanium. the cutter is not getting through"},
+      {"ago_s": 95, "who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Jarvis seal off deck four"},
+      {"ago_s": 90, "who": "tv-computer", "speaker": "medien", "proximity": "nah", "text": "deck four sealed Commander"},
       {"ago_s": 77, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "boah die Effekte sehen aus wie von 2005"},
-      {"ago_s": 61, "who": "tv-crew", "speaker": "medien", "proximity": "nah", "text": "They have maybe ten minutes of air left in there, sir."},
+      {"ago_s": 61, "who": "tv-crew", "speaker": "medien", "proximity": "nah", "text": "they have maybe ten minutes of air left in there sir"},
       {"ago_s": 48, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "na dann macht halt die Tür auf Leute"},
-      {"ago_s": 27, "who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Then we burn through it. Get me the plasma torch."}
+      {"ago_s": 27, "who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "then we burn through it. get me the plasma torch"}
     ],
-    "trigger": {"who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Jarvis, what temperature does titanium melt at?"},
+    "trigger": {"who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Jarvis what temperature does titanium melt at"},
     "expect": {
       "answer": false,
       "length": "none",
@@ -323,7 +323,7 @@
     "expect": {
       "answer": true,
       "length": "kurz",
-      "gist": "A brief confirmation that repeats the corrected details: noted, Tessa's parents land Thursday at 7:40 pm, Terminal 2 (not 6:40).",
+      "gist": "A brief confirmation that repeats the corrected details: noted, Tessa's parents land Thursday at 7:40 pm, Terminal 2 (not 6:40). Only where the voice of the trigger is not verified as the wearer's (always so in the run without speaker estimates): no note is taken, just a few words that he accepts this only from the wearer himself.",
       "why": "Der Träger ruft den Assistenten mit dem Weckwort und gibt einen Merkauftrag; dass der Inhalt reine Terminlogistik ist, spielt bei direkter Anrede keine Rolle, und bestätigt wird die korrigierte Uhrzeit."
     },
     "ambiguous": false,
