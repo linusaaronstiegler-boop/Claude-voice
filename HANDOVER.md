@@ -1,5 +1,58 @@
 # Projektprotokoll (neueste zuerst)
 
+## 2026-11-12 (Prüfrunde) – unabhängige Durchsichten, Reparaturen, neues Design
+Anlass: Frage „Wie gut ist es schon, geht es besser?“. Antwort der Prüfrunde: gebaut und schlüssig,
+aber mit Fehlern, die beim ersten Gerätetest sofort aufgefallen wären.
+
+**Durchsichten (je ein Prüfer, jeder Fund von einem zweiten Agenten angegriffen)**
+Fünf Durchsichten: Nebenläufigkeit, Android-Dienst, Latenz, Textverarbeitung, Anweisungen.
+29 Funde, alle bestätigt, keiner widerlegt. Die wichtigsten:
+- Antworten unter einer halben Sekunde („Ja.“) wurden nie abgespielt, die App hing danach 20 s.
+- Eine Korrektur während des Wartens auf das Modell wurde verworfen, die alte Frage beantwortet.
+- „Hey Jarvis“, Pause, Frage: nur „Ja, Sir?“ war zu hören, die Frage ging unter.
+- Nach längerer Geräuschpause galt die eigene Stimme als fremd (Merken/Stummschalten abgelehnt).
+- Die Kopfhörer-Prüfung sah nur „Bluetooth verbunden“: Autoradio oder Box hätten laut abgespielt.
+- Start blockierte den Hauptfaden (Schlüsselspeicher, Modelle, verknüpfte Dateien).
+- Steuerzeilen des Modells (SAY/MEMO/MUTE) wurden bei kleiner Abweichung vorgelesen statt ausgeführt.
+- Am Handy-Mikro entsteht nie das Etikett ICH; das Modell hielt das eigene Gespräch für fremd.
+
+**Eingespielt**
+- ScribeClient und ElevenTts unabhängig gegen Dokumentation (und Scribe gegen den echten Dienst ohne
+  Schlüssel) geprüft: 8 bzw. 12 Fehler behoben. Rauchtest wertet einen stillen Rückfall der
+  Sprachausgabe auf HTTP jetzt als Fehler.
+- AndroidSpeaker: Startschwelle 20 ms, Warten nach ausstehendem Ton, Puffer nach jeder Antwort leeren.
+- SentenceChunker: erster Satz sofort; ob ein Punkt einen Satz beendet, entscheidet
+  `SpokenText.dotEndsSentence` (gemeinsame Regel mit der Zahlen-Aussprache).
+- Schranke vor dem Lautsprecher (`Speaker.speak(..., release)`, `synthesizeGated`): Sprache wird schon
+  erzeugt, während noch offen ist, ob ein Mensch antwortet. `Speaker.prepare()` zum Vorwärmen.
+- Vorfilter gehärtet (`Heuristics`, `HeuristicWords`): Satzform statt Wortanfang, Namen nach Klang.
+  Tabelle 887 Zeilen, 786 richtig (vorher 492 von 782), kein Wissenswunsch mehr in COLD, 13 blinde
+  Flecken im Test benannt. Neu: `PrefilterOnCasesTest` legt jeden Testfall am Vorfilter vorbei.
+- `SpokenText.clean()`: schreibt Zahlen, Einheiten, Daten, Abkürzungen aus (noch nicht eingehängt).
+- Oberfläche: Dunkelmodus und Glas-Optik (Haze 1.6.10), Erscheinungsbild System/Hell/Dunkel in den
+  Einstellungen (`Prefs.appearance`), Farben in `ui/Theme.kt`. Bilder:
+  `./gradlew :app:testDebugUnitTest -PohneWeckwort`, dann `app/build/outputs/roborazzi/`.
+- Testfälle: alle neun Dateien von je zwei Prüfern gegengelesen (15 Korrekturen), dazu
+  `vorpruefung.json` mit 24 neuen Fällen, deren Auslöser nur über die Vorprüfung läuft. 164 Fälle.
+
+**Gemessen (Ersatzmessung mit Agenten, nicht die echte API)**
+- Vorprüfung (Haiku), 37 Fälle x 3 Darstellungen: bestehende Anweisung lässt 62 von 63 Antwort-Fällen
+  durch und sortiert 34 von 48 Schweige-Fällen aus. Eine überarbeitete Fassung war nicht besser
+  (62 von 63, 27 von 48) und wurde verworfen.
+- Hauptanweisung auf den 24 neuen, unverbrauchten Fällen: 64 von 72 richtig (89 %), 2 Fehlauslöser,
+  6 verpasste Antworten. Schwachstellen: Frage des Banknachbarn im Unterricht wird als Unterricht
+  übergangen; laut gerechnete Aufgabe und unsichere Vermutung des Trägers, wenn er allein ist; allein
+  wählt das Modell „kurz“, wo „mittel“ erwartet war.
+
+**Entschieden**
+- Mikrofon-Standard bleibt das Kopfhörer-Mikro (Wunsch des Besitzers, beste Stimmerkennung). Seine
+  Nebenwirkungen (Musik in Telefonqualität, andere Apps ohne Mikrofon, Taste legt auf) gehören als
+  Hinweis in die Oberfläche. Das Handy-Mikro wird trotzdem repariert.
+
+**Stand der Tests**: 220 Kern-Tests (1 übersprungen ohne Schlüssel), 56 App-Tests, alle grün.
+
+**Nicht geprüft**: weiterhin kein Lauf mit echten Schlüsseln und keiner auf einem Gerät.
+
 ## 2026-11-12 – Version 2: Tempo, Filter, Persona, Weckwort
 **Gebaut**
 - Ein gestreamter Sonnet-Aufruf entscheidet und antwortet (erste Zeile `SKIP`/`SAY`); billige
