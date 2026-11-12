@@ -82,6 +82,24 @@ object Heuristics {
         return words(t).size <= 6 && mentionsName(t, name) && STOP_WORDS.any { Regex("\\b${Regex.escape(it)}\\b").containsMatchIn(t) }
     }
 
+    private val BARE_STOPS = setOf("stopp", "stop", "ruhe", "halt", "still", "reicht", "danke", "quiet")
+    private val FILLERS = setOf(
+        "äh", "ähm", "hm", "hmm", "mhm", "ja", "okay", "ok", "ach", "ah", "oh", "genau", "also", "na", "tja",
+        "weiß", "nicht", "keine", "ahnung", "gute", "frage", "moment", "warte", "uh", "um", "well",
+    )
+
+    /** Ein bloßes "stopp" oder "danke, reicht" ohne Namen. Gilt nur, während der Assistent spricht. */
+    fun isBareStop(text: String): Boolean {
+        val w = words(text)
+        return w.size in 1..3 && w.any { it in BARE_STOPS }
+    }
+
+    /**
+     * Hat hier jemand inhaltlich etwas gesagt (mindestens zwei Wörter, die kein Füllsel sind)?
+     * "Ähm, keine Ahnung" zählt nicht: Wer so reagiert, kennt die Antwort nicht und freut sich über Hilfe.
+     */
+    fun isRealContent(text: String): Boolean = words(text).count { it !in FILLERS } >= 2
+
     /** Levenshtein-Abstand: wie viele Buchstaben muss man einfügen, löschen oder tauschen. */
     fun editDistance(a: String, b: String): Int {
         if (a == b) return 0

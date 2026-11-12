@@ -1,0 +1,353 @@
+[
+  {
+    "id": "solo-01",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 58, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "okay also, pre heat the oven to 350 degrees"},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "grease a nine inch pan ja ja hab ich schon"},
+      {"ago_s": 33, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "two cups of flour, one tea spoon backing soda, a pinch of salt"},
+      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "so Mehl ist drin jetzt den Ofen an"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Moment 350 das ist ja Farenheit, was wären das denn bei uns in Celsius"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "350 Grad Fahrenheit sind rund 175 bis 180 Grad Celsius (genau etwa 177); optional der Hinweis, bei Umluft etwas niedriger einzustellen.",
+      "why": "The wearer is alone and wonders aloud about a convertible fact after reading the recipe; the read-aloud recipe lines themselves needed no answer."
+    },
+    "ambiguous": false,
+    "tags": ["wondering-aloud", "reading-aloud", "unit-conversion", "no-name", "cooking", "code-switching"]
+  },
+  {
+    "id": "solo-02",
+    "scene": "solo",
+    "mic": "handy",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 74, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "so Kapitel vier ist durch jetzt die Kontrollfragen hinten"},
+      {"ago_s": 61, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Erstens. Nennen Sie die drei Staatsgewalten und je ein Organ, das sie ausübt."},
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "legislative exekutive judikative, bundestag regierung gerichte, okay easy"},
+      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Zweitens. Erläutern Sie den Unterschied zwischen Bundestag und Bundesrat."},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "puh das schreib ich nachher sauber auf"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Drittens. In welchem Jahr trat das Grundgesetz in Kraft?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "He is reading numbered review questions from the textbook aloud and working through them himself, so the fact question is study material and not a request to Alfred."
+    },
+    "ambiguous": false,
+    "tags": ["reading-aloud", "self-study", "fact-question-lookalike", "no-name", "desk"]
+  },
+  {
+    "id": "solo-03",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 66, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Angebot Heizungstausch, Luft Wasser Wärmepumpe, Jahresarbeitszahl 3,8"},
+      {"ago_s": 50, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "inklusive Pufferspeicher und hydraulischem Abgleich, aha"},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ich versteh ehrlich gesagt nur Bahnhof"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred ich hab grad Zeit, erklär mir mal richtig ausführlich wie so ne Wärmepumpe funktioniert, ruhig Schritt für Schritt"},
+    "expect": {
+      "answer": true,
+      "length": "lang",
+      "gist": "Eine Wärmepumpe holt Wärme aus der Umgebung (Außenluft, Erdreich oder Grundwasser): ein Kältemittel verdampft schon bei niedriger Temperatur und nimmt diese Wärme auf; ein elektrischer Kompressor verdichtet den Dampf, wodurch er heiß wird; im Wärmetauscher gibt er die Wärme an das Heizwasser ab und wird wieder flüssig; ein Expansionsventil senkt den Druck, dann beginnt der Kreislauf von vorn. Aus einer Kilowattstunde Strom werden so etwa drei bis vier Kilowattstunden Wärme (das meint die Jahresarbeitszahl); Prinzip wie ein umgekehrter Kühlschrank.",
+      "why": "Direct address by name with an explicit request for a detailed step-by-step explanation while alone and with time, which is the one situation that calls for a long answer."
+    },
+    "ambiguous": false,
+    "tags": ["direct-address", "explain-in-detail", "lang", "reading-aloud", "desk"]
+  },
+  {
+    "id": "solo-04",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 53, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ich lauf durch die Straßen die Stadt ist so leer"},
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "und alles was bleibt ist ein Lichtermeer"},
+      {"ago_s": 36, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "oh oh oh oh"},
+      {"ago_s": 25, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "tell me why tell me why did you go"},
+      {"ago_s": 16, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "tell me why"},
+      {"ago_s": 7, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "sag mir ob sich die Reise lohnt"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "wie viele Meilen sind es noch bis zum Mond"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Rhyming, repeated lines sung along to the music in the headphones are lyrics, and the question inside them is not a real question."
+    },
+    "ambiguous": false,
+    "tags": ["singing-along", "lyrics", "fact-question-lookalike", "no-name", "walking"]
+  },
+  {
+    "id": "solo-05",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nachricht an Lina"},
+      {"ago_s": 39, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Lina Komma bin grad noch unterwegs Punkt"},
+      {"ago_s": 26, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ich ruf dich heute Abend an Komma passt dir neun Uhr bei mir Fragezeichen"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "sag mal Komma seid ihr in Lissabon eigentlich eine Stunde hinter uns oder zwei Fragezeichen"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The spoken punctuation shows he is dictating a message to Lina, so the question is addressed to her and not to Alfred, even though an assistant could answer it."
+    },
+    "ambiguous": false,
+    "tags": ["dictation", "spoken-punctuation", "fact-question-lookalike", "addressed-to-other", "walking"]
+  },
+  {
+    "id": "solo-06",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 62, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na Fredi wo hast du denn den Socken schon wieder her"},
+      {"ago_s": 53, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "gib her, komm, gib aus"},
+      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja fein, wer ist ein feiner Junge, du bist das"},
+      {"ago_s": 27, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "willst du raus hm? gleich, ich mach das hier noch fertig"},
+      {"ago_s": 9, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "nee nee nicht das Ladekabel Freddy"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred stopp, aus, pfui, lass das los"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "He is scolding the dog Fredi; the name in the transcript is a misrecognition, Alfred has not been speaking so there is nothing to stop, and the rest are dog commands."
+    },
+    "ambiguous": false,
+    "tags": ["pet", "stt-name-error", "command-lookalike", "name-collision", "home"]
+  },
+  {
+    "id": "solo-07",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "zwölf dreizehn vierzehn und ab"},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "puh okay einer geht noch"},
+      {"ago_s": 11, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "oh Mann das Regal, die Bohrmaschine fehlt mir ja immer noch"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfried merk dir mal bitte ich muss den Tobi noch fragen wann er mir die Bohrmaschine zurückbringt"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Kurze Bestätigung, dass notiert ist: Tobi fragen, wann er die Bohrmaschine zurückbringt. Kein Versuch, die eingebettete Frage selbst zu beantworten.",
+      "why": "Direct address (name slightly misrecognised) with a remember command; the embedded question is the content of the note and not a question for Alfred."
+    },
+    "ambiguous": false,
+    "tags": ["direct-address", "command-remember", "stt-name-error", "embedded-question", "gym"]
+  },
+  {
+    "id": "solo-08",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 56, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "so die Rechnung ist raus"},
+      {"ago_s": 42, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "dann noch die Folien für Donnerstag"},
+      {"ago_s": 23, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ach Mist der Zahnarzt ist ja auch Donnerstag"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Donnerstag elf Uhr Zahnarzt das muss ich mir echt merken sonst verpenn ich das wieder"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Self-talk statement without a question and without addressing Alfred; the remembering refers to the wearer himself, not to a command."
+    },
+    "ambiguous": false,
+    "tags": ["self-talk", "statement", "command-lookalike", "no-name", "desk"]
+  },
+  {
+    "id": "solo-09",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 33,
+    "history": [
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred wie hoch ist eigentlich die Zugspitze"},
+      {"ago_s": 39, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Die Zugspitze ist 2962 Meter hoch und damit der höchste Berg Deutschlands."},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ah knapp dreitausend okay"},
+      {"ago_s": 15, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "oh oh und wir fliegen davon"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und der in Österreich wie hoch ist der"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "Der höchste Berg Österreichs ist der Großglockner mit 3798 Metern.",
+      "why": "Elliptical follow-up to Alfred's own answer about the Zugspitze by a wearer who is alone; the sung line in between is irrelevant and has to be skipped."
+    },
+    "ambiguous": false,
+    "tags": ["follow-up", "elliptical", "no-name", "singing-along", "walking"]
+  },
+  {
+    "id": "solo-10",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 3,
+    "history": [
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ein Esslöffel Sojasoße, na toll die Esslöffel sind alle in der Spülmaschine"},
+      {"ago_s": 13, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred wie viele Teelöffel sind noch mal ein Esslöffel"},
+      {"ago_s": 8, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Ein Esslöffel entspricht drei Teelöffeln, also etwa 15 Millilitern."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "ah drei okay danke hätt ich jetzt weniger gedacht na dann"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "A closing acknowledgement right after Alfred's answer contains no question, so any reply would only be chatter."
+    },
+    "ambiguous": false,
+    "tags": ["after-alfred", "acknowledgement", "statement", "no-question", "cooking"]
+  },
+  {
+    "id": "solo-11",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 0,
+    "history": [
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "so die Gehaltsabrechnung mal gucken was da diesmal steht"},
+      {"ago_s": 17, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred was ist noch mal genau der Unterschied zwischen brutto und netto"},
+      {"ago_s": 12, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Brutto ist dein Gehalt vor allen Abzügen, netto das, was danach auf deinem Konto landet. Abgezogen werden die Lohnsteuer, eventuell Kirchensteuer und die Beiträge zur Renten-, Kranken-, Pflege- und"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "stopp stopp reicht schon, und jetzt bitte mal zehn Minuten Ruhe ich muss das hier durchrechnen"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Bricht die laufende Erklärung sofort ab und bestätigt höchstens mit wenigen Worten, dass es zehn Minuten still bleibt; setzt die Erklärung nicht fort.",
+      "why": "A barge-in stop plus a mute command while Alfred is talking is clearly meant for Alfred even without the name and must be obeyed at once with a minimal confirmation."
+    },
+    "ambiguous": false,
+    "tags": ["command-stop", "command-mute", "barge-in", "no-name", "desk"]
+  },
+  {
+    "id": "solo-12",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 90,
+    "history": [
+      {"ago_s": 96, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred sei mal bitte die nächsten zehn Minuten still ich muss mich konzentrieren"},
+      {"ago_s": 92, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Alles klar, ich bin zehn Minuten still."},
+      {"ago_s": 63, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "sehr geehrte Damen und Herren, haben Sie vielen Dank für Ihre schnelle Rückmeldung"},
+      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "leider verschiebt sich die Lieferung, nee, leider verzögert sich die Lieferung"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hm heißt es jetzt wegen des Feiertags oder wegen dem Feiertag"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The wearer asked for ten minutes of silence about a minute and a half ago, and an unaddressed musing while drafting an email does not lift that request."
+    },
+    "ambiguous": false,
+    "tags": ["mute-active", "wondering-aloud", "command-respected", "no-name", "desk"]
+  },
+  {
+    "id": "solo-13",
+    "scene": "solo",
+    "mic": "handy",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 56,
+    "history": [
+      {"ago_s": 67, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred wie viel Trockenhefe brauch ich wenn im Rezept ein Würfel frische Hefe steht"},
+      {"ago_s": 61, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Zwei Päckchen Trockenhefe, zusammen 14 Gramm, ersetzen einen Würfel frische Hefe."},
+      {"ago_s": 58, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "oh die Milch die Milch"},
+      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "puh grad noch so nicht übergekocht"},
+      {"ago_s": 18, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "so wo war ich, Hefe genau"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "mittel", "text": "sag noch mal wie viele Päckchen das waren ich hab grad nicht zugehört"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Zwei Päckchen Trockenhefe (zusammen 14 Gramm) für einen Würfel frische Hefe.",
+      "why": "With nobody else present the repeat request can only refer to Alfred's earlier yeast answer, so Alfred repeats just the amount."
+    },
+    "ambiguous": false,
+    "tags": ["command-repeat", "follow-up", "no-name", "delayed-follow-up", "cooking"]
+  },
+  {
+    "id": "solo-14",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 4,
+    "history": [
+      {"ago_s": 27, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred woher kommt eigentlich Muskelkater"},
+      {"ago_s": 21, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Muskelkater entsteht durch winzige Risse in den Muskelfasern, vor allem bei ungewohnten oder abbremsenden Bewegungen. Der Körper repariert sie, und die kleine Entzündung dabei tut nach ein bis zwei Tagen weh. Mit Milchsäure hat das entgegen der alten Annahme nichts zu tun."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "puh das war mir zu viel beim Laufen, noch mal in einem Satz bitte"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Ein einziger Satz: Muskelkater kommt von winzigen Rissen in den Muskelfasern (nicht von Milchsäure).",
+      "why": "A direct request right after Alfred spoke to repeat the explanation more briefly, so the answer has to shrink to one sentence."
+    },
+    "ambiguous": false,
+    "tags": ["command-shorter", "after-alfred", "length-control", "no-name", "gym"]
+  },
+  {
+    "id": "solo-15",
+    "scene": "medien",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 64, "who": "radio-mod", "speaker": "medien", "proximity": "fern", "text": "und damit zurück zu euch, ihr hört die Feierabendshow, schön dass ihr dabei seid"},
+      {"ago_s": 50, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "sieben acht neun zehn"},
+      {"ago_s": 37, "who": "radio-mod", "speaker": "medien", "proximity": "fern", "text": "gleich gibts wieder zwei Konzertkarten zu gewinnen, haltet das Telefon bereit"},
+      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "noch einen Satz dann Beine"},
+      {"ago_s": 8, "who": "radio-mod", "speaker": "medien", "proximity": "fern", "text": "hier kommt unsere Quizfrage"}
+    ],
+    "trigger": {"who": "radio-mod", "speaker": "medien", "proximity": "fern", "text": "wie viele Knochen hat ein erwachsener Mensch, sind es A 106, B 206 oder C 306, der fünfte Anrufer gewinnt"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The question is a phone-in quiz from the radio on the gym speakers, recognisable by the answer options and the caller prize, while the wearer is only counting reps."
+    },
+    "ambiguous": false,
+    "tags": ["media-question", "radio", "quiz", "fact-question-lookalike", "gym"]
+  },
+  {
+    "id": "solo-16",
+    "scene": "medien",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 71, "who": "tv-vera", "speaker": "medien", "proximity": "mittel", "text": "Du hast gesagt du kümmerst dich um den Hof, und dann finde ich die Kündigung in deiner Schublade."},
+      {"ago_s": 60, "who": "tv-mann", "speaker": "medien", "proximity": "mittel", "text": "Vera bitte, lass mich das erklären."},
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "oh oh jetzt gibts Ärger"},
+      {"ago_s": 33, "who": "tv-vera", "speaker": "medien", "proximity": "mittel", "text": "Erklären? Seit Wochen erzählst du mir irgendwelche Geschichten."},
+      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "so das Hemd noch dann bin ich durch mit Bügeln"}
+    ],
+    "trigger": {"who": "tv-vera", "speaker": "medien", "proximity": "mittel", "text": "Alfred, wo warst du gestern Abend? Ich hab dreimal angerufen."},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "The line is dialogue from a TV drama in which a character called Alfred is asked a personal question; the wearer only comments on the show while ironing."
+    },
+    "ambiguous": false,
+    "tags": ["tv-dialogue", "name-collision", "media-question", "personal-question", "home"]
+  }
+]

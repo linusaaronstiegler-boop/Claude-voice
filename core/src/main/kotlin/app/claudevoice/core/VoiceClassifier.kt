@@ -37,10 +37,17 @@ class VoiceClassifier(
 
     private val sessionLevels = ArrayDeque<Double>()
 
-    fun classify(f: VoiceFeatures?): Voice {
+    /**
+     * @param record false = nur schauen (für vorläufige Zwischenstände), die Äußerung zählt dann nicht
+     *               in die Statistik der Sitzung.
+     */
+    @Synchronized
+    fun classify(f: VoiceFeatures?, record: Boolean = true): Voice {
         if (f == null) return Voice.UNKLAR
-        sessionLevels.addLast(f.levelDb)
-        if (sessionLevels.size > 40) sessionLevels.removeFirst()
+        if (record) {
+            sessionLevels.addLast(f.levelDb)
+            if (sessionLevels.size > 40) sessionLevels.removeFirst()
+        }
         if (f.levelDb < ABSOLUTE_FAR_DB) return Voice.FERN
 
         val own = profile
@@ -66,6 +73,7 @@ class VoiceClassifier(
     }
 
     /** Aufrufen, wenn eine Äußerung sicher vom Träger stammt (er hat den Assistenten beim Namen genannt). */
+    @Synchronized
     fun learnOwn(f: VoiceFeatures?) {
         if (f == null) return
         val old = profile
@@ -88,6 +96,7 @@ class VoiceClassifier(
 
     /** Ohne Profil: die lauteren Äußerungen der Sitzung (90. Perzentil) stehen für "ganz nah". */
     private fun sessionReference(): Double {
+        if (sessionLevels.isEmpty()) return DEFAULT_OWN_DB
         val sorted = sessionLevels.sortedDescending()
         return sorted[sorted.size / 10]
     }
@@ -96,6 +105,7 @@ class VoiceClassifier(
 
     private companion object {
         const val ABSOLUTE_FAR_DB = -52.0
+        const val DEFAULT_OWN_DB = -22.0 // Erfahrungswert für normale Sprache direkt am Mikro
         const val PITCH_TOLERANCE = 3.0 // Halbtöne; Stimmen schwanken beim Sprechen um etwa so viel
     }
 }

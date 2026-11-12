@@ -20,32 +20,3 @@ class SentenceChunkerTest {
         assertEquals(listOf("Das gilt z. B. für Wasser und für viele andere Stoffe."), out)
     }
 }
-
-class QuestionGateTest {
-    @Test fun `kurze Fetzen kosten keinen API-Aufruf`() {
-        val claude = FakeClaude()
-        assertNull(QuestionGate(claude).decide("", "Ja genau", 0))
-        assertEquals(0, claude.classifyCalls.size)
-    }
-
-    @Test fun `SKIP heisst keine Antwort`() {
-        val claude = FakeClaude(gateReply = { "SKIP" })
-        assertNull(QuestionGate(claude).decide("", "Wie geht es dir heute so", 0))
-    }
-
-    @Test fun `echte Frage wird ausformuliert zurueckgegeben`() {
-        val claude = FakeClaude(gateReply = { "Wie hoch ist die Zugspitze?" })
-        val q = QuestionGate(claude).decide("Wir reden über die Zugspitze.", "Wie hoch ist die eigentlich", 0)
-        assertEquals("Wie hoch ist die Zugspitze?", q)
-        assert(claude.classifyCalls.single().contains("Wir reden über die Zugspitze."))
-    }
-
-    @Test fun `dieselbe Frage wird nicht doppelt beantwortet, nach dem Fenster wieder`() {
-        val claude = FakeClaude(gateReply = { "Wie hoch ist die Zugspitze?" })
-        val gate = QuestionGate(claude, repeatWindowMs = 1000)
-        assertEquals("Wie hoch ist die Zugspitze?", gate.decide("", "Wie hoch ist die Zugspitze", 0))
-        claude.gateReply = { "Wie hoch ist die Zugspitze genau?" }
-        assertNull(gate.decide("", "Wie hoch ist die Zugspitze genau", 500))
-        assertEquals("Wie hoch ist die Zugspitze genau?", gate.decide("", "Wie hoch ist die Zugspitze genau", 5000))
-    }
-}

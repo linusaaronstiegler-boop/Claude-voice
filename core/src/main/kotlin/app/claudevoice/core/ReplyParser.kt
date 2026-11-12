@@ -4,8 +4,11 @@ package app.claudevoice.core
 sealed interface Decision {
     /** Nichts sagen. [reason] ist ein kurzes Stichwort (z. B. "hintergrund", "sozial") für Anzeige und Auswertung. */
     data class Skip(val reason: String) : Decision
-    /** Sprechen. [length] ist die vom Modell gewählte Länge ("kurz", "mittel", "lang"). */
-    data class Say(val length: String) : Decision
+    /**
+     * Sprechen. [length] ist die vom Modell gewählte Länge ("kurz", "mittel", "lang").
+     * [offProtocol] = das Modell hat die Kopfzeile vergessen und direkt losgeredet.
+     */
+    data class Say(val length: String, val offProtocol: Boolean = false) : Decision
 }
 
 /** Anweisungen an die App, die nicht vorgelesen werden. */
@@ -95,8 +98,9 @@ class ReplyParser(
             }
             t.isEmpty() -> {} // führende Leerzeile: weiter auf die Kopfzeile warten
             else -> {
-                // Das Modell hat das Protokoll verfehlt und direkt geantwortet. Lieber sprechen als verschlucken.
-                decide(Decision.Say(""))
+                // Das Modell hat das Protokoll verfehlt und direkt geantwortet. Ob das gesprochen wird,
+                // entscheidet die Pipeline (nur, wenn der Träger den Assistenten direkt angesprochen hat).
+                decide(Decision.Say("", offProtocol = true))
                 state = State.LINE_START
                 feed(line + if (endOfStream) "" else "\n")
             }

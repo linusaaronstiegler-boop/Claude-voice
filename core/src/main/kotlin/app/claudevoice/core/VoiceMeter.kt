@@ -53,21 +53,27 @@ class VoiceMeter(private val sampleRate: Int = 16000) {
         if (i < length) carry = pcm[i].toInt() and 0xFF
     }
 
+    /** Wie [takeSummary], aber ohne den Zähler zurückzusetzen (für vorläufige Zwischenstände). */
+    @Synchronized
+    fun peekSummary(): VoiceFeatures? = summary()
+
     /** Merkmale der Sprache seit dem letzten Aufruf; null, wenn kaum Sprache dabei war. */
     @Synchronized
     fun takeSummary(): VoiceFeatures? {
+        val result = summary()
+        levels.clear(); pitches.clear()
+        return result
+    }
+
+    private fun summary(): VoiceFeatures? {
         val speechMs = levels.size * 30
-        if (speechMs < MIN_SPEECH_MS) {
-            levels.clear(); pitches.clear()
-            return null
-        }
+        if (speechMs < MIN_SPEECH_MS) return null
         // "Aktiver Sprachpegel": der Wert, den ein Viertel der Frames übertrifft (75. Perzentil).
         // Leise Silbenränder ziehen ihn nicht herunter, und ein einzelner lauter Ausreißer
         // (etwa der Rest der vorigen Äußerung) zieht ihn nicht hoch, wie es ein Mittelwert täte.
         val sorted = levels.sortedDescending()
         val level = sorted[sorted.size / 4]
         val pitch = if (pitches.size >= 5) pitches.sorted()[pitches.size / 2] else null
-        levels.clear(); pitches.clear()
         return VoiceFeatures(level, pitch, speechMs)
     }
 

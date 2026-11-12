@@ -7,27 +7,9 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.sin
 
 class VoiceMeterTest {
-    /** Erzeugt einen Ton mit Obertönen (ähnlich einer Stimme) als 16-Bit-PCM. */
-    private fun tone(hz: Double, amplitude: Double, ms: Int, rate: Int = 16000): ByteArray {
-        val n = rate * ms / 1000
-        val out = ByteArray(n * 2)
-        for (i in 0 until n) {
-            val t = i.toDouble() / rate
-            val v = amplitude * (0.6 * sin(2 * PI * hz * t) + 0.3 * sin(2 * PI * 2 * hz * t) + 0.1 * sin(2 * PI * 3 * hz * t))
-            val s = v.toInt()
-            out[2 * i] = (s and 0xFF).toByte()
-            out[2 * i + 1] = (s shr 8).toByte()
-        }
-        return out
-    }
-
-    private fun silence(ms: Int) = ByteArray(16000 * ms / 1000 * 2)
-
     @Test fun `tiefe und hohe Stimme werden an der Tonhoehe unterschieden`() {
         val meter = VoiceMeter()
         meter.feed(silence(300), 9600)
@@ -168,7 +150,7 @@ class ReplyParserTest {
     @Test fun `Antwort ohne Kopfzeile wird trotzdem gesprochen`() {
         val s = Sink()
         s.feedInPieces("Die Zugspitze ist 2962 Meter hoch.", 5)
-        assertEquals(listOf<Decision>(Decision.Say("")), s.decisions)
+        assertEquals(listOf<Decision>(Decision.Say("", offProtocol = true)), s.decisions)
         assertEquals("Die Zugspitze ist 2962 Meter hoch.", s.speech.toString())
     }
 }

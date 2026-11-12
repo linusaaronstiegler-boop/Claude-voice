@@ -1,0 +1,302 @@
+[
+  {
+    "id": "lern-01",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 64, "who": "lehrerin", "speaker": "partner", "proximity": "fern", "text": "So, Handys weg, wir machen da weiter, wo wir am Dienstag aufgehört haben, beim Wiener Kongress."},
+      {"ago_s": 51, "who": "lehrerin", "speaker": "partner", "proximity": "fern", "text": "Die Fürsten wollten nach Napoleon die alte Ordnung zurück das nennt man Restauration schreibt euch das bitte auf"},
+      {"ago_s": 37, "who": "ben", "speaker": "partner", "proximity": "nah", "text": "hast du mal nen Stift meiner ist leer"},
+      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hier nimm den"},
+      {"ago_s": 20, "who": "lehrerin", "speaker": "partner", "proximity": "fern", "text": "Kurze Wiederholung, bevor wir weitergehen."}
+    ],
+    "trigger": {"who": "lehrerin", "speaker": "partner", "proximity": "fern", "text": "wer war das gleich wieder der in Wien den Vorsitz hatte, der österreichische Außenminister, na, das hatten wir doch erst"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Die Lehrerin stellt der Klasse eine Wiederholungsfrage, der Träger soll selbst nachdenken und hat Alfred nicht gefragt."},
+    "ambiguous": false,
+    "tags": ["teacher-question", "didactic", "wonder-aloud-lookalike", "fact-question-surface"]
+  },
+  {
+    "id": "lern-02",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 72, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "Die achte Hauptgruppe, das sind die Edelgase. Helium, Neon und so weiter."},
+      {"ago_s": 57, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "die haben eine volle Außenschale deswegen reagieren die praktisch mit gar nichts"},
+      {"ago_s": 39, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "So, jetzt ihr. Welches Edelgas steht in der dritten Periode? Überlegt kurz, ich nehm gleich jemanden dran."},
+      {"ago_s": 26, "who": "reihe-vorn", "speaker": "dritte", "proximity": "mittel", "text": "ist das nicht Neon"},
+      {"ago_s": 21, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "Nicht reinrufen bitte. Melden."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "alfret welches ist das und wie begründet man das"},
+    "expect": {"answer": true, "length": "mittel", "gist": "Argon. Begründung: dritte Periode bedeutet drei Elektronenschalen, als Edelgas ist die Außenschale voll (Verteilung 2-8-8, Ordnungszahl 18); Neon steht in der zweiten Periode.", "why": "Der Träger spricht Alfred flüsternd mit Namen an und will die Lösung der offenen Lehrerfrage samt Begründung."},
+    "ambiguous": false,
+    "tags": ["direct-address", "whisper", "deixis", "teacher-question-in-history", "explanation-request", "stt-error"]
+  },
+  {
+    "id": "lern-03",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 78, "who": "lehrerin", "speaker": "partner", "proximity": "fern", "text": "Ihr habt zehn Minuten für das Arbeitsblatt, zu zweit mit eurem Banknachbarn, und bitte leise."},
+      {"ago_s": 63, "who": "jonas", "speaker": "partner", "proximity": "nah", "text": "okay Nummer eins Zellorganellen zuordnen fängst du oben an"},
+      {"ago_s": 56, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja Zellkern ist die Steuerzentrale das schreib ich schon mal hin"},
+      {"ago_s": 44, "who": "jonas", "speaker": "partner", "proximity": "nah", "text": "Mitochondrien Kraftwerk der Zelle hab ich"},
+      {"ago_s": 32, "who": "tisch-hinten", "speaker": "dritte", "proximity": "mittel", "text": "ey ich hab mein Blatt vergessen kann ich bei euch mit reingucken"},
+      {"ago_s": 23, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "dann fehlt uns noch das mit der Eiweißherstellung"}
+    ],
+    "trigger": {"who": "jonas", "speaker": "partner", "proximity": "nah", "text": "wo werden die Proteine noch mal zusammengebaut war das das endoplasmatische Dings oder die Riposomen"},
+    "expect": {"answer": true, "length": "kurz", "gist": "An den Ribosomen; dort werden die Proteine zusammengebaut (das raue ER ist lediglich mit Ribosomen besetzt).", "why": "Offene Wissensfrage des Arbeitspartners im eigenen Gespräch, die noch niemand beantwortet hat."},
+    "ambiguous": false,
+    "tags": ["classmate-question", "partner-work", "either-or", "background-chatter", "stt-error"]
+  },
+  {
+    "id": "lern-04",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 38,
+    "history": [
+      {"ago_s": 58, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "Wir lassen die Kugel aus zwei Metern Höhe fallen. Welche Energie hat sie ganz oben?"},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "alfred wie ging die formel für die lageenergie"},
+      {"ago_s": 42, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Masse mal Erdbeschleunigung mal Höhe, also m mal g mal h."},
+      {"ago_s": 27, "who": "paulina", "speaker": "dritte", "proximity": "mittel", "text": "Oben hat sie nur Lageenergie und unten ist alles Bewegungsenergie."},
+      {"ago_s": 14, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "Richtig, Paulina. Unten ist die Lageenergie komplett umgewandelt."}
+    ],
+    "trigger": {"who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "und wieso ist das so wer kann das mal begründen"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Das ist die Anschlussfrage des Lehrers an die Klasse nach Paulinas Antwort und kein Nachhaken des Trägers bei Alfred."},
+    "ambiguous": false,
+    "tags": ["teacher-question", "follow-up-lookalike", "assistant-recent", "didactic"]
+  },
+  {
+    "id": "lern-05",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 96, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "Die Aufgaben fünf bis acht macht bitte jeder für sich, ich will keine Gespräche hören."},
+      {"ago_s": 58, "who": "reihe3-a", "speaker": "dritte", "proximity": "mittel", "text": "psst Mila"},
+      {"ago_s": 54, "who": "mila", "speaker": "dritte", "proximity": "mittel", "text": "was denn"},
+      {"ago_s": 49, "who": "reihe3-a", "speaker": "dritte", "proximity": "mittel", "text": "hast du bei der sechs auch minus vier raus"},
+      {"ago_s": 41, "who": "mila", "speaker": "dritte", "proximity": "mittel", "text": "nee plus vier du hast das Vorzeichen verdreht"},
+      {"ago_s": 17, "who": "lehrer", "speaker": "partner", "proximity": "fern", "text": "Ruhe dahinten!"}
+    ],
+    "trigger": {"who": "reihe3-a", "speaker": "dritte", "proximity": "mittel", "text": "sag schnell was ist die wurzel aus hundertsechsundneunzig"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Zwei Mitschüler in der Reihe dahinter flüstern untereinander, der Träger arbeitet still für sich und ist an dem Austausch nicht beteiligt."},
+    "ambiguous": false,
+    "tags": ["needs-voice", "bystander", "classroom-whisper", "fact-question-surface", "music"]
+  },
+  {
+    "id": "lern-06",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 15,
+    "history": [
+      {"ago_s": 66, "who": "dozent", "speaker": "partner", "proximity": "fern", "text": "Also der Grund, warum uns das interessiert, ist die Laufzeit im Worst Case."},
+      {"ago_s": 50, "who": "dozent", "speaker": "partner", "proximity": "fern", "text": "Quicksort ist im schlechtesten Fall quadratisch im Mittel aber n log n und er arbeitet in place"},
+      {"ago_s": 25, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "alfred was heißt in place"},
+      {"ago_s": 20, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "In-place heißt: sortiert wird direkt im Array, ohne nennenswerten Zusatzspeicher."},
+      {"ago_s": 9, "who": "dozent", "speaker": "partner", "proximity": "fern", "text": "Als Nächstes schauen wir uns Mergesort an, das ist ein klassisches Divide and Conquer Verfahren."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und merge sort auch"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Nein, der klassische Mergesort arbeitet nicht in-place; er braucht ein Hilfsarray, also zusätzlichen Speicher in der Größenordnung n.", "why": "Elliptische Nachfrage des Trägers wenige Sekunden nach Alfreds Antwort; gemeint ist, ob Mergesort ebenfalls in-place arbeitet."},
+    "ambiguous": false,
+    "tags": ["follow-up", "ellipsis", "lecture", "assistant-recent", "whisper", "english-terms"]
+  },
+  {
+    "id": "lern-07",
+    "scene": "medien",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 84, "who": "video", "speaker": "medien", "proximity": "mittel", "text": "okay so last time we looked at linear search, which is O of n in the worst case"},
+      {"ago_s": 66, "who": "video", "speaker": "medien", "proximity": "mittel", "text": "today, binary search. the one precondition is that the array has to be sorted"},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "muss sortiert sein okay"},
+      {"ago_s": 31, "who": "video", "speaker": "medien", "proximity": "mittel", "text": "in every step we throw away half of the remaining elements"},
+      {"ago_s": 15, "who": "video", "speaker": "medien", "proximity": "mittel", "text": "so before I show you the analysis, quick question"}
+    ],
+    "trigger": {"who": "video", "speaker": "medien", "proximity": "mittel", "text": "what's the worst case running time of binary search anyone"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Die Frage kommt aus einer Vorlesungsaufzeichnung und richtet sich an den Hörsaal; der Träger selbst hat nichts gefragt."},
+    "ambiguous": false,
+    "tags": ["media", "lecture-recording", "english", "didactic", "fact-question-surface", "wearer-alone"]
+  },
+  {
+    "id": "lern-08",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 98, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "okay Kapitel vier Zellatmung, Glykolyse, Citratzyklus, Atmungskette"},
+      {"ago_s": 74, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Glykolyse im Zytoplasma aus einer Glucose werden zwei Pyruvat das sitzt"},
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Citratzyklus in der Mitochondrienmatrix liefert NADH okay"},
+      {"ago_s": 17, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "aber die Atmungskette check ich einfach nicht"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "erklär mir das mal richtig ausführlich schritt für schritt alfred ich hab zeit"},
+    "expect": {"answer": true, "length": "lang", "gist": "Atmungskette an der inneren Mitochondrienmembran: NADH und FADH2 geben Elektronen ab, die über die Proteinkomplexe weitergereicht werden; dabei werden Protonen in den Intermembranraum gepumpt; Sauerstoff nimmt am Ende die Elektronen auf und wird zu Wasser; der Protonengradient treibt die ATP-Synthase an, hier entsteht der größte Teil des ATP.", "why": "Der Träger ist allein, spricht Alfred mit Namen an und verlangt ausdrücklich eine ausführliche Erklärung des Themas, an dem er gerade hängt."},
+    "ambiguous": false,
+    "tags": ["direct-address", "name-at-end", "detailed-explanation", "deixis", "music", "self-talk-history"]
+  },
+  {
+    "id": "lern-09",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 88, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "ich check das nicht drei x plus fünf gleich zwanzig wo soll ich da anfangen"},
+      {"ago_s": 75, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "pass auf du willst das x alleine haben also muss erst mal die fünf weg"},
+      {"ago_s": 63, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "also minus fünf"},
+      {"ago_s": 58, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "genau auf beiden Seiten dann steht da drei x gleich fünfzehn"},
+      {"ago_s": 40, "who": "mutter", "speaker": "dritte", "proximity": "fern", "text": "Essen ist in zehn Minuten fertig!"},
+      {"ago_s": 34, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "ja gleich"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "so und was ist dann x wenn du jetzt noch durch drei teilst"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Der Träger stellt als Nachhilfelehrer eine didaktische Frage, deren Antwort er kennt; der Bruder soll selbst rechnen."},
+    "ambiguous": false,
+    "tags": ["didactic", "wearer-is-tutor", "tutoring", "math", "self-asked-question"]
+  },
+  {
+    "id": "lern-10",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 74, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "wir schreiben morgen Chemie über Atombau und ich blick das mit den Schalen nicht"},
+      {"ago_s": 61, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ist eigentlich easy die Ordnungszahl sagt dir wie viele Protonen das Atom hat und genauso viele Elektronen hat es dann auch"},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "die verteilst du von innen nach außen erst zwei dann acht"},
+      {"ago_s": 33, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "und bei Natrium"},
+      {"ago_s": 21, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Natrium okay das hat ähm"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "elf oder zwölf jetzt bin ich selber unsicher Natrium war doch elf oder war das Magnesium"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Natrium hat die Ordnungszahl 11, also 11 Elektronen (Verteilung 2-8-1); 12 ist Magnesium.", "why": "Der Träger stockt beim Erklären und überlegt laut, welche Zahl stimmt; eine kurze Tatsache hilft ihm sofort weiter."},
+    "ambiguous": false,
+    "tags": ["stumble", "wonder-aloud", "tutoring", "chemistry", "no-direct-address"]
+  },
+  {
+    "id": "lern-11",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 82, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "okay nächste Vokabel was heißt agricola"},
+      {"ago_s": 75, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "Bauer"},
+      {"ago_s": 70, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "richtig und Genitiv Plural"},
+      {"ago_s": 57, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "agricolarum"},
+      {"ago_s": 51, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "passt dann jetzt der Text den ihr übersetzen sollt lies mal den ersten Satz"},
+      {"ago_s": 29, "who": "bruder", "speaker": "partner", "proximity": "nah", "text": "Marcus in foro ambulat oh Mann ich hab echt keinen Bock mehr"}
+    ],
+    "trigger": {"who": "bruder", "speaker": "partner", "proximity": "nah", "text": "wozu lernt man das überhaupt wer redet denn heute noch latein"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Rhetorische Unmutsäußerung des Bruders, keine echte Wissensfrage."},
+    "ambiguous": false,
+    "tags": ["rhetorical", "complaint", "tutoring", "latin", "fact-question-surface"]
+  },
+  {
+    "id": "lern-12",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 68, "who": "mira", "speaker": "partner", "proximity": "mittel", "text": "Aufgabe drei, wie viele Teilchen sind in null Komma fünf Mol Wasser"},
+      {"ago_s": 60, "who": "tom", "speaker": "partner", "proximity": "mittel", "text": "einfach Stoffmenge mal Avocado Konstante"},
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja und die ist sechs Komma null zwei mal zehn hoch sechsundzwanzig"},
+      {"ago_s": 44, "who": "mira", "speaker": "partner", "proximity": "mittel", "text": "hoch sechsundzwanzig sicher"},
+      {"ago_s": 39, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "glaub schon"},
+      {"ago_s": 23, "who": "tom", "speaker": "partner", "proximity": "mittel", "text": "ich hätte jetzt hoch dreiundzwanzig gesagt aber leg mich nicht fest"}
+    ],
+    "trigger": {"who": "mira", "speaker": "partner", "proximity": "mittel", "text": "ja was denn jetzt dreiundzwanzig oder sechsundzwanzig"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Hoch 23: die Avogadro-Konstante beträgt rund 6,022 mal 10 hoch 23 Teilchen pro Mol.", "why": "Die Lerngruppe ist sich bei einer nachprüfbaren Tatsache uneinig, die Frage ist im eigenen Gespräch offen geblieben."},
+    "ambiguous": false,
+    "tags": ["study-group", "disputed-fact", "wrong-answer-in-history", "either-or", "stt-error"]
+  },
+  {
+    "id": "lern-13",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 26,
+    "history": [
+      {"ago_s": 88, "who": "lea", "speaker": "partner", "proximity": "mittel", "text": "bei der Stichprobe teilen wir doch durch n minus eins oder"},
+      {"ago_s": 80, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja bei der Stichprobenvarianz schon"},
+      {"ago_s": 66, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "sieben waagerecht Nebenfluss der Donau mit drei Buchstaben"},
+      {"ago_s": 60, "who": "tisch2-b", "speaker": "dritte", "proximity": "fern", "text": "Inn"},
+      {"ago_s": 48, "who": "lea", "speaker": "partner", "proximity": "mittel", "text": "und wieso eigentlich minus eins das hab ich nie verstanden"},
+      {"ago_s": 40, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "alfred warum teilt man da durch n minus eins"},
+      {"ago_s": 33, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Weil der Mittelwert schon aus denselben Daten geschätzt ist. Dadurch geht ein Freiheitsgrad verloren, n minus eins gleicht die Verzerrung aus."},
+      {"ago_s": 20, "who": "lea", "speaker": "partner", "proximity": "mittel", "text": "ah okay Freiheitsgrade macht Sinn"},
+      {"ago_s": 12, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "passt und jetzt zwölf senkrecht"}
+    ],
+    "trigger": {"who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Hauptstadt von Australien mit acht Buchstaben wie heißt die gleich"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Die Frage gehört zum Kreuzworträtsel am Nachbartisch und nicht zum Statistik-Gespräch des Trägers."},
+    "ambiguous": false,
+    "tags": ["bystander", "neighbouring-table", "thread-coherence", "assistant-recent", "fact-question-surface", "study-group"]
+  },
+  {
+    "id": "lern-14",
+    "scene": "call",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 82, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "Hey, stör ich? Ich sitz gerade am Protokoll fürs Physikpraktikum."},
+      {"ago_s": 75, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "nee passt schon ich hab dich auf laut ich koch nebenbei"},
+      {"ago_s": 62, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "bis wann müssen wir das hochladen Freitag oder"},
+      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Freitag zwölf Uhr"},
+      {"ago_s": 43, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "Okay. Ich muss die ganzen Messwerte in Kelvin umrechnen. Der absolute Nullpunkt, wie viel Grad Celsius waren das?"},
+      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "minus zweihundertdreiundsiebzig Komma irgendwas"}
+    ],
+    "trigger": {"who": "hanna", "speaker": "partner", "proximity": "nah", "text": "ja aber komma was ich brauch das genau für die umrechnung"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Komma eins fünf: der absolute Nullpunkt liegt bei minus 273,15 Grad Celsius, das sind 0 Kelvin.", "why": "Die Gesprächspartnerin im Telefonat braucht einen festen Zahlenwert, den der Träger nur ungefähr nennen konnte."},
+    "ambiguous": false,
+    "tags": ["call", "speakerphone", "number-request", "partial-answer", "deixis", "logistics-in-history"]
+  },
+  {
+    "id": "lern-15",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 92, "who": "sabine", "speaker": "partner", "proximity": "mittel", "text": "Dann kommen wir zum letzten Punkt, die Lizenzverlängerung für das Analyse-Tool."},
+      {"ago_s": 79, "who": "deniz", "speaker": "partner", "proximity": "mittel", "text": "der Vertrag läuft zum Quartalsende aus wir müssten das diese Woche entscheiden"},
+      {"ago_s": 66, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "von meiner Seite spricht nichts dagegen zu verlängern"},
+      {"ago_s": 52, "who": "sabine", "speaker": "partner", "proximity": "mittel", "text": "Gut. Wer von euch fordert das Angebot beim Anbieter an?"},
+      {"ago_s": 46, "who": "deniz", "speaker": "partner", "proximity": "mittel", "text": "kann ich übernehmen"},
+      {"ago_s": 31, "who": "sabine", "speaker": "partner", "proximity": "mittel", "text": "super danke Deniz"}
+    ],
+    "trigger": {"who": "sabine", "speaker": "partner", "proximity": "mittel", "text": "und wie viele Lizenzen brauchen wir im Moment eigentlich noch weiß das jemand aus dem Kopf"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Interne organisatorische Frage im Meeting; die Zahl kennt nur das Team, ein Assistent kann sie nicht wissen."},
+    "ambiguous": false,
+    "tags": ["meeting", "video-call", "logistics", "internal-number", "not-answerable"]
+  },
+  {
+    "id": "lern-16",
+    "scene": "alltag",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 84, "who": "ralf", "speaker": "partner", "proximity": "mittel", "text": "Der Kunde meldet, dass Bestellungen doppelt im System landen."},
+      {"ago_s": 73, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "die Dubletten hab ich im Report auch gesehen"},
+      {"ago_s": 62, "who": "jule", "speaker": "partner", "proximity": "mittel", "text": "der Dienstleister schreibt im Ticket der Bestell-Endpunkt müsse idem potent sein dann wäre das Problem weg"},
+      {"ago_s": 50, "who": "ralf", "speaker": "partner", "proximity": "mittel", "text": "liefern die das bis zum Release am Monatsende"},
+      {"ago_s": 45, "who": "jule", "speaker": "partner", "proximity": "mittel", "text": "haben sie zugesagt ja"},
+      {"ago_s": 31, "who": "ralf", "speaker": "partner", "proximity": "mittel", "text": "gut aber mal ganz dumm gefragt was bedeutet idempotent"},
+      {"ago_s": 22, "who": "jule", "speaker": "partner", "proximity": "mittel", "text": "puh da bin ich raus ich hab das nur abgeschrieben"}
+    ],
+    "trigger": {"who": "ralf", "speaker": "partner", "proximity": "mittel", "text": "und du weißt du was die damit meinen"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Idempotent heißt: dieselbe Anfrage mehrfach auszuführen hat dieselbe Wirkung wie einmal; eine wiederholte Bestellanfrage legt also keine zweite Bestellung an.", "why": "Die Definitionsfrage steht im eigenen Meeting offen im Raum, niemand konnte sie beantworten, und der Träger wird direkt gefragt."},
+    "ambiguous": false,
+    "tags": ["meeting", "definition", "deixis", "relayed-question", "logistics-in-history", "stt-error"]
+  }
+]

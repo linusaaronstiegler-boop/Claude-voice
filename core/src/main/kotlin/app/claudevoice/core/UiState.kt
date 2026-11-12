@@ -11,4 +11,12 @@ data class UiState(
     val answer: String = "",
     val speaking: Boolean = false,
     val error: String? = null,
+    /** Einschätzung der Lage durch den "Ordner" (wer spricht mit wem worüber). */
+    val scene: String? = null,
+    /** Letzte Entscheidung in Klartext, z. B. "übersprungen: hintergrund" oder "antwortet (kurz)". */
+    val lastDecision: String? = null,
+    /** Zeit vom Ende der Äußerung bis zum ersten hörbaren Ton der letzten Antwort. */
+    val latencyMs: Long? = null,
+    /** Bis wann der Assistent auf Wunsch schweigt (0 = nicht stumm). */
+    val mutedUntilMs: Long = 0,
 )

@@ -104,7 +104,7 @@ class NetworkTest {
         server.enqueue(MockResponse().setHeader("content-type", "text/event-stream").setBody(sse))
         val claude = AnthropicClaude("sk-test", server.url("/").toString())
         val out = StringBuilder()
-        claude.answer("System", "Frage") { out.append(it) }
+        claude.respond("System", "Frage") { out.append(it) }
         assertEquals("Zwei Sätze.", out.toString())
 
         val request = server.takeRequest()
@@ -112,6 +112,10 @@ class NetworkTest {
         assertEquals("claude-sonnet-5-5", body["model"].asText())
         assertEquals(true, body["stream"].asBoolean())
         assertEquals("low", body["output_config"]["effort"].asText())
+        // Vorab-Nachdenken aus und System-Prompt zum Zwischenspeichern markiert: beides für Tempo.
+        assertEquals("between_tools", body["thinking"]["type"].asText())
+        assertEquals("System", body["system"][0]["text"].asText())
+        assertEquals("ephemeral", body["system"][0]["cache_control"]["type"].asText())
         // Das SDK schickt den Key je nach API-Version als x-api-key oder als Authorization-Header.
         val auth = listOfNotNull(request.getHeader("x-api-key"), request.getHeader("Authorization")).joinToString(" ")
         assertTrue(auth.contains("sk-test"))
@@ -122,7 +126,7 @@ class NetworkTest {
             """{"id":"msg_2","type":"message","role":"assistant","model":"claude-haiku-5-5","content":[{"type":"text","text":"SKIP"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":5,"output_tokens":1}}"""
         ))
         val claude = AnthropicClaude("sk-test", server.url("/").toString())
-        assertEquals("SKIP", claude.classify("System", "Text"))
+        assertEquals("SKIP", claude.quick("System", "Text", 10))
 
         val body = ObjectMapper().readTree(server.takeRequest().body.readUtf8())
         assertEquals("claude-haiku-5-5", body["model"].asText())
