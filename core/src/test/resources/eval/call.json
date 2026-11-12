@@ -1,0 +1,259 @@
+[
+  {
+    "id": "call-01",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja Mama ich hör dich, bisschen leise aber geht schon"},
+      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "nee Sonntag wird nix, da feiert der Ben rein"},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ach du sitzt wieder am Kreuzwort Rätsel, okay"},
+      {"ago_s": 17, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "na sag, was fehlt dir denn noch"},
+      {"ago_s": 8, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hauptstadt von Kanada mit sechs Buchstaben, hm, Toronto kanns dann ja nicht sein das hat sieben, puh da bin ich überfragt"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Ottawa (sechs Buchstaben).", "why": "Der Träger wiederholt die Rätselfrage seiner Mutter am Telefon und weiß die Lösung erkennbar selbst nicht, die Wissensfrage steht also offen im Gespräch."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "relayed-question", "wearer-stuck", "no-question-form", "no-wake-name"]
+  },
+  {
+    "id": "call-02",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Mira na endlich erwisch ich dich mal"},
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "und, erste Woche rum, wie läufts im neuen Job"},
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ah okay, also noch viel Einarbeitung"},
+      {"ago_s": 24, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "und die Kollegen, sind die nett"},
+      {"ago_s": 10, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "haha ja das kenn ich"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und wie lange geht die Probezeit bei dir, wieder ein halbes Jahr"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Der Träger fragt die Anruferin nach ihrem eigenen Arbeitsvertrag; das ist eine persönliche Frage, die nur sie beantworten kann, keine allgemeine Wissensfrage zur Probezeit."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "personal-question", "question-to-partner", "fact-question-surface", "not-answerable"]
+  },
+  {
+    "id": "call-03",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 74, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Guten Tag, hier ist Jannik vom Support, Sie hatten um einen Rückruf gebeten."},
+      {"ago_s": 58, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "okay, und seit wann kommt die Fehlermeldung"},
+      {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm. was steht da genau, lesen Sie mir das bitte mal vor"},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "403, okay, also nicht 404"},
+      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "was das heißt, ähm, also 404 wäre Seite nicht gefunden"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und 403 ist, Moment, da muss ich selber grad kurz überlegen, Sekunde"},
+    "expect": {"answer": true, "length": "kurz", "gist": "HTTP-Status 403 heißt Forbidden: Zugriff verweigert, der Server lehnt die Anfrage ab, weil die Berechtigung fehlt.", "why": "Die Kundin hat nach der Bedeutung des Fehlercodes gefragt, der Träger kennt sie nicht und spielt hörbar auf Zeit; die Tatsache hilft ihm sofort weiter, auch ohne Frageform."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "stalling", "stumble", "inferred-question", "no-question-form"]
+  },
+  {
+    "id": "call-04",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 60, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja hallo, ich ruf an wegen meiner Hausratversicherung, ich bin umgezogen"},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "genau, zum ersten, die neue Adresse hab ich online schon eingetragen"},
+      {"ago_s": 33, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "dritter Stock, Altbau, ja"},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "die Wohnfläche, äh"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "wie viel Quadratmeter das genau sind, puh, 70, 75 irgendwas, Moment da muss ich in den Mietvertrag gucken"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Der Träger stockt zwar bei einer Zahl, gesucht ist aber eine private Angabe aus seinem eigenen Mietvertrag, die Alfred nicht kennen kann; er sieht selbst nach."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "stalling", "private-fact", "not-answerable", "minimal-pair-call-03"]
+  },
+  {
+    "id": "call-05",
+    "scene": "call",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 105, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Herzlich willkommen bei Ihrer Direktbank. Zu Ihrer Sicherheit wird dieses Gespräch aufgezeichnet."},
+      {"ago_s": 92, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Für Fragen zu Karten drücken Sie die 1, für Überweisungen die 2, für alles andere die 3."},
+      {"ago_s": 79, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Vielen Dank. Leider sind im Moment alle Berater im Gespräch."},
+      {"ago_s": 66, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "war ja klar"},
+      {"ago_s": 50, "who": "wartemusik", "speaker": "medien", "proximity": "mittel", "text": "hold on to the morning light, we are almost there, almost there tonight"},
+      {"ago_s": 33, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Wussten Sie schon? Viele Aufträge erledigen Sie bequem in unserer App."},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja ja die App, weiß ich"}
+    ],
+    "trigger": {"who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Und wissen Sie eigentlich, wofür die Abkürzung IBAN steht? Die Antwort und weitere Tipps finden Sie in unserem Online Lexikon."},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Die Frage ist ein Werbe-Teaser aus der Bandansage der Hotline-Warteschleife; aufgezeichnete Ansagen sind Medien und keine Frage im Gespräch des Trägers, auch wenn sie leicht zu beantworten wäre."},
+    "ambiguous": false,
+    "tags": ["speakerphone", "handy-mic", "hold-queue", "announcement", "media-source", "answerable-fact"]
+  },
+  {
+    "id": "call-06",
+    "scene": "call",
+    "mic": "handy",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 104, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Ihre voraussichtliche Wartezeit beträgt mehr als 10 Minuten."},
+      {"ago_s": 89, "who": "wartemusik", "speaker": "medien", "proximity": "mittel", "text": "take it easy, take it slow, we'll be with you, don't you go"},
+      {"ago_s": 67, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Bitte halten Sie Ihre Zählernummer und den aktuellen Zählerstand in Kilowattstunden bereit."},
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hab ich, liegt alles hier"},
+      {"ago_s": 35, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Bitte legen Sie nicht auf. Der nächste freie Mitarbeiter ist gleich für Sie da."},
+      {"ago_s": 17, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja ja, gleich, schon klar"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "was ist jetzt eigentlich nochmal der Unterschied zwischen Kilowatt und Kilowattstunde, das schmeiß ich jedes Mal durcheinander"},
+    "expect": {"answer": true, "length": "mittel", "gist": "Kilowatt ist eine Leistung, also wie viel Energie pro Zeit umgesetzt wird; Kilowattstunde ist eine Energiemenge: 1 Kilowatt Leistung über eine Stunde ergibt 1 Kilowattstunde. Der Stromzähler zählt Kilowattstunden.", "why": "Der Träger hängt allein in der Warteschleife und fragt sich laut nach einer Erklärung; die Bandansagen davor sind nur Kulisse, und kein Mensch ist in der Leitung, der antworten könnte."},
+    "ambiguous": false,
+    "tags": ["speakerphone", "handy-mic", "hold-queue", "media-in-history", "wonder-aloud", "wearer-alone", "explanation-request", "music-playing"]
+  },
+  {
+    "id": "call-07",
+    "scene": "call",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 96, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Morgen zusammen, ich bin auch drin, Kamera lass ich aus"},
+      {"ago_s": 84, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Gut dann fangen wir an. Ab nächstem Quartal arbeiten wir mit OKR, das stand ja in der Mail."},
+      {"ago_s": 71, "who": "karim", "speaker": "partner", "proximity": "fern", "text": "kurze Zwischenfrage, wofür steht OKR eigentlich genau"},
+      {"ago_s": 62, "who": "tobias", "speaker": "partner", "proximity": "mittel", "text": "Objectives and Key Results, also Ziele und messbare Schlüsselergebnisse"},
+      {"ago_s": 54, "who": "karim", "speaker": "partner", "proximity": "fern", "text": "ah okay, danke dir"},
+      {"ago_s": 43, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "genau, und pro Team maximal 3 Objectives, mehr nicht"},
+      {"ago_s": 30, "who": "tobias", "speaker": "partner", "proximity": "mittel", "text": "drei find ich sportlich wenig ehrlich gesagt"},
+      {"ago_s": 17, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Das ist Absicht, sonst verzetteln wir uns wieder."}
+    ],
+    "trigger": {"who": "karim", "speaker": "partner", "proximity": "fern", "text": "und wer legt die fest, macht das jedes Team selber oder kommt das von dir Lena"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Organisatorische Frage unter den zugeschalteten Kollegen, ausdrücklich an Lena gerichtet und nur teamintern zu klären; die einzige Wissensfrage (OKR) hat Tobias längst beantwortet."},
+    "ambiguous": false,
+    "tags": ["speakerphone", "handy-mic", "conference", "remote-voices-among-themselves", "already-answered", "named-addressee-not-alfred", "logistics"]
+  },
+  {
+    "id": "call-08",
+    "scene": "call",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 88, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja ich hör euch gut, bin nur unterwegs, deswegen ohne Bild"},
+      {"ago_s": 75, "who": "nora", "speaker": "partner", "proximity": "mittel", "text": "also die Bank hat geschrieben, der Zins für die Kreditlinie geht um 25 Basis Punkte hoch"},
+      {"ago_s": 63, "who": "emil", "speaker": "partner", "proximity": "fern", "text": "25 Basispunkte, ist das jetzt viel oder wenig"},
+      {"ago_s": 54, "who": "nora", "speaker": "partner", "proximity": "mittel", "text": "Gute Frage, ich hab das nur aus dem Schreiben übernommen."},
+      {"ago_s": 42, "who": "emil", "speaker": "partner", "proximity": "fern", "text": "ist ein Basispunkt ein Zehntel Prozent oder ein Hundertstel"},
+      {"ago_s": 31, "who": "ida", "speaker": "partner", "proximity": "mittel", "text": "ich glaub ein Zehntel, aber nagel mich nicht drauf fest"},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "puh da bin ich auch raus"},
+      {"ago_s": 9, "who": "nora", "speaker": "partner", "proximity": "mittel", "text": "hm, ich bin mir da ehrlich nicht sicher"}
+    ],
+    "trigger": {"who": "emil", "speaker": "partner", "proximity": "fern", "text": "weiß das jemand sicher, sonst rechnen wir hier gleich mit der falschen Zahl weiter"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Ein Basispunkt ist ein Hundertstel Prozentpunkt (0,01 Prozentpunkte), nicht ein Zehntel; 25 Basispunkte sind also 0,25 Prozentpunkte.", "why": "In der Konferenz des Trägers steht eine Fachfrage offen, niemand weiß die Antwort sicher, der Träger selbst auch nicht, und die geäußerte Vermutung ist falsch."},
+    "ambiguous": false,
+    "tags": ["speakerphone", "handy-mic", "conference", "unanswered-knowledge-question", "vague-guess-present", "deictic-reference", "thread-coherence"]
+  },
+  {
+    "id": "call-09",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 71, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja genau, wir reden über die 2400 Stück"},
+      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm verstehe. und was wäre Ihr Vorschlag beim Preis"},
+      {"ago_s": 42, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "15 Prozent Nachlass auf den Listenpreis, okay"},
+      {"ago_s": 30, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "und der Listenpreis liegt bei 38 Euro das Stück, richtig"},
+      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Einen kleinen Moment bitte, ich rechne das eben durch."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Jarwis ganz leise, was macht das dann pro Stück"},
+    "expect": {"answer": true, "length": "kurz", "gist": "32,30 Euro pro Stück (38 Euro abzüglich 15 Prozent); gefragt ist der Stückpreis, nicht die Gesamtsumme.", "why": "Der Träger spricht Alfred mitten im Telefonat flüsternd mit dem (leicht verhörten) Weckwort an und will eine Rechnung, deren Zahlen nur aus seinen vorigen Sätzen hervorgehen."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "whisper", "wake-word", "name-garbled", "deictic-reference", "mental-arithmetic"]
+  },
+  {
+    "id": "call-10",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 78, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "okay Finja dann frag ich dich jetzt ab, Karteikarten weg"},
+      {"ago_s": 66, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "gut. erste Karte, was macht das Mitochondrium"},
+      {"ago_s": 54, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "richtig, Kraftwerk der Zelle, lass ich gelten"},
+      {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "nächste. wo findet die Foto Synthese statt"},
+      {"ago_s": 31, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "nee nicht im Zellkern, in den Chloroplasten. die kommt nochmal auf den Stapel"},
+      {"ago_s": 12, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "weiter gehts"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "wie viele Chromosomen hat eine menschliche Körperzelle"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Der Träger fragt die Anruferin für eine Prüfung ab und hat die Lösung auf der Karteikarte; sie soll selbst überlegen, eine Antwort von Alfred würde niemandem helfen."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "wearer-is-tutor", "didactic", "quizzing", "fact-question-surface"]
+  },
+  {
+    "id": "call-11",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 61, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hallo Tante Gerda, ja ich bins"},
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "doch doch, Samstag kommen wir, so gegen drei"},
+      {"ago_s": 36, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "soll ich noch was mitbringen, Kuchen oder Salat"},
+      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ah der Alfred schmeißt wieder den Grill an, sehr gut"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und Alfred, wie alt wird der jetzt eigentlich, 70 oder schon drüber"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Alfred ist hier der Onkel, über den der Träger in der dritten Person mit seiner Tante spricht; die Frage ist persönlich und geht an sie, nicht an den Assistenten."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "name-collision", "third-person", "personal-question", "name-first-word"]
+  },
+  {
+    "id": "call-12",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 58, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "yes hello, good morning, thanks for calling back"},
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "right, the invoice from March, I have it in front of me"},
+      {"ago_s": 31, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "no no that is not a problem, we can extend the payment term to 30 days"},
+      {"ago_s": 7, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "but after that, if there is still no payment, our system will automatically send a"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "ähm, Manung, wie sagt man denn Mahnung auf Englisch"},
+    "expect": {"answer": true, "length": "kurz", "gist": "\"payment reminder\" (förmlicher auch \"dunning notice\" oder \"dunning letter\").", "why": "Der Träger bleibt mitten im englischen Telefonat an einer Vokabel hängen und fragt sich halblaut auf Deutsch danach; das richtet sich nicht an den englischsprachigen Anrufer, und das Wort hilft ihm sofort weiter."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "code-switching", "english", "wonder-aloud", "no-wake-name", "stalling", "translation"]
+  },
+  {
+    "id": "call-13",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 20,
+    "history": [
+      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Paul, ich hab gehört du hast dich für den Halbmarathon im Frühjahr angemeldet"},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "krass. wie lang ist so ein Halbmarathon eigentlich genau, ich habs nie nachgeschaut"},
+      {"ago_s": 23, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Gut 21 Kilometer, genau 21,0975."},
+      {"ago_s": 15, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "21 Komma 1 Kilometer, alter Schwede"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "und wie oft trainierst du dafür jetzt so die Woche"},
+    "expect": {"answer": false, "length": "none", "gist": "", "why": "Die Frage kommt zwar kurz nach Alfreds Antwort und beginnt wie ein Nachhaken, richtet sich aber an den Anrufer und betrifft dessen eigenes Training."},
+    "ambiguous": false,
+    "tags": ["one-sided-call", "follow-up-lookalike", "assistant-recent", "personal-question", "not-a-follow-up"]
+  },
+  {
+    "id": "call-14",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja ich steh grad im Baumarkt vor den Leuchtmitteln"},
+      {"ago_s": 43, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "die alte Birne im Flur hatte 60 Watt, so eine klassische Glühbirne"},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hier steht bei den LEDs überall nur Lumen drauf, 470, 806, 1055"},
+      {"ago_s": 13, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "keine Ahnung welche davon so hell ist wie die alte"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "weißt du wie viel Lumen so ne 60 Watt Birne hatte"},
+    "expect": {"answer": true, "length": "kurz", "gist": "Rund 800 Lumen; von den genannten Packungen entspricht die mit 806 Lumen der alten 60-Watt-Glühbirne.", "why": "Offene Faktenfrage im Telefonat, die der Träger selbst nicht beantworten kann; strittig, weil sie mit 'weißt du' an den Anrufer geht und dessen Antwort über die AirPods nicht zu hören ist."},
+    "ambiguous": true,
+    "tags": ["one-sided-call", "question-to-partner", "inaudible-answer", "knowledge-question", "addressee-unclear"]
+  }
+]
