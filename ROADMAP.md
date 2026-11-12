@@ -11,8 +11,9 @@
 - [ ] **Rauchtest mit echten Schlüsseln** (`:core:smoke`): Bisher ist nichts gegen die echten Dienste
       gelaufen. Erwartbar sind kleine Protokollfehler bei Transkription und Sprachausgabe.
 - [ ] **Gerätetest** auf dem Handy mit Kopfhörern (Checkliste in `HANDOVER.md`).
-- [ ] **Filter messen** (`:core:evalLive`): Die Anweisungen in `Persona.kt` sind noch nie gegen die
-      140 beschrifteten Situationen gelaufen. Zwei alternative Fassungen liegen zum Vergleich vor.
+- [ ] **Filter über die echte API messen** (`:core:evalLive`): Bisher gibt es nur eine Ersatzmessung
+      mit nachstellenden Agenten (95 % ohne, 91 % mit verrauschter Sprecher-Schätzung, siehe
+      `HANDOVER.md`). Danach eine zurückgehaltene Kontrollmenge an Fällen anlegen.
 - [ ] Testfall-Sätze `party`, `mixed`, `call`, `musik`, `english` unabhängig gegenprüfen
       (bei `edge`, `lernen`, `solo`, `jarvis` ist das geschehen).
 - [ ] Schwellen der Stimm-Einschätzung mit echten Aufnahmen vom Gerät einstellen.

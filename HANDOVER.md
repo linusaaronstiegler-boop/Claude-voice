@@ -21,17 +21,36 @@
   fälschlich. Die Kotlin-Portierung weicht höchstens 0,00004 vom Python-Original ab.
 - Oberfläche als gerenderte Screenshots angesehen (JVM, ohne Emulator).
 
+**Filter gemessen (Ersatzmessung, siehe Einschränkung)**
+140 beschriftete Situationen, 7 davon strittig und nicht gewertet. Härtester Modus „ohne“: Das Modell
+sieht keinerlei Sprecher-Schätzung, der Stimmfilter ist also komplett ausgefallen.
+
+| Fassung der Anweisungen | Modus | richtig | Fehlauslöser | verpasste Fragen |
+|---|---|---|---|---|
+| erste Fassung | ohne | 123 von 133 (92 %) | 9 | 1 |
+| nachgeschärft (im Repo) | ohne | 126 von 133 (95 %) | 5 | 2 |
+| nachgeschärft (im Repo) | verrauscht, 72 Fälle | 62 von 68 (91 %) | 2 | 4 |
+
+Zwei unabhängig geschriebene Alternativen (viele Beispiele; Entscheidungsverfahren) lagen auf
+denselben 72 Fällen mit je 88 % hinter der ersten Fassung (91 %) und wurden verworfen.
+
+Einschränkung, bitte ernst nehmen: Gemessen wurde nicht über die echte API, sondern mit
+Sonnet-Agenten, die die Antwort des Modells nachstellen. Das ist optimistischer als der echte
+Aufruf ohne Nachdenkzeit. Außerdem wurden die Anweisungen an genau diesen Fällen nachgeschärft; eine
+zurückgehaltene Kontrollmenge gibt es nicht. Die belastbare Zahl liefert erst
+`./gradlew :core:evalLive` mit eigenem Schlüssel.
+
+Offene Fehlermuster: thematisch passende Fremdgespräche direkt nach einer Antwort (Nachbartisch,
+Doku-Sprecher, fremdes Kind am selben Exponat), stark verkürzte Nachfragen ohne Sprecher-Schätzung,
+und bei falschen Sprecher-Etiketten zu viel Zurückhaltung.
+
 **Nicht geprüft**
 - Kein Lauf gegen die echten Dienste und keiner auf einem Gerät: Es gab weder Schlüssel noch Handy.
-- Die Anweisungen in `Persona.kt` sind nicht gegen die Testfälle gemessen. Der geplante Vergleich
-  dreier Fassungen fiel aus, weil die Nutzungs-Credits der Agenten aufgebraucht waren.
 - ScribeClient, ElevenTts, SonioxClient, OpenWakeWord und die Oberfläche stammen aus Agentenläufen,
   die vor ihrer unabhängigen Prüfung abbrachen. Ihre eigenen Tests laufen, mehr nicht.
 - Sechs von sieben Code-Reviews brachen ab. Verloren gingen außerdem drei Bauteile, bevor etwas
   gespeichert war: Audio-Bauteil (von Hand nachgebaut), Zahlen-Aussprache, Vorfilter-Härtung.
 
-**Zwei alternative Fassungen der Anweisungen** liegen außerhalb des Repos vor und müssen erst gemessen
-werden, bevor eine davon `Persona.kt` ersetzt.
 
 ### Checkliste Gerätetest
 1. APK installieren, Schlüssel eintragen, Kopfhörer verbinden. Ohne Kopfhörer muss der Start mit
