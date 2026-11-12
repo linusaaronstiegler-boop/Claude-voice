@@ -1,0 +1,407 @@
+[
+  {
+    "id": "party-01",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 68, "who": "jonas", "speaker": "partner", "proximity": "mittel", "text": "Hier probier den mal, den hat mein Bruder aus Mexiko mitgebracht, kein Supermarktzeug."},
+      {"ago_s": 60, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Oh. Der ist ja richtig weich, brennt gar nicht."},
+      {"ago_s": 53, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "where were you when the lights went low baby where were you"},
+      {"ago_s": 45, "who": "flur-a", "speaker": "dritte", "proximity": "fern", "text": "Weiß einer wem der graue Mantel hier gehört?"},
+      {"ago_s": 37, "who": "jonas", "speaker": "partner", "proximity": "mittel", "text": "Sag ich doch. Den kippt man auch nicht mit Salz und Zitrone, den nippt man."},
+      {"ago_s": 28, "who": "mira", "speaker": "partner", "proximity": "mittel", "text": "Zeig mal die Flasche. Hundert Prozent Agawe steht da drauf."},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja und, klingt doch edel."},
+      {"ago_s": 10, "who": "flur-b", "speaker": "dritte", "proximity": "fern", "text": "Nee der ist nicht von mir, frag mal Steffi."}
+    ],
+    "trigger": {"who": "mira", "speaker": "partner", "proximity": "mittel", "text": "Nee ich mein nur, ich dachte immer Tekila wird aus Kaktus gemacht. Ist das dasselbe, Agave und Kaktus, weißt du das?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Nein, eine Agave ist kein Kaktus (sie gehört zu den Spargelgewächsen); Tequila wird aus der blauen Agave hergestellt.",
+      "why": "Mira stellt dem Träger im eigenen Gespräch eine Wissensfrage, die am Tisch niemand beantwortet hat; die Stimmen aus dem Flur und die Liedzeile gehören nicht dazu."
+    },
+    "ambiguous": false,
+    "tags": ["partner-question", "addressed-to-wearer", "unanswered-knowledge-question", "crosstalk", "lyrics-in-history", "stt-error"]
+  },
+  {
+    "id": "party-02",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 70, "who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Wir kennen uns doch, oder? Du warst auch bei der Einweihung von Hannes."},
+      {"ago_s": 62, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Stimmt! Du bist die mit dem Nudelsalat."},
+      {"ago_s": 55, "who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Schuldig. Der steht heute auch wieder in der Küche, bedien dich."},
+      {"ago_s": 47, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "tell me where you wanna go, tell me where you wanna go tonight"},
+      {"ago_s": 39, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Mach ich. Du warst doch damals mit jemandem da, so ein Großer mit Bart."},
+      {"ago_s": 31, "who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Ja genau, der stand den ganzen Abend am Grill und hat keinen rangelassen."},
+      {"ago_s": 22, "who": "balkon-a", "speaker": "dritte", "proximity": "fern", "text": "Tür zu, es zieht wie Hechtsuppe!"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Genau der. Wie hieß der noch gleich, irgendwas mit M, mir fällt's echt nicht ein."},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Frage geht an Carla und betrifft den Namen ihres privaten Begleiters, den nur sie kennt und den kein Assistent wissen kann."
+    },
+    "ambiguous": false,
+    "tags": ["question-to-partner", "private-fact", "personal", "looks-like-wondering", "lyrics-in-history"]
+  },
+  {
+    "id": "party-03",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 92, "who": "pia", "speaker": "partner", "proximity": "mittel", "text": "Also die haben mir die Stelle jetzt echt angeboten, ab März, in Hamburg."},
+      {"ago_s": 85, "who": "tisch2-a", "speaker": "dritte", "proximity": "mittel", "text": "Nie im Leben geht der Äquator durch Kenia, niemals."},
+      {"ago_s": 78, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wie geil, Glückwunsch! Ziehst du dann hoch oder pendelst du?"},
+      {"ago_s": 70, "who": "tisch2-b", "speaker": "dritte", "proximity": "mittel", "text": "Doch tut er. Wetten? Wer verliert zahlt die nächste Runde."},
+      {"ago_s": 62, "who": "pia", "speaker": "partner", "proximity": "mittel", "text": "Erstmal pendeln, zwei Tage die Woche. Hörst du überhaupt zu oder flüstert dir dein Ohrstöpsel wieder was?"},
+      {"ago_s": 53, "who": "tisch2-a", "speaker": "dritte", "proximity": "mittel", "text": "Deal. Aber nicht googeln, das Handy bleibt in der Tasche."},
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Der ist still, versprochen. Zwei Tage klingt doch machbar, was sagt Jasper dazu?"},
+      {"ago_s": 36, "who": "pia", "speaker": "partner", "proximity": "mittel", "text": "Der findet's super, solange wir die Wohnung hier behalten."},
+      {"ago_s": 24, "who": "tisch2-b", "speaker": "dritte", "proximity": "mittel", "text": "Und wie klären wir das dann ohne Handy? Henrik, sag du was."},
+      {"ago_s": 13, "who": "henrik", "speaker": "dritte", "proximity": "mittel", "text": "Lasst mich da raus, ich will hier nur mein Bier trinken."}
+    ],
+    "trigger": {"who": "tisch2-a", "speaker": "dritte", "proximity": "mittel", "text": "Nix da, du hast doch Erdkunde studiert. Geht der Äquator durch Kenia, ja oder nein?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Wette und Frage gehören zum Nachbartisch; der Träger spricht mit Pia über ihren neuen Job und hat ihr eben erst versichert, dass der Assistent still ist."
+    },
+    "ambiguous": false,
+    "tags": ["bystander", "neighbouring-table", "crosstalk", "thread-coherence", "answerable-fact", "same-loudness"]
+  },
+  {
+    "id": "party-04",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 74, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "ich zähl die Tage ich zähl die Stunden ohne dich"},
+      {"ago_s": 66, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Oh nee, wer hat denn jetzt Schlager angemacht."},
+      {"ago_s": 59, "who": "leo", "speaker": "partner", "proximity": "nah", "text": "Ich! Das ist ein Klassiker, wart ab bis zum Refrain, den kann jeder."},
+      {"ago_s": 50, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "sag mir wie viele Sekunden hat ein Jahr"},
+      {"ago_s": 44, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "ich hab sie alle gezählt seit du nicht mehr da warst"},
+      {"ago_s": 36, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Den kennt keiner, Leo. Den kennst nur du und deine Mutter."},
+      {"ago_s": 27, "who": "leo", "speaker": "partner", "proximity": "nah", "text": "Banause. Jetzt, jetzt, jetzt, alle mitsingen!"},
+      {"ago_s": 15, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "sag mir, sag mir"}
+    ],
+    "trigger": {"who": "leo", "speaker": "partner", "proximity": "nah", "text": "wie viele Sekunden hat ein Jahr"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Leo grölt die Refrainzeile mit, die kurz zuvor wortgleich aus der Box kam; das ist Liedtext und keine Frage an irgendwen."
+    },
+    "ambiguous": false,
+    "tags": ["lyrics", "singing-along", "partner-sings", "fact-question-lookalike", "repeated-line"]
+  },
+  {
+    "id": "party-05",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 63, "who": "deniz", "speaker": "partner", "proximity": "mittel", "text": "So wer fängt an? Wir spielen fünfhunderteins, Double Out, wie immer."},
+      {"ago_s": 56, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "hands up if you feel alive tonight, hands up"},
+      {"ago_s": 49, "who": "kim", "speaker": "partner", "proximity": "mittel", "text": "Ich. Aber ich hab seit der Schule keinen Pfeil mehr in der Hand gehabt."},
+      {"ago_s": 41, "who": "theke-a", "speaker": "dritte", "proximity": "fern", "text": "Zwei Pils und ne Apfelschorle bitte!"},
+      {"ago_s": 34, "who": "deniz", "speaker": "partner", "proximity": "mittel", "text": "Du bist nach Kim dran. Weißt du wie's geht?"},
+      {"ago_s": 27, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Klar. Also so ungefähr. Fangt ihr mal an, ich hol mir kurz Pfeile."},
+      {"ago_s": 16, "who": "theke-b", "speaker": "dritte", "proximity": "fern", "text": "Was? Ich versteh dich nicht, sag nochmal!"},
+      {"ago_s": 4, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Travis"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "erklär mir mal ganz schnell wie das geht, fünfhunderteins double out"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "Jeder startet bei 501 und zieht seine geworfenen Punkte ab; es gewinnt, wer genau auf null kommt, und der letzte Pfeil muss ein Doppelfeld treffen (Double Out). Wer überwirft, bleibt auf seinem alten Stand.",
+      "why": "Der Träger weckt den Assistenten mit dem im Kneipenlärm als 'Travis' verhörten 'Hey Jarvis', die Bitte folgt nach einer Sprechpause in einer eigenen Zeile und verlangt ausdrücklich eine Erklärung; einen Travis gibt es in der Runde nicht."
+    },
+    "ambiguous": false,
+    "tags": ["wake-name", "name-garbled", "vad-split", "loud-room", "direct-address", "explanation-request", "stt-error", "code-switching"]
+  },
+  {
+    "id": "party-06",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 58, "who": "nele", "speaker": "partner", "proximity": "mittel", "text": "Sag mal hörst du eigentlich Musik während wir hier reden? Du hast die ganze Zeit die Dinger drin."},
+      {"ago_s": 50, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee nee da läuft nix. Da hört so ein Assistent mit, der sagt mir Sachen ins Ohr wenn ich was nicht weiß."},
+      {"ago_s": 42, "who": "nele", "speaker": "partner", "proximity": "mittel", "text": "Okay das ist ein bisschen creepy."},
+      {"ago_s": 35, "who": "kai", "speaker": "partner", "proximity": "mittel", "text": "Also der quatscht dir einfach rein, mitten im Gespräch?"},
+      {"ago_s": 27, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nur wenn's passt. Meistens hält er die Klappe, außer ich ruf ihn."},
+      {"ago_s": 19, "who": "song", "speaker": "medien", "proximity": "fern", "text": "can you hear me calling, can you hear me now"},
+      {"ago_s": 10, "who": "kai", "speaker": "partner", "proximity": "mittel", "text": "Und wie rufst du den, musst du da irgendwo draufdrücken?"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee ich sag einfach hey Jarvis und dann meine Frage, wie bei Iron Man halt."},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Der Träger erklärt seinen Freunden nur, wie er den Assistenten ruft; das Weckwort wird zitiert, nicht benutzt, und es folgt kein Auftrag."
+    },
+    "ambiguous": false,
+    "tags": ["wake-word-mention", "wake-name", "no-request", "talking-about-assistant", "statement"]
+  },
+  {
+    "id": "party-07",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 61, "who": "paula", "speaker": "partner", "proximity": "mittel", "text": "Hier nimm meine Powerbank, dein Handy ist ja gleich tot."},
+      {"ago_s": 54, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Du rettest mich. Kriegst du Montag in der Uni wieder, versprochen."},
+      {"ago_s": 47, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "who's gonna hold you when the lights go out, who's gonna stay"},
+      {"ago_s": 40, "who": "paula", "speaker": "partner", "proximity": "mittel", "text": "Das hast du beim Regenschirm auch gesagt und der liegt seit Oktober bei dir."},
+      {"ago_s": 32, "who": "pong-a", "speaker": "dritte", "proximity": "fern", "text": "Jaaa getroffen! Trinken, trinken, trinken!"},
+      {"ago_s": 24, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Okay okay, diesmal wirklich. Warte, ich lass mir das aufschreiben."},
+      {"ago_s": 15, "who": "pong-b", "speaker": "dritte", "proximity": "fern", "text": "Das war Ellbogen, der zählt nicht! Wer entscheidet das jetzt?"},
+      {"ago_s": 7, "who": "paula", "speaker": "partner", "proximity": "mittel", "text": "Was? Ich versteh hier drin kein Wort."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "all fred schreib dir mal auf montag powerbank und regenschirm für paula mitbringen"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Knappe Bestätigung, dass notiert ist: am Montag Powerbank und Regenschirm für Paula mitbringen.",
+      "why": "Der Träger spricht Alfred im Partylärm mit zerhackt erkanntem Namen an und gibt einen Notizauftrag; das ist ein Befehl an den Assistenten und nichts, was an die Runde gerichtet wäre."
+    },
+    "ambiguous": false,
+    "tags": ["direct-address", "name-garbled", "stt-split-words", "command-remember", "loud-room", "crosstalk"]
+  },
+  {
+    "id": "party-08",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 52, "who": "timo", "speaker": "partner", "proximity": "mittel", "text": "Wer hat denn die Karten so zerfleddert? Da fehlen doch welche."},
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Zähl halt durch."},
+      {"ago_s": 33, "who": "timo", "speaker": "partner", "proximity": "mittel", "text": "Achtundzwanzig, neunundzwanzig, dreißig. Dreißig Stück. Wie viele müssen das bei nem Skatblatt sein?"},
+      {"ago_s": 26, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Puh. Sechsunddreißig? Ich kann nur Mau-Mau."},
+      {"ago_s": 19, "who": "ronja", "speaker": "partner", "proximity": "fern", "text": "Zweiunddreißig! Sieben bis Ass in vier Farben, acht mal vier!"},
+      {"ago_s": 10, "who": "timo", "speaker": "partner", "proximity": "mittel", "text": "Dann fehlen zwei. Na super."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Zweiunddreißig, stimmt ja, acht mal vier. Und wo sind dann die anderen zwei hin?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Ronja hat die Kartenzahl gerade richtig genannt und der Träger bestätigt sie selbst; wo die zwei fehlenden Karten liegen, kann kein Assistent wissen."
+    },
+    "ambiguous": false,
+    "tags": ["already-answered", "partner-answered-correctly", "wrong-guess-in-history", "situational-question", "music-playing"]
+  },
+  {
+    "id": "party-09",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 66, "who": "ella", "speaker": "partner", "proximity": "mittel", "text": "Guckt mal mein Glas leuchtet! Total blau, seht ihr das?"},
+      {"ago_s": 59, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Stimmt, wie so'n Knicklicht. Das macht das Schwarzlicht da oben."},
+      {"ago_s": 51, "who": "ella", "speaker": "partner", "proximity": "mittel", "text": "Ja aber warum leuchtet mein Gin Tonic und dein Bier nicht?"},
+      {"ago_s": 44, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Frag mich was Leichteres."},
+      {"ago_s": 36, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "why you looking at me like that, why you looking"},
+      {"ago_s": 27, "who": "marek", "speaker": "partner", "proximity": "mittel", "text": "Das ist der Gin. Da ist Wacholder drin und der leuchtet unter UV, weiß man doch."},
+      {"ago_s": 18, "who": "ella", "speaker": "partner", "proximity": "mittel", "text": "Ach echt? Wieder was gelernt."},
+      {"ago_s": 9, "who": "marek", "speaker": "partner", "proximity": "mittel", "text": "Deswegen leuchtet auch nur Gin und kein Wodka."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hm. Wacholder der unter Schwarzlicht leuchtet, ob das wirklich stimmt"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Nein, es liegt nicht am Gin, sondern am Chinin im Tonic Water, das unter UV- bzw. Schwarzlicht bläulich fluoresziert.",
+      "why": "Die Warum-Frage aus dem eigenen Gespräch wurde von Marek nur falsch beantwortet, und der Träger zweifelt die Erklärung jetzt hörbar an."
+    },
+    "ambiguous": false,
+    "tags": ["wrong-answer-in-history", "wearer-doubts", "wearer-wonders", "no-wake-name", "lyrics-in-history"]
+  },
+  {
+    "id": "party-10",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 52, "who": "hanna", "speaker": "partner", "proximity": "mittel", "text": "Noch zwei Minuten Leute! Wer macht den Sekt auf?"},
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Gib her, ich mach das. Alle mal nen Schritt zurück."},
+      {"ago_s": 38, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "are you ready, are you ready for the night of your life"},
+      {"ago_s": 30, "who": "hanna", "speaker": "partner", "proximity": "mittel", "text": "Bitte nicht auf die Lampe zielen, die gehört der Vermieterin."},
+      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja ja. Erst mal das Drahtgestell hier runterfummeln."},
+      {"ago_s": 14, "who": "ben", "speaker": "partner", "proximity": "mittel", "text": "Das Körbchen heißt das."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Körbchen sagt jeder, aber das hat nen richtigen Fachbegriff, dieses Drahtding überm Korken. Agra, Agro irgendwas, ich komm nicht drauf"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Agraffe (französisch auch Muselet).",
+      "why": "Der Träger sucht laut nach einem Fachwort, das in der Runde keiner parat hat; Bens 'Körbchen' ist nur die Umgangsbezeichnung."
+    },
+    "ambiguous": false,
+    "tags": ["wearer-wonders", "tip-of-tongue", "no-wake-name", "colloquial-answer-present", "lyrics-in-history"]
+  },
+  {
+    "id": "party-11",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 28,
+    "history": [
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Prost zusammen! Hey Jarvis woher kommt eigentlich das Wort Prost"},
+      {"ago_s": 31, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Vom lateinischen prosit, das heißt: es möge nützen."},
+      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Latein, Leute. Prosit, es möge nützen, sagt der Knopf im Ohr."},
+      {"ago_s": 15, "who": "malte", "speaker": "partner", "proximity": "mittel", "text": "Na dann möge es nützen. In Schweden sagen die ja immer Skol."},
+      {"ago_s": 8, "who": "theke-b", "speaker": "dritte", "proximity": "fern", "text": "Noch zwei Kurze hier drüben!"}
+    ],
+    "trigger": {"who": "malte", "speaker": "partner", "proximity": "mittel", "text": "Frag deinen Knopf mal was Skol wörtlich heißt, das wollt ich schon immer wissen."},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Skål (in der Mitschrift 'Skol') heißt wörtlich Schale, gemeint ist die Trinkschale.",
+      "why": "Malte lässt über den Träger ausdrücklich den Assistenten fragen, direkt im Anschluss an Alfreds Antwort im selben Faden; das ist eine offene Wissensfrage im eigenen Gespräch."
+    },
+    "ambiguous": false,
+    "tags": ["after-alfred", "relayed-question", "partner-question", "follow-up", "wake-name-in-history", "stt-error"]
+  },
+  {
+    "id": "party-12",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 27,
+    "history": [
+      {"ago_s": 41, "who": "fabi", "speaker": "partner", "proximity": "mittel", "text": "Ich bin Sonntag meinen ersten Marathon gelaufen, ich komm immer noch keine Treppe runter."},
+      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Respekt Alter. Wie lang ist so'n Marathon eigentlich genau?"},
+      {"ago_s": 29, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "42,195 Kilometer."},
+      {"ago_s": 21, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Zweiundvierzig Komma zwei. Irre."},
+      {"ago_s": 14, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "run run run till the sun comes up"},
+      {"ago_s": 7, "who": "fabi", "speaker": "partner", "proximity": "mittel", "text": "Ab Kilometer dreißig war's nur noch Kopfsache."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Und wie lange braucht man da so, also du jetzt, was war deine Zeit?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Der Satz beginnt wie eine Anschlussfrage an Alfred, der Träger verbessert sich aber noch im selben Atemzug und fragt Fabi nach dessen eigener Laufzeit."
+    },
+    "ambiguous": false,
+    "tags": ["after-alfred", "not-a-follow-up", "follow-up-lookalike", "question-to-partner", "personal", "self-repair"]
+  },
+  {
+    "id": "party-13",
+    "scene": "party",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 63, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Okay Regeln. Ich les vor, wer falsch liegt trinkt zwei, wer richtig liegt verteilt zwei."},
+      {"ago_s": 56, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Und du trinkst nie oder wie? Sehr praktisch."},
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Ich bin Quizmaster, bei mir stehen die Lösungen hinten drauf. Nächste Runde wird getauscht."},
+      {"ago_s": 41, "who": "olli", "speaker": "partner", "proximity": "nah", "text": "Mach hin ich hab Durst."},
+      {"ago_s": 33, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Erste Karte, für Olli. Wie viele Saiten hat eine Geige?"},
+      {"ago_s": 26, "who": "olli", "speaker": "partner", "proximity": "nah", "text": "Sechs. Nee Quatsch. Vier!"},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Vier stimmt, du verteilst. Mist."},
+      {"ago_s": 9, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Jetzt ich, jetzt ich!"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Für Lena. Wie viele Tasten hat ein normales Klavier?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Der Träger liest als Quizmaster eine Karte des Trinkspiels vor und hat die Lösung selbst in der Hand; raten soll Lena, nicht der Assistent."
+    },
+    "ambiguous": false,
+    "tags": ["drinking-game", "quiz-card", "wearer-is-quizmaster", "fact-question-lookalike", "reading-aloud", "handy-mic"]
+  },
+  {
+    "id": "party-14",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Der war so schlecht Jannik, dafür müsstest eigentlich du trinken."},
+      {"ago_s": 50, "who": "jannik", "speaker": "partner", "proximity": "mittel", "text": "Wartet wartet, einen hab ich noch. Einen hab ich noch."},
+      {"ago_s": 44, "who": "mia", "speaker": "partner", "proximity": "mittel", "text": "Oh nein. Bitte nicht."},
+      {"ago_s": 37, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "tell me what's the price of a heartbreak downtown"},
+      {"ago_s": 29, "who": "jannik", "speaker": "partner", "proximity": "mittel", "text": "Doch, der ist gut. Den hat mir mein Neffe erzählt."},
+      {"ago_s": 21, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Dein Neffe ist sieben."},
+      {"ago_s": 12, "who": "jannik", "speaker": "partner", "proximity": "mittel", "text": "Eben, der hat wenigstens Niveau. Also, passt auf."}
+    ],
+    "trigger": {"who": "jannik", "speaker": "partner", "proximity": "mittel", "text": "Welches Tier kann höher springen als ein Haus?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Das ist die angekündigte Scherzfrage eines Witzes, dessen Pointe Jannik gleich selbst liefert; eine ernsthafte Antwort würde nur stören."
+    },
+    "ambiguous": false,
+    "tags": ["banter", "joke-setup", "rhetorical", "fact-question-lookalike", "lyrics-in-history"]
+  },
+  {
+    "id": "party-15",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 88, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hi, drei Helle und eine Rhabarberschorle bitte."},
+      {"ago_s": 80, "who": "barfrau", "speaker": "dritte", "proximity": "mittel", "text": "Kommt, dauert aber kurz, ich muss das Fass wechseln."},
+      {"ago_s": 66, "who": "hocker-a", "speaker": "dritte", "proximity": "nah", "text": "Nee ehrlich, der Wein in Portugal war tausendmal besser als der hier."},
+      {"ago_s": 57, "who": "hocker-b", "speaker": "dritte", "proximity": "nah", "text": "Der grüne da, wie hieß der, Vinho Verde?"},
+      {"ago_s": 48, "who": "hocker-a", "speaker": "dritte", "proximity": "nah", "text": "Genau der. Wobei, grün war der überhaupt nicht."},
+      {"ago_s": 37, "who": "hocker-b", "speaker": "dritte", "proximity": "nah", "text": "Stimmt, eher so hellgelb. Egal, lecker war er."},
+      {"ago_s": 24, "who": "hocker-a", "speaker": "dritte", "proximity": "nah", "text": "Sollen wir noch einen nehmen oder zahlen?"},
+      {"ago_s": 13, "who": "hocker-b", "speaker": "dritte", "proximity": "nah", "text": "Einen noch."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hm stimmt eigentlich, wieso heißt der grüner Wein wenn der gar nicht grün ist"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "'Verde' meint hier jung, nicht die Farbe: Vinho Verde wird früh abgefüllt und jung getrunken. Er kommt aus dem Nordwesten Portugals und ist meist weiß, es gibt ihn aber auch rot und rosé.",
+      "why": "Der Träger wartet allein an der Theke und murmelt die Frage selbst vor sich hin; nur an der Stimme ist zu erkennen, dass sie nicht von den beiden Fremden auf den Hockern kommt."
+    },
+    "ambiguous": false,
+    "tags": ["needs-voice", "wearer-wonders", "overheard-topic", "bystander-near", "no-wake-name", "music-playing"]
+  },
+  {
+    "id": "party-16",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 64, "who": "toni", "speaker": "partner", "proximity": "mittel", "text": "Okay ich bin dran. Ich hab noch nie Europa verlassen."},
+      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Langweilig. Ich trink."},
+      {"ago_s": 49, "who": "sam", "speaker": "partner", "proximity": "mittel", "text": "Wait, wait. I've only been to Istanbul, does that count?"},
+      {"ago_s": 41, "who": "toni", "speaker": "partner", "proximity": "mittel", "text": "Istanbul ist Türkei und Türkei ist Asien. Also trink, drink!"},
+      {"ago_s": 33, "who": "sam", "speaker": "partner", "proximity": "mittel", "text": "No way, Istanbul is Europe, there was a sign on the bridge, welcome to Europe."},
+      {"ago_s": 25, "who": "toni", "speaker": "partner", "proximity": "mittel", "text": "Das Schild war bestimmt für die andere Richtung."},
+      {"ago_s": 16, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Leute ich bin raus, ich hab in Erdkunde immer geschlafen."}
+    ],
+    "trigger": {"who": "sam", "speaker": "partner", "proximity": "mittel", "text": "Come on, do I drink or not? Is Istanbul in Europe or in Asia?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Beides: Istanbul liegt auf beiden Seiten des Bosporus, ein Teil (darunter die Altstadt) in Europa, der andere in Asien. Nur die Tatsache nennen, nicht entscheiden, ob getrunken wird; Deutsch oder Englisch ist beides in Ordnung.",
+      "why": "Im Trinkspiel der eigenen Runde ist eine nachprüfbare Tatsache strittig, der Träger weiß es selbst nicht, und Sam stellt die Frage ausdrücklich."
+    },
+    "ambiguous": false,
+    "tags": ["drinking-game", "disputed-fact", "either-or", "false-dichotomy", "english-trigger", "partner-question"]
+  }
+]

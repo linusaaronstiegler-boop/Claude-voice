@@ -1,0 +1,594 @@
+[
+  {
+    "id": "mix-01",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 104, "who": "jonas", "speaker": "partner", "proximity": "mittel", "text": "Also ich hätt ja richtig Bock im September noch mal runter ins Berchtesgadener Land bevor da der erste Schnee liegt."},
+      {"ago_s": 97, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja voll. Letztes Mal sind wir ja nur bis zum Watzmann Haus hoch und dann wieder runter wegen dem Gewitter."},
+      {"ago_s": 90, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "und dann standen wir zwei Stunden an für den Fernsehturm, zwei Stunden, mit beiden Kindern"},
+      {"ago_s": 82, "who": "jonas", "speaker": "partner", "proximity": "mittel", "text": "Diesmal will ich die ganze Überschreitung machen, alle drei Gipfel. Der Felix hat das letztes Jahr durchgezogen."},
+      {"ago_s": 74, "who": "tisch2-b", "speaker": "dritte", "proximity": "fern", "text": "Und lohnt sich das da oben überhaupt?"},
+      {"ago_s": 67, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Die Aussicht ist schon irre, du siehst ganz Berlin. Nur das Restaurant dreht sich so langsam das merkst du kaum."},
+      {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Die Überschreitung ist aber schon heftig oder, das sind doch bestimmt zwölf Stunden."},
+      {"ago_s": 46, "who": "jonas", "speaker": "partner", "proximity": "mittel", "text": "Zehn bis zwölf, ja. Und schwindelfrei musst du sein, am Grat gehts links und rechts einfach runter."},
+      {"ago_s": 34, "who": "tisch2-b", "speaker": "dritte", "proximity": "fern", "text": "Ich dachte immer der in Stuttgart wär höher als der Berliner."},
+      {"ago_s": 26, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Nee nee, der Berliner ist der höchste in ganz Deutschland, da bin ich mir sicher."},
+      {"ago_s": 12, "who": "jonas", "speaker": "partner", "proximity": "mittel", "text": "Von der Mittelspitze hast du dann den Königssee direkt unter dir, das ist der höchste Punkt von der ganzen Tour."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wie viele Meter hat der eigentlich, nicht dass da oben im September doch schon Schnee liegt."},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Der Watzmann ist an der Mittelspitze 2713 Meter hoch. Gemeint ist der Berg aus dem eigenen Gespräch, nicht der Berliner Fernsehturm (368 Meter) vom Nachbartisch.",
+      "why": "Der Träger fragt sich laut nach einer Zahl; 'der' ist der Watzmann bzw. sein höchster Punkt aus dem Wandergespräch mit Jonas (September, Schnee), obwohl der Nachbartisch unmittelbar davor über die Höhe des Fernsehturms stritt."
+    },
+    "ambiguous": false,
+    "tags": ["pronoun-resolution", "tempting-wrong-referent", "neighbour-table", "wonder-aloud", "two-threads"]
+  },
+  {
+    "id": "mix-02",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 48,
+    "history": [
+      {"ago_s": 68, "who": "mira", "speaker": "partner", "proximity": "mittel", "text": "Guck mal unter der Lampe da, mein Glas leuchtet richtig blau, siehst du das?"},
+      {"ago_s": 62, "who": "balkon-a", "speaker": "dritte", "proximity": "fern", "text": "und nächste Woche müssen wir noch zum Tropen Institut wegen den Impfungen für Tansania"},
+      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Stimmt, krass. Wieso leuchtet Tonic eigentlich unter Schwarzlicht?"},
+      {"ago_s": 52, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Das liegt am Chinin im Tonic, das fluoresziert unter UV-Licht bläulich."},
+      {"ago_s": 46, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Chinin sagt er, das leuchtet unter UV."},
+      {"ago_s": 41, "who": "balkon-b", "speaker": "dritte", "proximity": "fern", "text": "Mein Opa hat immer gesagt jeden Abend ein Gin Tonic dann kriegst du keine Malaria."},
+      {"ago_s": 35, "who": "balkon-a", "speaker": "dritte", "proximity": "fern", "text": "Ja wegen dem Chinin, das haben die Engländer in Indien früher so gemacht."},
+      {"ago_s": 27, "who": "mira", "speaker": "partner", "proximity": "mittel", "text": "Warte, der redet dir einfach ins Ohr? Macht der das jedes Mal wenn du was fragst?"},
+      {"ago_s": 20, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nur wenn ich was nicht weiß. Ist am Anfang bisschen gruselig aber man gewöhnt sich dran."},
+      {"ago_s": 11, "who": "balkon-b", "speaker": "dritte", "proximity": "fern", "text": "Na dann sparen wir uns die Tabletten und trinken einfach jeden Abend drei Stück."},
+      {"ago_s": 5, "who": "balkon-a", "speaker": "dritte", "proximity": "fern", "text": "Schön wärs."}
+    ],
+    "trigger": {"who": "balkon-b", "speaker": "dritte", "proximity": "fern", "text": "Aber hilft das denn wirklich oder ist das Quatsch?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Frage setzt das Malaria-und-Gin-Tonic-Gespräch der Gruppe an der Balkontür fort, an dem der Träger nicht beteiligt ist; er redet mit Mira über den Assistenten. Dass das Thema Chinin zu Alfreds letzter Antwort passt, ist Zufall, denn Alfreds Stimme hört außer dem Träger niemand."
+    },
+    "ambiguous": false,
+    "tags": ["foreign-continuation", "follow-up-lookalike", "assistant-recent", "neighbour-group", "topic-overlap", "bystander"]
+  },
+  {
+    "id": "mix-03",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 112, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Also die Route wär dann erst Salzburg, dann rüber nach Graz und am Ende Wien."},
+      {"ago_s": 104, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Hast du die Stühle fürs Sommerfest jetzt eigentlich schon bestellt?"},
+      {"ago_s": 97, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Graz ist Steiermark oder? Und Salzburg heißt ja das Bundesland genauso wie die Stadt."},
+      {"ago_s": 89, "who": "tisch2-b", "speaker": "dritte", "proximity": "fern", "text": "Die Bänke ja, die Stühle noch nicht, ich wusste ja nicht wie viele."},
+      {"ago_s": 80, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Genau. Und auf dem Rückweg nehmen wir Kärnten mit, da ist der Wörthersee."},
+      {"ago_s": 68, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Na dann zähl doch mal durch wer alles zugesagt hat."},
+      {"ago_s": 55, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "In Kärnten können wir sogar noch baden wenn das Wetter hält."},
+      {"ago_s": 41, "who": "tisch2-b", "speaker": "dritte", "proximity": "fern", "text": "Moment, ich guck in die Liste."},
+      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Dann haben wir ja fast alle durch. Wie viele Bundesländer haben die Österreicher eigentlich insgesamt?"},
+      {"ago_s": 19, "who": "tisch2-b", "speaker": "dritte", "proximity": "fern", "text": "Sechzehn."},
+      {"ago_s": 16, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Sechzehn, okay. Und die passen alle auf die Terrasse?"},
+      {"ago_s": 9, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Puh. Wien, Niederösterreich, Oberösterreich, Tirol, Vorarlberg, plus unsere drei, dann wären das acht?"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Acht oder neun, ich bring das immer durcheinander. Was stimmt denn jetzt?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Neun Bundesländer; in Lenas Aufzählung fehlt das Burgenland. Die 'sechzehn' vom Nachbartisch meinte deren Gästeliste und wäre ohnehin die Zahl der deutschen Bundesländer.",
+      "why": "Der Träger fragt sich laut nach einer Faktenzahl, die in seinem Gespräch niemand sicher weiß; das 'Sechzehn' direkt nach seiner ersten Frage kam vom Nachbartisch (Stühle fürs Sommerfest) und ist nur scheinbar eine Antwort."
+    },
+    "ambiguous": false,
+    "tags": ["coincidental-answer", "wrong-pseudo-answer", "neighbour-table", "wonder-aloud", "either-or", "two-threads"]
+  },
+  {
+    "id": "mix-04",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 97, "who": "ole", "speaker": "partner", "proximity": "nah", "text": "Boah ist das schön leer jetzt, die sind alle schon heim."},
+      {"ago_s": 90, "who": "kind", "speaker": "dritte", "proximity": "fern", "text": "Mama guck mal ich mach ne Arschbombe, guck doch mal"},
+      {"ago_s": 82, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Mhm. Und warm ist es auch noch. Guck mal da hinten über den Bäumen, der Mond."},
+      {"ago_s": 74, "who": "ole", "speaker": "partner", "proximity": "nah", "text": "Krass, der ist ja riesig. Und so orange."},
+      {"ago_s": 63, "who": "kind", "speaker": "dritte", "proximity": "fern", "text": "Mama du hast gar nicht geguckt"},
+      {"ago_s": 55, "who": "mutter", "speaker": "dritte", "proximity": "fern", "text": "Doch doch ich hab geguckt, ganz toll. Jetzt komm raus, du hast schon blaue Lippen."},
+      {"ago_s": 41, "who": "ole", "speaker": "partner", "proximity": "nah", "text": "Wenn der ganz oben steht sieht der nie so groß aus oder, immer nur wenn er grad aufgeht."},
+      {"ago_s": 11, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Stimmt. Warum ist eigentlich"},
+      {"ago_s": 8, "who": "durchsage", "speaker": "medien", "proximity": "fern", "text": "Liebe Badegäste, der Sprungturm bleibt heute wegen Wartungsarbeiten geschlossen. Wir bitten um Ihr Verständnis."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "der Mond so riesig wenn der so tief steht, hast du da ne Ahnung?"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "Das ist die Mondtäuschung, eine Wahrnehmungstäuschung: Der Mond ist am Horizont nicht größer als hoch am Himmel, das Gehirn schätzt ihn in Horizontnähe nur größer ein. Die Atmosphäre vergrößert ihn nicht, sie färbt ihn höchstens rötlich. Die Frage gehört zum Mond, nicht zum gesperrten Sprungturm aus der Durchsage.",
+      "why": "Die Warum-Frage des Trägers ist durch die Freibad-Durchsage in zwei Zeilen zerrissen; zusammengesetzt bittet er um eine Erklärung, die weder er noch Ole kennt. Die Durchsage dazwischen liefert nur eine falsche Fortsetzung samt Scheinantwort."
+    },
+    "ambiguous": false,
+    "tags": ["split-question", "announcement", "wrong-stitching", "explanation-request", "two-threads", "music-playing"]
+  },
+  {
+    "id": "mix-05",
+    "scene": "alltag",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 115, "who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Schneidest du die Zwiebeln, dann mach ich schon mal das Hack an."},
+      {"ago_s": 108, "who": "radio", "speaker": "medien", "proximity": "mittel", "text": "und damit zurück ins Studio, bei uns geht es heute den ganzen Abend ums Einkochen und Einmachen"},
+      {"ago_s": 101, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Ja mach. Wie fein willst du die, Würfel?"},
+      {"ago_s": 95, "who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Ganz fein bitte. Und gib mir mal den Kreuzkümmel rüber."},
+      {"ago_s": 84, "who": "radio", "speaker": "medien", "proximity": "mittel", "text": "Frau Albers, Sie kochen seit vierzig Jahren Marmelade. Wie lange hält sich so ein Glas denn wirklich?"},
+      {"ago_s": 76, "who": "radio-gast", "speaker": "medien", "proximity": "mittel", "text": "Wenn es sauber abgefüllt ist und dunkel steht, gut und gerne ein Jahr, oft länger."},
+      {"ago_s": 63, "who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Ach du, ganz anderes Thema bevor ichs vergess. Der Vermieter hat immer noch nicht die Nebenkosten für letztes Jahr geschickt."},
+      {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Echt nicht? Wir haben doch schon Oktober."},
+      {"ago_s": 47, "who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Eben. Die von oben haben auch noch nix. Und ich will nicht dass da kurz vor Weihnachten plötzlich ne fette Nachzahlung kommt."},
+      {"ago_s": 31, "who": "radio", "speaker": "medien", "proximity": "mittel", "text": "Und gibt es da eine Frist, nach der man so ein Glas besser wegwerfen sollte?"},
+      {"ago_s": 22, "who": "radio-gast", "speaker": "medien", "proximity": "mittel", "text": "Eine feste Frist gibt es nicht. Wenn sich der Deckel wölbt oder es komisch riecht, weg damit."},
+      {"ago_s": 8, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Hm. Ich glaub ewig rauszögern darf der das nicht."}
+    ],
+    "trigger": {"who": "carla", "speaker": "partner", "proximity": "mittel", "text": "Wie lange hat der denn Zeit dafür, gibts da ne Frist?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Zwölf Monate nach Ende des Abrechnungszeitraums (Paragraf 556 BGB): Die Nebenkostenabrechnung für das letzte Kalenderjahr muss bis Ende Dezember beim Mieter sein, danach kann der Vermieter in der Regel nichts mehr nachfordern. Gemeint ist der Vermieter, nicht die Haltbarkeit von Marmelade aus dem Radio.",
+      "why": "Carla hat im eigenen Gespräch das Thema vom Kochen zur Nebenkostenabrechnung gewechselt und stellt eine Sachfrage, die keiner von beiden sicher beantworten kann; das Radio sprach kurz davor ebenfalls von einer 'Frist' und verneinte sie, aber für Einmachgläser."
+    },
+    "ambiguous": false,
+    "tags": ["topic-change", "radio", "tempting-wrong-referent", "coincidental-answer", "pronoun-resolution", "handy-mic", "legal-fact"]
+  },
+  {
+    "id": "mix-06",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 118, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja ich hör dich, leg los."},
+      {"ago_s": 112, "who": "anouk", "speaker": "partner", "proximity": "mittel", "text": "Okay also kurz zum Stand, wir haben gestern Abend den neuen Sync Job deployed und der lief erst mal sauber durch."},
+      {"ago_s": 103, "who": "buero-a", "speaker": "dritte", "proximity": "mittel", "text": "Gehen wir heute zum Vietnamesen oder wieder Kantine?"},
+      {"ago_s": 97, "who": "anouk", "speaker": "partner", "proximity": "mittel", "text": "Heute früh um sechs fängt der dann an zu retryen, immer wieder, ich seh das im Dashboard, alle paar Sekunden ein neuer Versuch."},
+      {"ago_s": 88, "who": "buero-b", "speaker": "dritte", "proximity": "mittel", "text": "Vietnamese. Aber ich muss vorher noch ins Lager, weißt du den Code von der Tür?"},
+      {"ago_s": 82, "who": "buero-a", "speaker": "dritte", "proximity": "mittel", "text": "Vier sieben eins neun glaub ich. Oder die haben den schon wieder geändert."},
+      {"ago_s": 74, "who": "anouk", "speaker": "partner", "proximity": "mittel", "text": "Ich dachte erst das ist unser Bug, also hab ich die Logs gezogen, und da steht bei jedem einzelnen Request the same response from the partner API."},
+      {"ago_s": 65, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Mhm."},
+      {"ago_s": 58, "who": "anouk", "speaker": "partner", "proximity": "mittel", "text": "Kein fünfhunderter, kein Timeout, nix was nach kaputt aussieht. Die antworten ganz normal, nur halt nicht mit zweihundert."},
+      {"ago_s": 47, "who": "buero-b", "speaker": "dritte", "proximity": "mittel", "text": "Vier sieben eins neun geht nicht mehr, hab ich gestern schon probiert."},
+      {"ago_s": 39, "who": "anouk", "speaker": "partner", "proximity": "mittel", "text": "Sondern jedes Mal vier neunundzwanzig, four twenty nine, tausende davon seit heute früh."},
+      {"ago_s": 27, "who": "buero-a", "speaker": "dritte", "proximity": "mittel", "text": "Dann frag den Marek, der hat den neuen Code."},
+      {"ago_s": 14, "who": "anouk", "speaker": "partner", "proximity": "mittel", "text": "Und ich steh grad total auf dem Schlauch, ich verwechsel die vierhunderter immer."}
+    ],
+    "trigger": {"who": "anouk", "speaker": "partner", "proximity": "mittel", "text": "Was heißt der Code noch mal genau, hast du das aus dem Kopf parat?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "HTTP 429 bedeutet Too Many Requests: zu viele Anfragen in kurzer Zeit, die Partner-API drosselt per Rate Limit. Gemeint ist der Statuscode aus dem Call, nicht der Türcode der Kollegen im Büro.",
+      "why": "Anouk trägt das Gespräch seit fast zwei Minuten allein und fragt den Träger jetzt direkt nach einer Faktenbedeutung, die sie selbst nicht parat hat; 'der Code' ist der Statuscode 429 aus ihrem Bericht, während die Kollegen nebenan über einen Türcode reden."
+    },
+    "ambiguous": false,
+    "tags": ["partner-monologue", "wearer-silent", "open-plan-office", "tempting-wrong-referent", "pronoun-resolution", "code-switching", "two-threads"]
+  },
+  {
+    "id": "mix-07",
+    "scene": "medien",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 109, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Hallo und schön dass du wieder eingeschaltet hast, heute geht es bei uns um Licht."},
+      {"ago_s": 101, "who": "hannah", "speaker": "partner", "proximity": "mittel", "text": "Sind das deine Socken oder meine?"},
+      {"ago_s": 97, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Die grauen sind meine, die mit dem Loch kannst du gleich wegschmeißen."},
+      {"ago_s": 88, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Stell dir vor du knipst abends die Nachttischlampe an. Was meinst du, wie lange braucht das Licht bis zu deinem Buch?"},
+      {"ago_s": 80, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Richtig, praktisch gar nicht, ein paar Milliardstel Sekunden."},
+      {"ago_s": 71, "who": "hannah", "speaker": "partner", "proximity": "mittel", "text": "Den Bezug müssen wir zu zweit machen, nimm mal die zwei Ecken da."},
+      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hab ich. Andersrum, die Knöpfe müssen nach unten."},
+      {"ago_s": 52, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Jetzt gehen wir mal raus aus dem Schlafzimmer und ein bisschen weiter weg."},
+      {"ago_s": 38, "who": "hannah", "speaker": "partner", "proximity": "mittel", "text": "Hast du eigentlich die Handtücher schon in den Trockner?"},
+      {"ago_s": 31, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee die hängen noch, mach ich gleich."},
+      {"ago_s": 12, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Du sitzt also morgens auf dem Balkon, Kaffee in der Hand, die Sonne geht auf."}
+    ],
+    "trigger": {"who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Und jetzt du: Wie lange war dieses Licht unterwegs von der Sonne bis in dein Gesicht, was schätzt du?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Frage kommt vom Podcast-Moderator, der seine Hörer durchgehend duzt und seine Fragen gleich selbst auflöst; der Träger und Hannah legen nebenbei Wäsche zusammen und haben nichts gefragt."
+    },
+    "ambiguous": false,
+    "tags": ["media-addresses-you", "podcast", "fact-question-surface", "self-answering-host", "two-threads"]
+  },
+  {
+    "id": "mix-08",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 96, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "tell me how many nights till the morning comes, tell me how many, how many"},
+      {"ago_s": 90, "who": "nico", "speaker": "partner", "proximity": "nah", "text": "Nee Alter, das Ding bei meinen Eltern hat fünfundachtzig, ich hab da zehn Jahre drauf geübt."},
+      {"ago_s": 83, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Fünfundachtzig, niemals. Ein normales Klavier hat achtundachtzig Tasten, das weiß doch jeder."},
+      {"ago_s": 75, "who": "sofa-a", "speaker": "dritte", "proximity": "mittel", "text": "Ich sag dir der Laden macht um zwei zu, nicht um drei."},
+      {"ago_s": 69, "who": "sofa-b", "speaker": "dritte", "proximity": "mittel", "text": "Um drei. Ich war letzten Samstag bis zum Schluss da, glaub mir."},
+      {"ago_s": 61, "who": "nico", "speaker": "partner", "proximity": "nah", "text": "Achtundachtzig haben die großen Flügel im Konzert. Die normalen fürs Wohnzimmer haben weniger."},
+      {"ago_s": 52, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "count them on your fingers baby, count them one by one"},
+      {"ago_s": 44, "who": "sofa-a", "speaker": "dritte", "proximity": "mittel", "text": "Wetten? Der Verlierer zahlt das Taxi."},
+      {"ago_s": 36, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Das ist Quatsch, die haben alle gleich viel. Okay wir wetten, um ein Bier."},
+      {"ago_s": 27, "who": "sofa-b", "speaker": "dritte", "proximity": "mittel", "text": "Deal. Um drei, ich bleib dabei."},
+      {"ago_s": 18, "who": "nico", "speaker": "partner", "proximity": "nah", "text": "Von mir aus. Aber wie willst du das jetzt hier klären, googeln gilt nicht."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Jarwis sag du mal, wer von uns beiden hat recht"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Der Träger hat recht: Ein normales Klavier hat 88 Tasten (52 weiße, 36 schwarze), Wohnzimmerklaviere genauso wie Konzertflügel; 85 Tasten gibt es nur bei manchen alten Instrumenten. Es geht um die Klavierwette mit Nico, nicht um die Schließzeit, über die die beiden auf dem Sofa wetten.",
+      "why": "Der Träger ruft den Assistenten mit dem Weckwort (als 'Jarwis' verhört) und will die Wette mit Nico entschieden haben; 'wir beide' sind er und Nico, auch wenn nebenan gleichzeitig eine zweite Wette über eine Schließzeit läuft, die Alfred gar nicht entscheiden könnte."
+    },
+    "ambiguous": false,
+    "tags": ["wake-word", "jarvis", "stt-name-error", "song-lyrics", "two-bets", "tempting-wrong-referent", "neighbour-group"]
+  },
+  {
+    "id": "mix-09",
+    "scene": "medien",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 112, "who": "film-held", "speaker": "medien", "proximity": "mittel", "text": "Jarvis, Statusbericht, was hat es erwischt?"},
+      {"ago_s": 106, "who": "film-ki", "speaker": "medien", "proximity": "mittel", "text": "Das linke Triebwerk ist ausgefallen, Sir. Die Außentemperatur steigt weiter."},
+      {"ago_s": 99, "who": "sami", "speaker": "partner", "proximity": "mittel", "text": "Willst du noch was von der Pizza oder kann ich das letzte Stück?"},
+      {"ago_s": 95, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nimm ruhig, ich bin pappsatt."},
+      {"ago_s": 86, "who": "film-held", "speaker": "medien", "proximity": "mittel", "text": "Jarvis, wie viel Energie bleibt uns noch?"},
+      {"ago_s": 81, "who": "film-ki", "speaker": "medien", "proximity": "mittel", "text": "Elf Prozent, Sir. Ich würde von weiteren Flugmanövern dringend abraten."},
+      {"ago_s": 70, "who": "sami", "speaker": "partner", "proximity": "mittel", "text": "Der Teil ist eh der schwächste oder, der erste war viel besser."},
+      {"ago_s": 63, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Find ich gar nicht, die Effekte sind hier schon geil. Mach mal bisschen lauter."},
+      {"ago_s": 49, "who": "film-held", "speaker": "medien", "proximity": "mittel", "text": "Dann gehen wir eben zu Fuß durch das Feuer."},
+      {"ago_s": 41, "who": "film-ki", "speaker": "medien", "proximity": "mittel", "text": "Sir, bei allem Respekt, die Legierung ist dafür nicht ausgelegt."},
+      {"ago_s": 20, "who": "sami", "speaker": "partner", "proximity": "mittel", "text": "Gleich fliegt alles in die Luft, pass auf."}
+    ],
+    "trigger": {"who": "film-held", "speaker": "medien", "proximity": "mittel", "text": "Hey Jarvis, bei wie viel Grad schmilzt Titan, wie lange hält der Anzug das noch aus?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Das Weckwort kommt aus dem Film: Der Held spricht dort seit Minuten mit seiner Bord-KI namens Jarvis, die ihm auch selbst antwortet, und die Frage hängt am brennenden Anzug der Filmszene; der Träger und Sami reden nur über Pizza und den Film."
+    },
+    "ambiguous": false,
+    "tags": ["wake-word-in-media", "jarvis", "tv-film", "fact-question-surface", "media-addresses-assistant", "handy-mic"]
+  },
+  {
+    "id": "mix-10",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 110, "who": "sven", "speaker": "partner", "proximity": "mittel", "text": "Also der Akku hält jetzt locker achtzig Kilometer, ich fahr damit jeden Tag ins Büro."},
+      {"ago_s": 102, "who": "olga", "speaker": "dritte", "proximity": "mittel", "text": "Wir fliegen über Singapur, da haben wir neun Stunden Aufenthalt, und dann weiter nach Auckland."},
+      {"ago_s": 95, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Und im Winter? Da bricht der doch bestimmt ein."},
+      {"ago_s": 89, "who": "sven", "speaker": "partner", "proximity": "mittel", "text": "Bisschen, ja, bei Minusgraden vielleicht noch sechzig. Reicht aber immer noch hin und zurück."},
+      {"ago_s": 80, "who": "kim", "speaker": "dritte", "proximity": "mittel", "text": "Auckland ist die Hauptstadt oder? Da müsst ihr doch bestimmt auch zur Botschaft."},
+      {"ago_s": 73, "who": "olga", "speaker": "dritte", "proximity": "mittel", "text": "Hm, ich glaub das ist gar nicht die Hauptstadt. War das nicht Wellington? Jetzt bin ich unsicher."},
+      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Was hat der gekostet wenn ich fragen darf?"},
+      {"ago_s": 58, "who": "sven", "speaker": "partner", "proximity": "mittel", "text": "Über die Firma geleast, das merk ich im Monat kaum."},
+      {"ago_s": 44, "who": "kim", "speaker": "dritte", "proximity": "mittel", "text": "Doch doch, das ist die größte Stadt, das muss die Hauptstadt sein."},
+      {"ago_s": 35, "who": "olga", "speaker": "dritte", "proximity": "mittel", "text": "Istanbul ist auch die größte und trotzdem nicht die Hauptstadt von der Türkei, das sagt gar nix."},
+      {"ago_s": 21, "who": "sven", "speaker": "partner", "proximity": "mittel", "text": "Solltest du dir echt auch überlegen, du mit deinen zwölf Kilometern."},
+      {"ago_s": 5, "who": "kim", "speaker": "partner", "proximity": "mittel", "text": "Okay wir kriegen das nicht geklärt. Hey ihr zwei E-Bike-Experten da drüben"}
+    ],
+    "trigger": {"who": "kim", "speaker": "partner", "proximity": "mittel", "text": "wisst ihr das, was ist die Hauptstadt von Neuseeland, Auckland oder Wellington?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Wellington ist die Hauptstadt von Neuseeland; Auckland ist nur die größte Stadt.",
+      "why": "Kim und Olga haben die Frage in ihrem eigenen Gespräch am selben Tisch nicht klären können und richten sie jetzt ausdrücklich an den Träger und Sven; damit gehört die unbeantwortete Faktenfrage zum Gespräch des Trägers (Kims frühere Zeilen sind noch 'dritte', ab der Anrede ist sie Gesprächspartnerin)."
+    },
+    "ambiguous": false,
+    "tags": ["same-table", "second-conversation", "thread-merge", "role-shift", "direct-address-to-wearer", "split-utterance", "either-or"]
+  },
+  {
+    "id": "mix-11",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 105, "who": "elif", "speaker": "partner", "proximity": "nah", "text": "Da ist sie. Ich hab die irgendwie größer erwartet."},
+      {"ago_s": 98, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Echt? Ich find die riesig. Und unten die zwei kleinen Engel, die kennt man von jeder Keksdose."},
+      {"ago_s": 90, "who": "fuehrerin", "speaker": "dritte", "proximity": "mittel", "text": "Kommen Sie ruhig noch ein Stück näher, dann sehen alle etwas."},
+      {"ago_s": 82, "who": "elif", "speaker": "partner", "proximity": "nah", "text": "Die waren angeblich gar nicht geplant, die hat er erst ganz am Schluss dazugemalt."},
+      {"ago_s": 74, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Von wem ist das noch mal, Michelangelo?"},
+      {"ago_s": 69, "who": "elif", "speaker": "partner", "proximity": "nah", "text": "Raffael. Steht auch da auf dem Schild, Raffael, Sixtinische Madonna."},
+      {"ago_s": 60, "who": "fuehrerin", "speaker": "dritte", "proximity": "mittel", "text": "Wir stehen hier vor dem berühmtesten Bild der Sammlung. Achten Sie einmal auf den grünen Vorhang oben."},
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ah stimmt. Die guckt irgendwie erschrocken oder?"},
+      {"ago_s": 41, "who": "elif", "speaker": "partner", "proximity": "nah", "text": "Find ich auch. Als ob sie schon weiß was mit dem Kind passiert."},
+      {"ago_s": 28, "who": "fuehrerin", "speaker": "dritte", "proximity": "mittel", "text": "Die beiden Engel am unteren Rand kennen Sie sicher alle. Aber jetzt eine Frage an Sie."},
+      {"ago_s": 15, "who": "gruppe-a", "speaker": "dritte", "proximity": "mittel", "text": "Oh je, jetzt werden wir abgefragt."}
+    ],
+    "trigger": {"who": "fuehrerin", "speaker": "dritte", "proximity": "mittel", "text": "Was schätzen Sie, wie alt ist dieses Gemälde, in welchem Jahrhundert sind wir hier?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Museumsführerin stellt ihrer eigenen Besuchergruppe eine didaktische Schätzfrage und siezt sie; der Träger und Elif stehen nur vor demselben Bild und haben ihre eigene Frage (von wem es ist) schon untereinander geklärt."
+    },
+    "ambiguous": false,
+    "tags": ["foreign-continuation", "museum-guide", "didactic", "addresses-you-formal", "same-topic", "bystander"]
+  },
+  {
+    "id": "mix-12",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 116, "who": "maren", "speaker": "partner", "proximity": "nah", "text": "Also pass auf, ich bring das Auto am Montag hin, nur wegen dem Klappern hinten rechts."},
+      {"ago_s": 108, "who": "schueler-a", "speaker": "dritte", "proximity": "mittel", "text": "Okay nächste. Längster Fluss von Europa?"},
+      {"ago_s": 103, "who": "schueler-b", "speaker": "dritte", "proximity": "mittel", "text": "Ähm. Donau?"},
+      {"ago_s": 97, "who": "maren", "speaker": "partner", "proximity": "nah", "text": "Dienstag ruft der Typ an und sagt, ja, der Stoßdämpfer ist durch, und wenn wir schon dabei sind, die Bremsscheiben vorne auch."},
+      {"ago_s": 88, "who": "schueler-a", "speaker": "dritte", "proximity": "mittel", "text": "Falsch. Rat noch mal."},
+      {"ago_s": 80, "who": "maren", "speaker": "partner", "proximity": "nah", "text": "Ich so, Moment, die Bremsen waren beim TÜV im März noch völlig in Ordnung."},
+      {"ago_s": 71, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Mhm."},
+      {"ago_s": 66, "who": "schueler-b", "speaker": "dritte", "proximity": "mittel", "text": "Der Rhein? Keine Ahnung ey, sag einfach."},
+      {"ago_s": 58, "who": "maren", "speaker": "partner", "proximity": "nah", "text": "Und er dann, ja das kann schnell gehen, und die Beläge müssten dann natürlich auch gleich mit, sonst macht das keinen Sinn."},
+      {"ago_s": 47, "who": "schueler-a", "speaker": "dritte", "proximity": "mittel", "text": "Ich sags nicht, die Frau Kessler fragt das morgen hundertpro ab. Nächste, höchster Berg von Afrika?"},
+      {"ago_s": 39, "who": "maren", "speaker": "partner", "proximity": "nah", "text": "Dann schickt der mir den Kostenvoranschlag aufs Handy, ich sitz grad im Meeting, mach das auf."},
+      {"ago_s": 30, "who": "schueler-b", "speaker": "dritte", "proximity": "mittel", "text": "Boah. Kilimandscharo. Und wie hoch, will sie das auch wissen?"},
+      {"ago_s": 22, "who": "schueler-a", "speaker": "dritte", "proximity": "mittel", "text": "Bestimmt. Weiß ich aber selber nicht."},
+      {"ago_s": 10, "who": "maren", "speaker": "partner", "proximity": "nah", "text": "Nur für die Bremsen vorne und den einen Stoßdämpfer, ohne alles andere."}
+    ],
+    "trigger": {"who": "maren", "speaker": "partner", "proximity": "nah", "text": "Weißt du was die dafür haben wollten?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Maren erzählt seit fast zwei Minuten ihre Werkstattgeschichte und baut mit der Frage nur die Pointe auf; den Preis nennt sie gleich selbst und niemand sonst kann ihn wissen. Die offenen Quizfragen der beiden Schüler dahinter (längster Fluss, Höhe des Kilimandscharo) gehören nicht zum Gespräch des Trägers."
+    },
+    "ambiguous": false,
+    "tags": ["partner-monologue", "wearer-silent", "rhetorical", "story-punchline", "bystander-quiz", "unanswered-foreign-question"]
+  },
+  {
+    "id": "mix-13",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 100, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wir kommen jetzt mit zwölf Minuten Verspätung an, das wird richtig knapp mit dem Anschluss."},
+      {"ago_s": 93, "who": "ben", "speaker": "partner", "proximity": "nah", "text": "Der Regionalexpress nach Bamberg, oder? Der fuhr laut App von Gleis fünf."},
+      {"ago_s": 85, "who": "sitz-a", "speaker": "dritte", "proximity": "mittel", "text": "Nee Mama ich bin noch im Zug, ich ruf dich an wenn ich da bin."},
+      {"ago_s": 78, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja, Abfahrt vierzehn Uhr sechs. Wenn wir um vierzehn Uhr eins reinrollen müssen wir rennen."},
+      {"ago_s": 66, "who": "durchsage", "speaker": "medien", "proximity": "mittel", "text": "Sehr geehrte Fahrgäste, in wenigen Minuten erreichen wir Nürnberg Hauptbahnhof. Ihre Anschlüsse."},
+      {"ago_s": 58, "who": "durchsage", "speaker": "medien", "proximity": "mittel", "text": "ICE 529 nach München Hauptbahnhof, Abfahrt 14 Uhr 8 von Gleis 6."},
+      {"ago_s": 50, "who": "sitz-a", "speaker": "dritte", "proximity": "mittel", "text": "Ja. Ja. Nein das Geschenk hab ich dabei. Mama ich versteh dich ganz schlecht."},
+      {"ago_s": 42, "who": "durchsage", "speaker": "medien", "proximity": "mittel", "text": "Regionalexpress nach Bamberg, Abfahrt 14 Uhr 6, heute abweichend von Gleis 3. Dieser Zug wartet."},
+      {"ago_s": 31, "who": "durchsage", "speaker": "medien", "proximity": "mittel", "text": "Ladies and gentlemen, we will shortly arrive at Nuremberg main station. Please mind the gap between train and platform."},
+      {"ago_s": 18, "who": "ben", "speaker": "partner", "proximity": "nah", "text": "Hast du das verstanden? Ich hab nur München und Gleis sechs gehört, die telefoniert hier so laut."},
+      {"ago_s": 7, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee, ich hab auch nur die Hälfte mitgekriegt."}
+    ],
+    "trigger": {"who": "ben", "speaker": "partner", "proximity": "nah", "text": "Von wo fährt der denn jetzt, fünf oder sechs?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Von Gleis 3: Laut Durchsage fährt der Regionalexpress nach Bamberg heute abweichend von Gleis drei (14 Uhr 6) und wartet auf den Anschluss. Gleis sechs gilt für den ICE nach München, Gleis fünf war der alte Stand aus der App.",
+      "why": "Ben fragt im Gespräch des Trägers nach einer Tatsache, die beide wegen der telefonierenden Mitreisenden überhört haben, die aber in der Durchsage stand; 'der' ist ihr Regionalexpress, nicht der ICE. Strittig, weil die Frage organisatorisch klingt und die Antwort aus einer mitgehörten Durchsage stammt, nicht aus Weltwissen."
+    },
+    "ambiguous": true,
+    "tags": ["announcement-as-source", "pronoun-resolution", "tempting-wrong-referent", "logistics-lookalike", "either-or-both-wrong", "phone-call-bystander", "music-playing"]
+  },
+  {
+    "id": "mix-14",
+    "scene": "medien",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 89,
+    "history": [
+      {"ago_s": 114, "who": "tv", "speaker": "medien", "proximity": "mittel", "text": "Mit dem Schwenzeltanz teilt die Sammlerin ihren Schwestern mit, in welcher Richtung die Futterquelle liegt."},
+      {"ago_s": 106, "who": "paul", "speaker": "partner", "proximity": "nah", "text": "Krass oder, die tanzen sich gegenseitig den Weg vor."},
+      {"ago_s": 99, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja total. Wie lange lebt so eine Arbeiterin eigentlich?"},
+      {"ago_s": 93, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Im Sommer nur etwa sechs Wochen, Winterbienen mehrere Monate."},
+      {"ago_s": 86, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Sechs Wochen im Sommer, sagt er."},
+      {"ago_s": 79, "who": "paul", "speaker": "partner", "proximity": "nah", "text": "Kurzes Leben. Du apropos kurz, ich muss dir noch was sagen wegen Samstag."},
+      {"ago_s": 71, "who": "tv", "speaker": "medien", "proximity": "mittel", "text": "Im Stock herrscht strenge Arbeitsteilung. Die jüngsten Bienen putzen die Zellen."},
+      {"ago_s": 63, "who": "paul", "speaker": "partner", "proximity": "nah", "text": "Meine Eltern kommen doch schon Freitagabend. Können die bei uns im Wohnzimmer pennen?"},
+      {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Klar, kein Ding. Dann muss ich nur mein Rad da rausräumen."},
+      {"ago_s": 46, "who": "tv", "speaker": "medien", "proximity": "mittel", "text": "Erst in den letzten Wochen ihres Lebens fliegen sie überhaupt aus."},
+      {"ago_s": 37, "who": "paul", "speaker": "partner", "proximity": "nah", "text": "Das wär super. Und Samstag wollten die mit uns frühstücken gehen, hast du da Zeit?"},
+      {"ago_s": 28, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Samstag früh hab ich Training, aber ab elf bin ich da."},
+      {"ago_s": 14, "who": "paul", "speaker": "partner", "proximity": "nah", "text": "Elf passt, dann reservier ich für halb zwölf."}
+    ],
+    "trigger": {"who": "tv", "speaker": "medien", "proximity": "mittel", "text": "Und wie viele Blüten muss eine einzige Biene eigentlich besuchen, bis ein Glas Honig voll ist?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Frage stellt der Sprecher der Bienen-Doku rhetorisch ans Publikum und löst sie gleich selbst auf; das Gespräch des Trägers ist längst vom Bienenthema zum Besuch von Pauls Eltern gewechselt, und Alfreds Antwort liegt anderthalb Minuten zurück."
+    },
+    "ambiguous": false,
+    "tags": ["topic-change", "old-topic-match", "tv-documentary", "narrator-question", "assistant-earlier", "foreign-continuation"]
+  },
+  {
+    "id": "mix-15",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 108, "who": "jule", "speaker": "partner", "proximity": "nah", "text": "Okay Aufgabe drei, Trapez, die parallelen Seiten sind acht und fünf, Höhe vier."},
+      {"ago_s": 100, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Fläche war a plus c mal h. Oder noch durch zwei?"},
+      {"ago_s": 94, "who": "jule", "speaker": "partner", "proximity": "nah", "text": "Durch zwei. Also dreizehn mal vier durch zwei, sechsundzwanzig."},
+      {"ago_s": 87, "who": "hinten-a", "speaker": "dritte", "proximity": "mittel", "text": "Kommst du Freitag eigentlich zu Milan oder musst du wieder babysitten?"},
+      {"ago_s": 81, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Sechsundzwanzig Quadratzentimeter, hab ich auch. Schreib hin."},
+      {"ago_s": 73, "who": "lehrer", "speaker": "dritte", "proximity": "mittel", "text": "So, wie weit seid ihr hier? Zeigt mal her."},
+      {"ago_s": 65, "who": "hinten-b", "speaker": "dritte", "proximity": "mittel", "text": "Weiß noch nicht, meine Mutter sagt mir das immer erst am Tag selber."},
+      {"ago_s": 57, "who": "nachbar-a", "speaker": "dritte", "proximity": "mittel", "text": "Wir hängen bei der drei, wir haben irgendwie zweiundfünfzig raus."},
+      {"ago_s": 49, "who": "jule", "speaker": "partner", "proximity": "nah", "text": "Dann die vier, Parallelogramm, Grundseite neun, Höhe sechs."},
+      {"ago_s": 40, "who": "lehrer", "speaker": "dritte", "proximity": "mittel", "text": "Zweiundfünfzig, hm. Dann schaut euch die Formel noch mal genau an."},
+      {"ago_s": 29, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Das ist einfach, g mal h, vierundfünfzig."},
+      {"ago_s": 17, "who": "nachbar-a", "speaker": "dritte", "proximity": "mittel", "text": "Wir haben a plus c mal h gerechnet, so stand es doch an der Tafel."}
+    ],
+    "trigger": {"who": "lehrer", "speaker": "dritte", "proximity": "mittel", "text": "Fast. Was fehlt da noch, wie lautet die Formel fürs Trapez vollständig?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Der Lehrer hilft der Nachbargruppe mit einer Leitfrage auf die Sprünge; das ist Unterricht und gilt nicht dem Träger. Der Träger und Jule haben die Trapezformel in ihrer eigenen Gruppenarbeit längst richtig angewendet und sind schon bei Aufgabe vier."
+    },
+    "ambiguous": false,
+    "tags": ["teacher-question", "didactic", "other-group", "foreign-continuation", "group-work", "already-solved", "three-threads"]
+  },
+  {
+    "id": "mix-16",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 109, "who": "ines", "speaker": "partner", "proximity": "mittel", "text": "Und wie wars dann beim Vermieter, hat der die Kaution endlich rausgerückt?"},
+      {"ago_s": 101, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hör bloß auf. Erst hieß es vier Wochen, dann sechs, jetzt will er angeblich noch die Wände nachmessen."},
+      {"ago_s": 93, "who": "rosa", "speaker": "dritte", "proximity": "mittel", "text": "Ich überleg ja echt ob ich mit vierunddreißig noch ein Instrument anfange."},
+      {"ago_s": 86, "who": "mats", "speaker": "dritte", "proximity": "mittel", "text": "Mach doch, ist nie zu spät. Was denn?"},
+      {"ago_s": 79, "who": "ines", "speaker": "partner", "proximity": "mittel", "text": "Nachmessen, was will der denn da messen?"},
+      {"ago_s": 72, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Frag mich nicht. Ich hab ihm jetzt eine Frist gesetzt, schriftlich, bis zum Fünfzehnten."},
+      {"ago_s": 64, "who": "rosa", "speaker": "dritte", "proximity": "mittel", "text": "Cello fänd ich schön. Oder Kontrabass, aber der passt nicht in meine Wohnung."},
+      {"ago_s": 55, "who": "ines", "speaker": "partner", "proximity": "mittel", "text": "Richtig so. Und wenn er dann nicht zahlt?"},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Dann geh ich zum Mieterverein, bin ich extra für eingetreten."},
+      {"ago_s": 36, "who": "mats", "speaker": "dritte", "proximity": "mittel", "text": "Cello ist super, ich hab das bis zur zehnten Klasse gespielt."},
+      {"ago_s": 24, "who": "ines", "speaker": "partner", "proximity": "mittel", "text": "Gib mir mal das Pfännchen rüber. Und der Nachmieter, ist der wenigstens nett?"},
+      {"ago_s": 13, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Den hab ich nur einmal gesehen, wirkte ganz okay."}
+    ],
+    "trigger": {"who": "rosa", "speaker": "dritte", "proximity": "mittel", "text": "Mats, wie viele Saiten hat so ein Cello eigentlich, vier oder fünf?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Rosa fragt in einem zweiten Gespräch am selben Tisch namentlich Mats, der selbst Cello gespielt hat und es weiß; der Träger steckt mitten in seinem eigenen Gespräch mit Ines über die Kaution und ist nicht angesprochen."
+    },
+    "ambiguous": false,
+    "tags": ["same-table", "second-conversation", "vocative-other-person", "fact-question-surface", "expert-present", "bystander"]
+  },
+  {
+    "id": "mix-17",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 39,
+    "history": [
+      {"ago_s": 97, "who": "tarek", "speaker": "partner", "proximity": "mittel", "text": "Von Moskau bis zum Baikalsee sitzt du allein schon gut drei Tage im Zug, am Stück."},
+      {"ago_s": 89, "who": "kueche-a", "speaker": "dritte", "proximity": "fern", "text": "Ich hab null Bock zu kochen. Bestellen wir was?"},
+      {"ago_s": 82, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Und dann weiter runter bis Peking, oder? Das war doch der Plan."},
+      {"ago_s": 75, "who": "tarek", "speaker": "partner", "proximity": "mittel", "text": "Genau, über die Mongolei. Da stellst du unterwegs nur noch die Uhr um."},
+      {"ago_s": 66, "who": "kueche-b", "speaker": "dritte", "proximity": "fern", "text": "Pizza hatten wir gestern schon. Indisch?"},
+      {"ago_s": 58, "who": "kueche-a", "speaker": "dritte", "proximity": "fern", "text": "Indisch dauert immer ne Stunde. Und der Thai am Eck hat montags zu."},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hey Jarvis, wie viele Zeitzonen hat Russland eigentlich?"},
+      {"ago_s": 42, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Elf Zeitzonen, von Kaliningrad bis Kamtschatka."},
+      {"ago_s": 35, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Elf Stück sagt er."},
+      {"ago_s": 28, "who": "tarek", "speaker": "partner", "proximity": "mittel", "text": "Elf, krank. Da weißt du ja nach drei Tagen nicht mehr wann Frühstück ist."},
+      {"ago_s": 17, "who": "kueche-b", "speaker": "dritte", "proximity": "fern", "text": "Dann bleibt ja nicht mehr viel. Griechisch will ich nicht."},
+      {"ago_s": 8, "who": "kueche-a", "speaker": "dritte", "proximity": "fern", "text": "Hm."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Und China?"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "China hat offiziell nur eine einzige Zeitzone (Peking-Zeit, UTC plus 8), obwohl das Land geografisch über etwa fünf Zonen reicht. Gemeint ist die Zahl der Zeitzonen, nicht chinesisches Essen.",
+      "why": "Elliptische Anschlussfrage des Trägers an Alfreds Zeitzonen-Antwort, passend zur geplanten Weiterfahrt nach Peking; direkt davor suchen die Mitbewohner in der Küche aber ein Restaurant, sodass 'Und China?' ohne Sprechererkennung genauso gut ein Essensvorschlag sein könnte."
+    },
+    "ambiguous": false,
+    "tags": ["follow-up", "ellipsis", "assistant-recent", "jarvis", "tempting-wrong-referent", "neighbour-group", "needs-voice"]
+  },
+  {
+    "id": "mix-18",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 112, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "So, Zwiebeln sind drin, jetzt den Knoblauch. Wo ist der Knoblauch."},
+      {"ago_s": 104, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Willkommen zurück. Wir waren beim Thema Lernen stehen geblieben und bei der Frage, was unser Kopf eigentlich alles leisten könnte."},
+      {"ago_s": 95, "who": "mitbewohnerin", "speaker": "dritte", "proximity": "fern", "text": "Nee Schatz, die haben mir nur zehn Prozent angeboten, zehn, das ist doch ein Witz."},
+      {"ago_s": 87, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ah da. Zwei Zehen, nee, drei."},
+      {"ago_s": 78, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Mein Gast heute sagt, da geht noch viel mehr. Wie meinst du das?"},
+      {"ago_s": 69, "who": "podcast-gast", "speaker": "medien", "proximity": "mittel", "text": "Na ja, es heißt ja immer, wir nutzen nur zehn Prozent unseres Gehirns. Stell dir vor, du könntest den Rest freischalten."},
+      {"ago_s": 58, "who": "mitbewohnerin", "speaker": "dritte", "proximity": "fern", "text": "Ich hab gesagt unter zwanzig unterschreib ich nicht. Mal gucken ob die sich noch mal melden."},
+      {"ago_s": 49, "who": "podcast", "speaker": "medien", "proximity": "mittel", "text": "Zehn Prozent, das klingt nach verdammt viel Luft nach oben."},
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Hm. Tomaten rein, Deckel drauf, zwanzig Minuten."},
+      {"ago_s": 26, "who": "mitbewohnerin", "speaker": "dritte", "proximity": "fern", "text": "Zehn Prozent, also echt. Die spinnen doch."},
+      {"ago_s": 12, "who": "podcast-gast", "speaker": "medien", "proximity": "mittel", "text": "Genau, und in meinem Kurs zeige ich dir, wie du an die anderen neunzig rankommst."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Moment mal, stimmt das überhaupt mit den zehn Prozent oder ist das so ein Mythos?"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "Das ist ein Mythos: Wir nutzen praktisch das ganze Gehirn, nur nicht alle Bereiche gleichzeitig gleich stark; Hirnscans zeigen Aktivität in allen Regionen. Gemeint ist die Zehn-Prozent-Behauptung aus dem Podcast, nicht das Zehn-Prozent-Angebot aus dem Telefonat der Mitbewohnerin.",
+      "why": "Der Träger ist allein in der Küche und fragt sich laut, ob die Behauptung aus dem Podcast stimmt; 'die zehn Prozent' sind die angeblich genutzten zehn Prozent des Gehirns, auch wenn die Mitbewohnerin nebenan zuletzt ebenfalls über zehn Prozent geschimpft hat."
+    },
+    "ambiguous": false,
+    "tags": ["wonder-aloud", "podcast-claim-check", "media-as-referent", "tempting-wrong-referent", "phone-call-bystander", "myth", "alone"]
+  },
+  {
+    "id": "mix-19",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 101, "who": "gast-a", "speaker": "dritte", "proximity": "fern", "text": "Wer hat denn den Nudelsalat gemacht, der ist ja der Hammer."},
+      {"ago_s": 94, "who": "dana", "speaker": "partner", "proximity": "nah", "text": "Sag mal was hast du da eigentlich die ganze Zeit im Ohr, telefonierst du?"},
+      {"ago_s": 88, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee, das ist so ein Assistent, der hört mit und flüstert mir was wenn ich was nicht weiß."},
+      {"ago_s": 80, "who": "gast-b", "speaker": "dritte", "proximity": "fern", "text": "Die Sophie glaub ich. Frag sie mal nach dem Rezept."},
+      {"ago_s": 73, "who": "dana", "speaker": "partner", "proximity": "nah", "text": "Wie, der hört mit? Jetzt auch grade?"},
+      {"ago_s": 66, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja schon. Aber der sagt nur was wenn es passt. Vorhin wusste ich nicht wie der Schauspieler heißt, zack, hatte ichs im Ohr."},
+      {"ago_s": 57, "who": "gast-a", "speaker": "dritte", "proximity": "fern", "text": "Sophie! Was ist da drin, ist das Pesto?"},
+      {"ago_s": 49, "who": "dana", "speaker": "partner", "proximity": "nah", "text": "Gruselig. Und wie heißt das Ding?"},
+      {"ago_s": 42, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred. Wie der Butler."},
+      {"ago_s": 33, "who": "gast-c", "speaker": "dritte", "proximity": "fern", "text": "Getrocknete Tomaten und ein bisschen Balsamico, mehr nicht."},
+      {"ago_s": 21, "who": "dana", "speaker": "partner", "proximity": "nah", "text": "Haha. Und muss man da vorher was sagen, so ein Kommando?"},
+      {"ago_s": 10, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Kann man. Hey Jarvis geht auch, hab ich mir so eingestellt, muss man aber nicht."}
+    ],
+    "trigger": {"who": "dana", "speaker": "partner", "proximity": "nah", "text": "Also du sagst einfach hey Jarvis und dann redet der mit dir, vor allen Leuten?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Dana spricht über den Assistenten, nicht mit ihm: 'hey Jarvis' wird nur zitiert, und ihre Frage richtet sich an den Träger und betrifft seine eigene Erfahrung; eine Bitte an Alfred gibt es nicht."
+    },
+    "ambiguous": false,
+    "tags": ["wake-word-mention", "jarvis", "name-mentioned-not-addressed", "talk-about-assistant", "social-question", "neighbour-group"]
+  },
+  {
+    "id": "mix-20",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 98, "who": "vater", "speaker": "dritte", "proximity": "mittel", "text": "Nicht an die Scheibe klopfen Jonte, die erschrecken sich."},
+      {"ago_s": 91, "who": "yara", "speaker": "partner", "proximity": "nah", "text": "Guck mal wie langsam die frisst. Ein Salatblatt in fünf Minuten."},
+      {"ago_s": 84, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wie wir nach dem Mittagessen. Wollen wir danach zu den Pinguinen oder erst was trinken?"},
+      {"ago_s": 77, "who": "yara", "speaker": "partner", "proximity": "nah", "text": "Erst Pinguine, die Fütterung ist um drei."},
+      {"ago_s": 68, "who": "kind", "speaker": "dritte", "proximity": "mittel", "text": "Papa warum hat die so einen langen Hals?"},
+      {"ago_s": 61, "who": "vater", "speaker": "dritte", "proximity": "mittel", "text": "Damit sie an die Blätter weiter oben kommt, guck, so."},
+      {"ago_s": 50, "who": "yara", "speaker": "partner", "proximity": "nah", "text": "Die hat bestimmt schon alles gesehen hier. Die guckt uns an als wären wir die Attraktion."},
+      {"ago_s": 38, "who": "kind", "speaker": "dritte", "proximity": "mittel", "text": "Papa ist die schon Oma?"},
+      {"ago_s": 13, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Die sieht echt aus wie hundert. Wie alt werden die eigentlich?"},
+      {"ago_s": 10, "who": "yara", "speaker": "partner", "proximity": "nah", "text": "Keine Ahnung. Alt halt."},
+      {"ago_s": 6, "who": "vater", "speaker": "dritte", "proximity": "mittel", "text": "Vielleicht, mein Schatz. Da auf der Tafel steht, Riesenschildkröten können weit über hundert Jahre alt werden."}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ah, weit über hundert, sagt er grad. Na dann lag ich ja gar nicht so falsch."},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Frage des Trägers hat der Vater der Nachbarfamilie zufällig mitbeantwortet, als er seinem Kind die Tafel vorlas, und der Träger quittiert das selbst; der Auslöser ist eine Feststellung, offen ist nichts mehr."
+    },
+    "ambiguous": false,
+    "tags": ["coincidental-answer", "answer-taken-up", "already-answered", "statement", "neighbour-family", "overheard-answer"]
+  }
+]
