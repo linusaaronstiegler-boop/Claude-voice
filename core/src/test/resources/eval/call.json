@@ -94,7 +94,7 @@
     "id": "call-06",
     "scene": "call",
     "mic": "handy",
-    "music_playing": true,
+    "music_playing": false,
     "assistant_spoke_ago_s": null,
     "history": [
       {"ago_s": 104, "who": "ansage", "speaker": "medien", "proximity": "mittel", "text": "Ihre voraussichtliche Wartezeit beträgt mehr als 10 Minuten."},
@@ -107,7 +107,7 @@
     "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "was ist jetzt eigentlich nochmal der Unterschied zwischen Kilowatt und Kilowattstunde, das schmeiß ich jedes Mal durcheinander"},
     "expect": {"answer": true, "length": "mittel", "gist": "Kilowatt ist eine Leistung, also wie viel Energie pro Zeit umgesetzt wird; Kilowattstunde ist eine Energiemenge: 1 Kilowatt Leistung über eine Stunde ergibt 1 Kilowattstunde. Der Stromzähler zählt Kilowattstunden.", "why": "Der Träger hängt allein in der Warteschleife und fragt sich laut nach einer Erklärung; die Bandansagen davor sind nur Kulisse, und kein Mensch ist in der Leitung, der antworten könnte."},
     "ambiguous": false,
-    "tags": ["speakerphone", "handy-mic", "hold-queue", "media-in-history", "wonder-aloud", "wearer-alone", "explanation-request", "music-playing"]
+    "tags": ["speakerphone", "handy-mic", "hold-queue", "media-in-history", "wonder-aloud", "wearer-alone", "explanation-request"]
   },
   {
     "id": "call-07",
