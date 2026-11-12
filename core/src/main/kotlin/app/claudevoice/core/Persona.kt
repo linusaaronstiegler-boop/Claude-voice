@@ -22,6 +22,8 @@ data class Situation(
     val assistantSpokeAgoSec: Long?,
     val scene: String?,
     val sessionNotes: List<String> = emptyList(),
+    /** true, wenn er den Assistenten unmittelbar vor dieser Äußerung mit dem Weckwort gerufen hat. */
+    val wokenByWakeWord: Boolean = false,
 )
 
 data class Turn(val history: List<Line>, val trigger: Line, val situation: Situation)
@@ -147,6 +149,10 @@ Nutze dieses Wissen, wenn es zur Frage passt. Erwähne es nicht von dir aus.
             s.assistantSpokeAgoSec?.let { "vor $it s" } ?: "in den letzten Minuten nicht"
         ).append('\n')
         append("Szene: ").append(s.scene ?: "noch keine Einschätzung").append('\n')
+        if (s.wokenByWakeWord) {
+            // Die Transkription verhört sich beim Weckwort gern. Das lokale Weckwort-Signal ist verlässlicher.
+            append("Weckwort: Er hat dich unmittelbar vor der letzten Äußerung mit dem Weckwort gerufen; sie ist an dich gerichtet, auch wenn dein Name darin fehlt oder verhört wurde.\n")
+        }
         append("</lage>\n")
         if (s.sessionNotes.isNotEmpty()) {
             append("<heute_gemerkt>\n")

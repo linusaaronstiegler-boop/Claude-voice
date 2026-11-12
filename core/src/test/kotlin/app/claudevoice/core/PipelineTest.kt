@@ -101,8 +101,28 @@ class PipelineTest {
         assertEquals(1, rig.claude.respondCalls.size)
     }
 
-    @Test fun `ferne Stimme loest nichts aus, ausser sie nennt den Namen`() = runTest {
-        val rig = Rig(this, FakeClaude(reply = { zugspitze }), config = Pipeline.Config(voiceProfile = VoiceProfile(-18.0, 115.0, 5)))
+    @Test fun `ferne Stimme - klare Frage geht mit Hinweis ans Modell, beilaeufige Aussage nicht`() = runTest {
+        val rig = Rig(this, FakeClaude(reply = { listOf("SKIP hintergrund") }), config = Pipeline.Config(voiceProfile = VoiceProfile(-18.0, 115.0, 5)))
+        fun quiet() {
+            rig.pipeline.onAudio(silence(300), 9600)
+            val t = tone(180.0, 200.0, 600)
+            rig.pipeline.onAudio(t, t.size)
+        }
+        quiet()
+        rig.say("Wie hoch ist die Zugspitze?")
+        runCurrent()
+        assertEquals(1, rig.claude.respondCalls.size) // das Modell sieht FERN und entscheidet am Inhalt
+        assertTrue(rig.claude.respondCalls[0].contains(">> [jetzt] FERN: Wie hoch"))
+
+        quiet()
+        rig.say("wir fahren dann morgen früh gegen acht Uhr los denke ich")
+        runCurrent()
+        assertEquals(0, rig.claude.quickCalls.size) // keine Vorprüfung für fernes Geplauder
+        assertEquals(1, rig.claude.respondCalls.size)
+    }
+
+    @Test fun `Reichweite Nur ich verwirft fremde Stimmen lokal, der Name geht immer durch`() = runTest {
+        val rig = Rig(this, FakeClaude(reply = { zugspitze }), config = Pipeline.Config(reach = Reach.ICH, voiceProfile = VoiceProfile(-18.0, 115.0, 5)))
         fun quiet() {
             rig.pipeline.onAudio(silence(300), 9600)
             val t = tone(180.0, 200.0, 600)
@@ -117,8 +137,29 @@ class PipelineTest {
         quiet()
         rig.say("Alfred, wie hoch ist die Zugspitze?")
         runCurrent()
-        assertEquals(1, rig.claude.respondCalls.size) // das Modell sieht FERN und entscheidet selbst
-        assertTrue(rig.claude.respondCalls[0].contains(">> [jetzt] FERN: Alfred"))
+        assertEquals(1, rig.claude.respondCalls.size)
+    }
+
+    @Test fun `nach dem Weckwort gilt die naechste Aeusserung als Anrede, auch wenn der Name verhoert wurde`() = runTest {
+        val rig = Rig(this, FakeClaude(reply = { listOf("Die Zugspitze ist knapp dreitausend Meter hoch.") }), config = Pipeline.Config(names = listOf("Alfred", "Jarvis")))
+        rig.pipeline.onWakeWord()
+        rig.say("hey Travis wie hoch ist die Zugspitze")
+        runCurrent()
+        // Ohne Kopfzeile wird nur bei direkter Anrede gesprochen: das Weckwort zählt als Anrede.
+        assertEquals(1, rig.speaker.spoken.size)
+        assertTrue(rig.claude.respondCalls[0].contains("Weckwort: Er hat dich unmittelbar"))
+
+        rig.say("und wie hoch ist der Watzmann")
+        runCurrent()
+        assertFalse(rig.claude.respondCalls[1].contains("Weckwort:")) // gilt nur für die eine Äußerung
+    }
+
+    @Test fun `beide Rufnamen werden erkannt`() = runTest {
+        val rig = Rig(this, FakeClaude(reply = { listOf("SAY kurz\nJa, Sir?") }), config = Pipeline.Config(names = listOf("Alfred", "Jarvis")))
+        rig.say("Hey Jarvis")
+        runCurrent()
+        assertEquals(listOf("Ja, Sir?"), rig.speaker.spoken)
+        assertTrue(rig.claude.systemSeen!!.contains("Du bist Alfred"))
     }
 
     @Test fun `im Gespraech wartet die Antwort eine Sekunde und entfaellt, wenn ein Mensch antwortet`() = runTest {

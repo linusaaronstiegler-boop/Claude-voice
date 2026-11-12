@@ -69,7 +69,7 @@ class Pipeline(
     /** Ein laufender Antwort-Aufruf. Seine Ergebnisse sammeln sich in [events], bis jemand sie abholt. */
     private class Run(val key: String, val voice: Voice, val events: Channel<Event>, val job: Job)
 
-    private class Trigger(val line: Line, val hot: Boolean, val named: Boolean, val run: Run?)
+    private class Trigger(val line: Line, val hot: Boolean, val named: Boolean, val woken: Boolean, val run: Run?)
 
     /** Signal "Modell hat SKIP gesagt, Rest nicht nötig". Ohne Stacktrace, weil es kein Fehler ist. */
     private class Skipped : RuntimeException(null, null, false, false)
@@ -95,6 +95,8 @@ class Pipeline(
     /** Zeitpunkt der letzten Äußerung, mit der ein Mensch im Gespräch selbst zu antworten begann. */
     @Volatile private var humanSpokeAtMs = 0L
     @Volatile private var lastAnswerWords: Set<String> = emptySet()
+    /** Zeitpunkt, zu dem das lokale Weckwort erkannt wurde; null, sobald die folgende Äußerung verarbeitet ist. */
+    @Volatile private var wokeAtMs: Long? = null
     private var speculation: Run? = null
     private var loop: Job? = null
     private var tidyJob: Job? = null
@@ -116,6 +118,15 @@ class Pipeline(
         tidyJob?.cancel()
         synchronized(this) { speculation?.job?.cancel(); speculation = null }
         speaker.stop()
+    }
+
+    /**
+     * Das lokale Weckwort ("Hey Jarvis") wurde erkannt. Die nächste Äußerung gilt damit als direkte Anrede,
+     * auch wenn die Transkription den Namen verhört ("Hey Travis") oder ganz verschluckt.
+     */
+    fun onWakeWord() {
+        wokeAtMs = clock()
+        if (mutedUntilMs != 0L) unmute()
     }
 
     /** Rohes Mikrofon-Audio: wird nur vermessen (Lautstärke, Stimmlage), nicht gespeichert. */
@@ -157,7 +168,9 @@ class Pipeline(
             takeSpeculation()?.job?.cancel()
             return
         }
-        val named = Heuristics.mentionsAny(t, names)
+        val woken = wokeAtMs?.let { now - it < WAKE_WINDOW_MS } ?: false
+        wokeAtMs = null
+        val named = woken || Heuristics.mentionsAny(t, names)
         val voice = voiceOf(features, speakerId, t, named, learn = true)
         val line = buffer.add(t, voice, now, speakers.label(speakerId)) ?: return
         if (segment != null) rememberSegment(segment, line.id)
@@ -176,8 +189,9 @@ class Pipeline(
         if (named && mutedUntilMs != 0L) unmute()
         val heat = Heuristics.heat(t, names)
         val followUp = isFollowUp(now, voice, t)
-        val wanted = heat != Heuristics.Heat.COLD || followUp
-        val permitted = named || (now >= mutedUntilMs && allowed(voice))
+        val hot = named || followUp || heat == Heuristics.Heat.HOT
+        val wanted = hot || heat == Heuristics.Heat.MAYBE
+        val permitted = named || (now >= mutedUntilMs && allowed(voice, hot))
         // Während der Assistent spricht, unterbricht ihn nur eine direkte Anrede.
         if (!wanted || !permitted || (speaking && !named)) {
             spec?.job?.cancel()
@@ -187,7 +201,7 @@ class Pipeline(
 
         val adopted = spec?.takeIf { it.key == normalize(t) && it.voice == voice }
         if (adopted == null) spec?.job?.cancel()
-        triggers.trySend(Trigger(line, hot = heat == Heuristics.Heat.HOT || followUp, named = named, run = adopted))
+        triggers.trySend(Trigger(line, hot = hot, named = named, woken = woken, run = adopted))
     }
 
     /** Die Diarisierung liefert nach, wer in einer früheren Äußerung gesprochen hat. */
@@ -256,9 +270,17 @@ class Pipeline(
         return voice
     }
 
-    private fun allowed(voice: Voice): Boolean = when (config.reach) {
+    /**
+     * Darf diese Stimme eine Antwort auslösen?
+     * - ICH: streng, nur die eigene Stimme (oder unbekannt).
+     * - GESPRAECH: Die Lautstärke-Schätzung irrt sich (Flüstern im Unterricht klingt "fern"). Deshalb wird
+     *   eine klare Frage auch dann dem Modell vorgelegt, wenn sie als FERN gilt; es sieht den Hinweis und
+     *   entscheidet am Inhalt. Nur beiläufige Aussagen ferner Stimmen werden gleich verworfen.
+     * - RAUM: alles.
+     */
+    private fun allowed(voice: Voice, hot: Boolean): Boolean = when (config.reach) {
         Reach.ICH -> voice == Voice.ICH || voice == Voice.UNKLAR
-        Reach.GESPRAECH -> voice != Voice.FERN
+        Reach.GESPRAECH -> voice != Voice.FERN || hot
         Reach.RAUM -> true
     }
 
@@ -279,7 +301,7 @@ class Pipeline(
         val now = clock()
         val named = Heuristics.mentionsAny(text, names)
         val voice = voiceOf(meter.peekSummary(), null, text, named, learn = false)
-        if (!(named || (now >= mutedUntilMs && allowed(voice)))) return
+        if (!(named || (now >= mutedUntilMs && allowed(voice, hot = true)))) return
         val line = Line(id = -1, atMs = now, voice = voice, text = text.trim())
         speculation = startRun(turnFor(line), key, voice)
     }
@@ -292,12 +314,12 @@ class Pipeline(
     // ------------------------------------------------------------------------------------------
     // Antwort
 
-    private fun turnFor(line: Line): Turn {
+    private fun turnFor(line: Line, woken: Boolean = false): Turn {
         val history = buffer.snapshot(clock()).filter { it.id != line.id }
         val spokeAgo = lastSpokeAtMs?.let { ((line.atMs - it) / 1000).coerceAtLeast(0) }
         return Turn(
             history, line,
-            Situation(env.localTime(), config.mic, env.musicPlaying(), spokeAgo, scene, sessionNotes.toList()),
+            Situation(env.localTime(), config.mic, env.musicPlaying(), spokeAgo, scene, sessionNotes.toList(), woken),
         )
     }
 
@@ -343,7 +365,7 @@ class Pipeline(
         try {
             var active = trigger.run
             if (active == null) {
-                val turn = turnFor(trigger.line)
+                val turn = turnFor(trigger.line, trigger.woken)
                 if (!trigger.hot) {
                     val go = withContext(io) { runInterruptible { brain.pregate(turn) } }
                     if (!go) {
@@ -524,6 +546,7 @@ class Pipeline(
         const val FOLLOW_UP_MS = 20_000L
         const val TIDY_EVERY_LINES = 4
         const val TIDY_MIN_GAP_MS = 12_000L
+        const val WAKE_WINDOW_MS = 12_000L
         const val HOLD_MS = 1_000L
         const val STALE_MS = 4_000L
         const val BARGE_IN_WORDS = 5

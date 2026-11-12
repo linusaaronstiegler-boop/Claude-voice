@@ -233,7 +233,8 @@
       {"ago_s": 48, "who": "lea", "speaker": "partner", "proximity": "mittel", "text": "und wieso eigentlich minus eins das hab ich nie verstanden"},
       {"ago_s": 40, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "alfred warum teilt man da durch n minus eins"},
       {"ago_s": 33, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Weil der Mittelwert schon aus denselben Daten geschätzt ist. Dadurch geht ein Freiheitsgrad verloren, n minus eins gleicht die Verzerrung aus."},
-      {"ago_s": 20, "who": "lea", "speaker": "partner", "proximity": "mittel", "text": "ah okay Freiheitsgrade macht Sinn"},
+      {"ago_s": 24, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "weil der Mittelwert schon aus denselben Daten kommt da geht ein Freiheitsgrad verloren sagt er"},
+      {"ago_s": 18, "who": "lea", "speaker": "partner", "proximity": "mittel", "text": "ah okay Freiheitsgrade macht Sinn"},
       {"ago_s": 12, "who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "passt und jetzt zwölf senkrecht"}
     ],
     "trigger": {"who": "tisch2-a", "speaker": "dritte", "proximity": "fern", "text": "Hauptstadt von Australien mit acht Buchstaben wie heißt die gleich"},
@@ -248,12 +249,12 @@
     "music_playing": false,
     "assistant_spoke_ago_s": null,
     "history": [
-      {"ago_s": 82, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "Hey, stör ich? Ich sitz gerade am Protokoll fürs Physikpraktikum."},
-      {"ago_s": 75, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "nee passt schon ich hab dich auf laut ich koch nebenbei"},
-      {"ago_s": 62, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "bis wann müssen wir das hochladen Freitag oder"},
-      {"ago_s": 57, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Freitag zwölf Uhr"},
-      {"ago_s": 43, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "Okay. Ich muss die ganzen Messwerte in Kelvin umrechnen. Der absolute Nullpunkt, wie viel Grad Celsius waren das?"},
-      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "minus zweihundertdreiundsiebzig Komma irgendwas"}
+      {"ago_s": 53, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "Hey, stör ich? Ich sitz gerade am Protokoll fürs Physikpraktikum."},
+      {"ago_s": 46, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "nee passt schon ich hab dich auf laut ich koch nebenbei"},
+      {"ago_s": 33, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "bis wann müssen wir das hochladen Freitag oder"},
+      {"ago_s": 28, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Freitag zwölf Uhr"},
+      {"ago_s": 14, "who": "hanna", "speaker": "partner", "proximity": "nah", "text": "Okay. Ich muss die ganzen Messwerte in Kelvin umrechnen. Der absolute Nullpunkt, wie viel Grad Celsius waren das?"},
+      {"ago_s": 5, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "minus zweihundertdreiundsiebzig Komma irgendwas"}
     ],
     "trigger": {"who": "hanna", "speaker": "partner", "proximity": "nah", "text": "ja aber komma was ich brauch das genau für die umrechnung"},
     "expect": {"answer": true, "length": "kurz", "gist": "Komma eins fünf: der absolute Nullpunkt liegt bei minus 273,15 Grad Celsius, das sind 0 Kelvin.", "why": "Die Gesprächspartnerin im Telefonat braucht einen festen Zahlenwert, den der Träger nur ungefähr nennen konnte."},

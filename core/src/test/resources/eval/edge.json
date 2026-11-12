@@ -107,16 +107,16 @@
     "history": [
       {"ago_s": 58, "who": "durchsage", "speaker": "medien", "proximity": "fern", "text": "Bitte beachten Sie, der Regionalexpress nach Magdeburg fährt heute abweichend von Gleis 7."},
       {"ago_s": 49, "who": "finn", "speaker": "partner", "proximity": "mittel", "text": "Gleis 7 na super das ist ganz am anderen Ende."},
-      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wann fährt der, 42?"},
-      {"ago_s": 36, "who": "finn", "speaker": "partner", "proximity": "mittel", "text": "Ja 17:42."},
+      {"ago_s": 41, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wann fährt der?"},
+      {"ago_s": 36, "who": "finn", "speaker": "partner", "proximity": "mittel", "text": "In ein paar Minuten glaub ich."},
       {"ago_s": 14, "who": "finn", "speaker": "partner", "proximity": "mittel", "text": "Schaffen wir das noch? Mein Akku ist tot ich seh nix."}
     ],
     "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Keine Ahnung, wie spät ist es denn jetzt? Mein Handy ist ganz unten im Rucksack."},
     "expect": {
       "answer": true,
       "length": "kurz",
-      "gist": "Die aktuelle Uhrzeit aus dem Gerätekontext, möglichst mit den verbleibenden Minuten bis 17:42. Keine geratene Uhrzeit; fehlt die Uhrzeit im Kontext, das in einem kurzen Satz sagen.",
-      "why": "Der Träger fragt laut nach einer Tatsache, die gerade keiner der Anwesenden nachsehen kann, Alfred aber sofort."
+      "gist": "Nennt in einem kurzen Satz die aktuelle Uhrzeit aus der Zeile 'Zeit' der Lage; keine geratene oder erfundene Uhrzeit.",
+      "why": "Der Träger fragt laut nach einer Tatsache, die gerade keiner der Anwesenden nachsehen kann, Alfred aber sofort, weil die Uhrzeit in seiner Lage steht."
     },
     "ambiguous": false,
     "tags": ["current-time", "needs-device-clock", "wearer-wonders", "no-wake-name", "time-pressure", "no-hallucination"]
@@ -244,10 +244,10 @@
     "music_playing": false,
     "assistant_spoke_ago_s": null,
     "history": [
-      {"ago_s": 61, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Wir haben jetzt endlich die Flüge für August gebucht."},
-      {"ago_s": 54, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ah Kanada oder?"},
-      {"ago_s": 47, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Genau, erst Vancouver und dann mit dem Zug rüber in die Rockys."},
-      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Boah neidisch."}
+      {"ago_s": 37, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Wir haben jetzt endlich die Flüge für August gebucht."},
+      {"ago_s": 30, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ah Kanada oder?"},
+      {"ago_s": 23, "who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Genau, erst Vancouver und dann mit dem Zug rüber in die Rockys."},
+      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Boah neidisch."}
     ],
     "trigger": {"who": "lena", "speaker": "partner", "proximity": "mittel", "text": "Komm doch einfach mit, hast du im August nicht eh frei? Und was ist da eigentlich die Hauptstadt, Toronto oder Vancouver? Ich hab mich letztens im Büro voll blamiert."},
     "expect": {
@@ -277,9 +277,9 @@
       "answer": false,
       "length": "none",
       "gist": "",
-      "why": "Der Satz bricht ab, bevor die beiden Dinge genannt sind, und auch der Verlauf verrät sie nicht; ohne Inhalt gibt es noch nichts zu beantworten, der Rest folgt im nächsten Segment."
+      "why": "Der Satz bricht ab, bevor die beiden Dinge genannt sind, und auch der Verlauf verrät sie nicht; ohne Inhalt gibt es noch nichts zu beantworten, der Rest folgt im nächsten Segment. Strittig, weil die Anrede mit Namen sonst immer eine Reaktion verlangt und ein kurzes 'Zwischen was?' ebenfalls vertretbar wäre."
     },
-    "ambiguous": false,
+    "ambiguous": true,
     "tags": ["fragment", "cut-off", "name-called", "vad-split", "incomplete-request"]
   },
   {
@@ -337,10 +337,10 @@
     "music_playing": false,
     "assistant_spoke_ago_s": null,
     "history": [
-      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wir waren im Sommer in Ungarn, drei Tage Budapest."},
-      {"ago_s": 42, "who": "nora", "speaker": "partner", "proximity": "mittel", "text": "Oh schön. Wart ihr auch in diesen Thermalbädern?"},
-      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja im Setscheni Bad, und abends sind wir immer am Fluss lang."},
-      {"ago_s": 27, "who": "nora", "speaker": "partner", "proximity": "mittel", "text": "An der Moldau oder?"}
+      {"ago_s": 31, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Wir waren im Sommer in Ungarn, drei Tage Budapest."},
+      {"ago_s": 24, "who": "nora", "speaker": "partner", "proximity": "mittel", "text": "Oh schön. Wart ihr auch in diesen Thermalbädern?"},
+      {"ago_s": 16, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Ja im Setscheni Bad, und abends sind wir immer am Fluss lang."},
+      {"ago_s": 9, "who": "nora", "speaker": "partner", "proximity": "mittel", "text": "An der Moldau oder?"}
     ],
     "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "Nee die Moldau ist Prag. Wie heißt der noch mal in Budapest, ach Quatsch Donau natürlich, die Donau."},
     "expect": {
