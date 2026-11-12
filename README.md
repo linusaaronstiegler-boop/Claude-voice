@@ -13,8 +13,13 @@ fragt Claude und spricht eine kurze Antwort ins Ohr. Der Assistent heißt „Alf
   Nachbargespräche, Fernseher und Liedtexte aussortiert, und das Antwort-Modell, das am Inhalt
   entscheidet, auch wenn die ersten beiden Schichten danebenliegen.
 - **Antworten:** erst die Antwort, dann höchstens etwas Einordnung; die Länge richtet sich nach der Lage.
-- **Rücksicht:** Im Gespräch wartet der Assistent eine Sekunde, ob ein Mensch antwortet. Eigene Musik
-  pausiert kurz (oder wird leiser). „Alfred, stopp“ oder die Kopfhörer-Taste brechen die Antwort ab.
+- **Rücksicht:** Im Gespräch wartet der Assistent nach dem Ende der Frage eine Sekunde, ob ein Mensch
+  antwortet. Eigene Musik pausiert kurz (oder wird leiser). „Alfred, stopp“ bricht die Antwort ab, die
+  Kopfhörer-Taste ebenfalls (mit dem Kopfhörer-Mikro trennt sie dabei kurz die Verbindung, siehe unten).
+- **Korrekturen:** Wer sich verbessert, bevor die Antwort zu hören ist („nein, ich meine den Watzmann“),
+  bekommt die Antwort auf die neue Frage.
+- **Was er nicht kann:** kein Internet, also kein Wetter, keine Spielstände, keine Kurse; keine
+  Erinnerungen, keine Timer, nichts schalten. Er sagt das dann, statt etwas zu erfinden.
 - **Gedächtnis:** „Über mich“-Text, verknüpfte Dateien (werden bei jedem Start frisch gelesen) und
   Notizen auf Zuruf („Alfred, merk dir …“). Alles bleibt auf dem Gerät.
 
@@ -31,28 +36,47 @@ In der App unter **Einstellungen**:
 - **Soniox API-Key** (optional): zweiter Transkriptions-Anbieter mit Sprecher-Erkennung je Wort
 - **Assistent:** Name, weitere Rufnamen, Anrede, Charakter
 - **Gedächtnis:** „Über mich“, Dateien verknüpfen, Notizen ansehen und löschen
+- **Erscheinungsbild:** System, Hell oder Dunkel
 
 ## Benutzen
-- **Kopfhörer sind Pflicht.** Ohne verbundene Kopfhörer startet das Zuhören nicht, und es endet, wenn
-  sie getrennt werden: Antworten sollen nie aus dem Lautsprecher kommen.
-- **AirPods-Mikro:** hört vor allem die eigene Stimme, das Gegenüber deutlich leiser. Gut für eigene
-  Fragen und volle Räume. Nachteil: Solange es läuft, klingt auch Musik in Telefonqualität.
-- **Handy-Mikro:** hört den Raum; die Antwort kommt trotzdem über die Kopfhörer. Besser, wenn nebenbei
-  Musik läuft oder das Gegenüber gut verstanden werden soll.
-- **Reichweite:** „Nur ich“ (streng, nur die eigene Stimme), „Mein Gespräch“ (Standard), „Ganzer Raum“.
+- **Kopfhörer sind Pflicht.** Die App prüft, wohin der Ton wirklich geht: vor dem Start, vor jeder
+  Antwort, bei jedem Gerätewechsel und während der Wiedergabe. Lautsprecher, Bluetooth-Boxen und das
+  Auto werden abgelehnt; geht der Ton nicht mehr an Kopfhörer, endet das Zuhören mit einer Meldung.
+  Jedes Bluetooth-Gerät fragt die App **einmal** ab („Sind das Ihre Ohrhörer?“): Dann ein zweites Mal
+  auf Start tippen, danach merkt sie sich das Gerät. Grenze: Ein Kabel, das in einem Lautsprecher
+  steckt, kann sie nicht von Kopfhörern unterscheiden.
+- **Kopfhörer-Mikro (Standard, z. B. AirPods):** Nur hier ist die eigene Stimme mit Abstand die lauteste.
+  Daran erkennt die App, dass Sie selbst sprechen, und davon hängen das Merken, das Stummschalten per
+  Sprache und die Reichweite „Nur ich“ ab. Der Preis ist der Telefon-Modus von Bluetooth, solange
+  zugehört wird (auch in der Bereitschaft): Musik klingt wie am Telefon, andere Apps bekommen kein
+  Mikrofon (Sprachnachrichten, Diktat, Videoton), und ein Druck auf die Kopfhörer-Taste trennt kurz die
+  Verbindung. Kommt sie nicht binnen drei Sekunden zurück, endet das Zuhören.
+- **Handy-Mikro:** hört den Raum; die Antwort kommt trotzdem über die Kopfhörer, Musik bleibt in voller
+  Qualität, und die Kopfhörer-Taste stoppt nur die Antwort. Richtig, wenn nebenbei Musik läuft oder das
+  Handy im Hörsaal auf dem Tisch liegt. Die eigene Stimme ist hier nicht von anderen zu unterscheiden:
+  Merken und Stummschalten per Sprache werden abgelehnt, und der Assistent entscheidet allein am Inhalt,
+  ob es Ihr Gespräch ist.
+- **Reichweite:** „Nur ich“ (streng, nur die eigene Stimme; sinnvoll nur mit dem Kopfhörer-Mikro),
+  „Mein Gespräch“ (Standard), „Ganzer Raum“.
 - **Weckwort:** „Jarvis“ englisch aussprechen („Dschahwis“). Die deutsche Aussprache „Jarwis“ erkennt
-  das Modell nicht.
-- **Zahlen:** Die Antworten stehen mit ausgeschriebenen Zahlen in der App, weil die Stimme sie so
-  zuverlässig spricht.
+  das Modell nicht. Nach dem Ton einfach die Frage stellen; „Hey Jarvis“ allein löst nichts aus.
+- **Ruhe:** „Alfred, sei eine halbe Stunde still“ schaltet ihn stumm (ohne Dauer: 30 Minuten, höchstens
+  zehn Stunden). Beim Namen genannt, antwortet er wieder.
+- **Zahlen:** Die Stimme bekommt Zahlen, Einheiten und Daten immer ausgeschrieben, auch wenn das Modell
+  einmal Ziffern schreibt.
 
 ## Datenschutz und Recht
 Was das Gerät verlässt:
 - **Transkription (ElevenLabs oder Soniox):** im Dauer-Zuhören das gesamte Mikrofon-Audio, also auch
-  alle Menschen in Hörweite. In der Bereitschaft nichts, bis das Weckwort fällt, danach höchstens zwei
-  Minuten.
-- **Claude (Anthropic):** die Mitschrift der letzten Minuten, Uhrzeit, eine Einschätzung der Lage und
-  das hinterlegte Gedächtnis, jedes Mal, wenn eine mögliche Frage erkannt wird.
-- **Sprachausgabe (ElevenLabs):** der Text der Antwort.
+  alle Menschen in Hörweite. In der Bereitschaft nichts, bis das Weckwort fällt; dann das Weckwort
+  selbst mit gut einer Sekunde Vorlauf und danach höchstens zwei Minuten.
+- **Claude (Anthropic):** die Mitschrift der letzten Minuten, Datum und Uhrzeit, eine Einschätzung der
+  Lage und das hinterlegte Gedächtnis, jedes Mal, wenn eine mögliche Frage erkannt wird. Das kann schon
+  beginnen, kurz bevor der Satz zu Ende gesprochen ist (so wird die Antwort schneller). Außerdem ein
+  kurzer Vorwärm-Aufruf mit Anweisungen und Gedächtnis (ohne Audio, ohne Mitschrift) beim Start, beim
+  Weckwort und wenn nach mehr als vier Minuten Pause wieder jemand spricht.
+- **Sprachausgabe (ElevenLabs):** der Text der Antwort, auch wenn sie dann doch nicht zu hören ist, weil
+  in der Wartesekunde ein Mensch geantwortet hat.
 
 Die App selbst speichert weder Audio noch Mitschrift. Für die Anbieter gelten deren eigene
 Aufbewahrungsregeln. Das Gedächtnis liegt nur auf dem Gerät und ist von Backups ausgenommen.
@@ -76,7 +100,11 @@ lädt sie mit Prüfsummen und packt sie in die APK. Ohne Weckwort bauen: `./grad
 - **Rauchtest mit echten Schlüsseln, ohne Handy:**
   `ELEVENLABS_API_KEY=… ANTHROPIC_API_KEY=… ./gradlew :core:smoke`
   spielt Sprache → Transkription → Entscheidung/Antwort → Sprache durch und misst jede Stufe.
-- **Filter-Auswertung:** `core/src/test/resources/eval/` enthält beschriftete Situationen (Party,
-  Unterricht, Telefonate, Musik, durchmischte Gespräche, Weckwort …).
-  `ANTHROPIC_API_KEY=… ./gradlew :core:evalLive -Prun=test` schickt sie an das echte Modell,
-  `python3 tools/eval_score.py core/build/eval/out/test` wertet aus.
+- **Filter-Auswertung:** `core/src/test/resources/eval/` enthält 185 beschriftete Situationen (Party,
+  Unterricht, Telefonate, Musik, durchmischte Gespräche, Weckwort, Vorprüfung …). Jede wird in vier
+  Darstellungen gezeigt: Sprecher-Schätzung richtig, teils falsch, gar nicht, und wie am Handy-Mikro.
+  - Mit API-Schlüssel: `ANTHROPIC_API_KEY=… ./gradlew :core:evalLive -Prun=test`
+  - Ohne Schlüssel, mit angemeldetem Claude Code (Abo): `./gradlew :core:evalDump`, dann
+    `python3 tools/eval_cli.py test`
+  - Auswerten: `python3 tools/eval_score.py test` (zwei Laufnamen vergleichen zwei Fassungen)
+  Stand der Messungen steht in `HANDOVER.md`.
