@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Das Fenster, bevor die App selbst etwas gezeichnet hat: Android zeigt beim Start für einen
+        Augenblick nur diesen Hintergrund. Hat er die Farbe der Oberfläche (hell hier, dunkel in
+        values-night), blitzt beim Öffnen nichts auf. Alles Weitere zeichnet Compose (ui/Theme.kt).
+        Die Farbwerte sind dieselben wie "backdropTop" dort; ein Test achtet darauf, dass das so bleibt.
+    -->
+    <color name="window_backdrop">#F7F3EC</color>
+
+    <style name="Theme.ClaudeVoice" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_backdrop</item>
+    </style>
+</resources>

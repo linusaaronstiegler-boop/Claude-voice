@@ -1,6 +1,7 @@
 package app.claudevoice.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -81,9 +82,55 @@ class FormatsTest {
         assertTrue(mutedText(mutedUntilMs = 31_000, nowMs = 1_000)!!.contains("noch 1 Min.")) // aufgerundet, nie "0 Min."
     }
 
+    @Test
+    fun `Felder der Auswahlleiste teilen sich die Breite sinnvoll`() {
+        // Alles passt in gleich breite Felder: gleiche Anteile.
+        assertEquals(listOf(1f, 1f, 1f), segmentWidths(total = 300, wanted = listOf(80, 100, 90), atLeast = listOf(80, 60, 50)))
+        // Ein langes Feld sprengt die Gleichverteilung, in der Summe passt es aber: Anteile nach Textlänge.
+        assertEquals(listOf(100f, 180f), segmentWidths(total = 300, wanted = listOf(100, 180), atLeast = listOf(100, 90)))
+        // Zu schmal: das Feld aus einem einzigen Wort behält seine Breite, das andere bricht am Leerzeichen um.
+        assertEquals(listOf(100f, 160f), segmentWidths(total = 260, wanted = listOf(100, 180), atLeast = listOf(100, 90)))
+        // Selbst die längsten Wörter passen nicht: der Platz wird nach Textlänge geteilt (hier 100 zu 180).
+        val cramped = segmentWidths(total = 150, wanted = listOf(100, 180), atLeast = listOf(100, 90))
+        assertEquals(100f / 180f, cramped[0] / cramped[1], 0.001f)
+    }
+
+    @Test
+    fun `Anteile der Auswahlleiste ergeben nie mehr als die Breite`() {
+        // Die Zeile rechnet vorab mit ganzen Zahlen aus, wie hoch ihre Felder werden. Wären die Anteile
+        // zusammen größer als der Platz, nähme sie zu breite Felder an und schnitte umbrochenen Text ab.
+        // Gleich breite Felder (alle Anteile 1) sind davon nicht betroffen.
+        for (total in listOf(60, 150, 260, 296, 300, 592, 1000)) {
+            for ((wanted, atLeast) in listOf(
+                listOf(100, 180) to listOf(100, 90),
+                listOf(304, 534) to listOf(304, 284),
+                listOf(120, 200, 190) to listOf(70, 160, 120),
+            )) {
+                val shares = segmentWidths(total, wanted, atLeast)
+                assertTrue("Anteile muessen positiv sein: $shares", shares.all { it > 0f })
+                if (shares.any { it != 1f }) {
+                    assertTrue("total=$total wanted=$wanted: Summe ${shares.sum()}", shares.sum() <= total + 0.01f)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Hey Jarvis bleibt beim Umbrechen zusammen`() {
+        // Zwischen "Hey" und "Jarvis" steht ein geschütztes Leerzeichen (Zeichen Nummer 160). Man sieht
+        // ihm das nicht an; deshalb passt dieser Test auf, dass es beim Bearbeiten nicht verloren geht.
+        assertTrue(LABEL_WECKWORT.contains("Hey" + Char(160) + "Jarvis"))
+        assertEquals("Dauer-Zuhören · AirPods-Mikro · Mein Gespräch", ListenChoices().summary)
+        assertEquals("$LABEL_WECKWORT · Handy-Mikro · Nur ich", ListenChoices(MODE_WECKWORT, bluetoothMic = false, reach = REACH_ICH).summary)
+    }
+
     // --- Farben -----------------------------------------------------------------------------
     // Kontrast nach WCAG: (heller + 0,05) / (dunkler + 0,05). Ab 4,5 gilt normale Schrift als gut
     // lesbar, ab 3 genügt es für Rahmen und große Schrift.
+    //
+    // Beim Glas ist der Grund hinter einer Schrift keine feste Farbe: er entsteht aus dem Hintergrund,
+    // den Lichtscheinen und den durchscheinenden Scheiben darüber. Die Tests legen diese Schichten
+    // rechnerisch übereinander ("compositeOver") und prüfen jeweils die ungünstigste Stelle.
 
     private fun contrast(a: Color, b: Color): Double {
         val la = a.luminance().toDouble()
@@ -91,30 +138,95 @@ class FormatsTest {
         return (maxOf(la, lb) + 0.05) / (minOf(la, lb) + 0.05)
     }
 
+    private val schemes = listOf("hell" to LightGlass, "dunkel" to DarkGlass)
+
+    /** Legt jede Farbe aus [layers] über jeden Grund aus [grounds]. */
+    private fun over(layers: List<Color>, grounds: List<Color>): List<Color> =
+        grounds.flatMap { ground -> layers.map { it.compositeOver(ground) } }
+
+    /** Der nackte Hintergrund an seinen Extremstellen: oben, unten, mitten in einem oder beiden Lichtscheinen. */
+    private fun backdrops(c: GlassColors): List<Color> = listOf(c.backdropTop, c.backdropBottom).flatMap { base ->
+        val cool = c.glowCool.compositeOver(base)
+        listOf(base, cool, c.glowWarm.compositeOver(base), c.glowWarm.compositeOver(cool))
+    }
+
+    /** Eine Scheibe direkt auf dem Hintergrund, und eine schwebende mit der Notlösung "Tönung statt Unschärfe" darunter. */
+    private fun panes(c: GlassColors): List<Color> {
+        val fill = listOf(c.glassTop, c.glassBottom)
+        return over(fill, backdrops(c)) + over(fill, over(listOf(c.scrim), backdrops(c)))
+    }
+
+    private fun assertReadable(what: String, ink: Color, grounds: List<Color>, min: Double = 4.5) {
+        val worst = grounds.minOf { contrast(ink, it) }
+        assertTrue("$what: Kontrast %.2f ist unter %.1f".format(worst, min), worst >= min)
+    }
+
     @Test
-    fun `Schrift hebt sich genug vom Grund ab`() {
-        val pairs = listOf(
-            "Navy auf Creme" to (Palette.Navy to Palette.Cream),
-            "Navy auf Papier" to (Palette.Navy to Palette.Paper),
-            "Creme auf Navy (Startknopf, gewaehlte Auswahl)" to (Palette.Cream to Palette.Navy),
-            "Navy auf Gold (Stoppknopf)" to (Palette.Navy to Palette.Gold),
-            "Nebentext auf Creme" to (Palette.InkSoft to Palette.Cream),
-            "Nebentext auf Papier" to (Palette.InkSoft to Palette.Paper),
-            "Etikett auf Creme" to (Palette.GoldDeep to Palette.Cream),
-            "Etikett auf Papier" to (Palette.GoldDeep to Palette.Paper),
-            "Hinweis auf Creme" to (Palette.Alert to Palette.Cream),
-        )
-        for ((name, colors) in pairs) {
-            val ratio = contrast(colors.first, colors.second)
-            assertTrue("$name: Kontrast %.2f ist unter 4,5".format(ratio), ratio >= 4.5)
+    fun `Schrift hebt sich in beiden Erscheinungsbildern genug vom Grund ab`() {
+        for ((name, c) in schemes) {
+            val bare = backdrops(c)
+            val glass = panes(c)
+            // Direkt auf dem Hintergrund: Titel, Mitschrift, Etiketten, Erklärtexte, Hinweise.
+            assertReadable("$name: Schrift auf dem Hintergrund", c.ink, bare)
+            assertReadable("$name: Nebentext auf dem Hintergrund", c.inkSoft, bare)
+            assertReadable("$name: Etikett auf dem Hintergrund", c.label, bare)
+            assertReadable("$name: Hinweis auf dem Hintergrund", c.alert, bare)
+            // Auf einer Glasscheibe.
+            assertReadable("$name: Schrift auf Glas", c.ink, glass)
+            assertReadable("$name: Nebentext auf Glas", c.inkSoft, glass)
+            assertReadable("$name: Etikett auf Glas", c.label, glass)
+            assertReadable("$name: Hinweis auf Glas", c.alert, glass)
+            // Im Eingabefeld (eine Vertiefung in der Scheibe): Eingabe, Beschriftung, "Zeigen".
+            val well = over(listOf(c.well), glass)
+            assertReadable("$name: Schrift im Eingabefeld", c.ink, well)
+            assertReadable("$name: Beschriftung im Eingabefeld", c.inkSoft, well)
+            assertReadable("$name: Text-Schaltflaeche im Eingabefeld", c.label, well)
+            // Auswahlleiste: nicht gewählte Felder auf der Schiene, das gewählte auf dem Daumen.
+            val track = over(listOf(c.track), glass)
+            assertReadable("$name: nicht gewaehlt auf der Schiene", c.inkSoft, track)
+            assertReadable("$name: gewaehlt auf dem Daumen", c.ink, over(listOf(c.thumbTop, c.thumbBottom), track))
+            // Glas-Kapseln als Schaltflächen: im Seitenkopf direkt auf dem Hintergrund, sonst auf einer Scheibe.
+            assertReadable("$name: Schaltflaeche", c.ink, over(listOf(c.thumbTop, c.thumbBottom), bare + glass))
+            // Der große Knopf: ruhend goldgetöntes Glas, beim Zuhören volles Gold. Unter dem ruhenden
+            // Knopf liegt im Normalfall der Hintergrund selbst (weichgezeichnet ändert er sich kaum),
+            // in der Notlösung ohne Unschärfe zusätzlich die abdeckende Tönung.
+            val primary = over(listOf(c.primaryTop, c.primaryBottom), bare + over(listOf(c.scrim), bare))
+            assertReadable("$name: Zuhoeren starten", c.onPrimary, primary)
+            assertReadable("$name: Stopp", c.onActive, listOf(c.activeTop, c.activeBottom))
+            // Dialog (deckend).
+            assertReadable("$name: Schrift im Dialog", c.ink, listOf(c.dialog))
+            assertReadable("$name: Nebentext im Dialog", c.inkSoft, listOf(c.dialog))
+            assertReadable("$name: Schaltflaeche im Dialog", c.label, listOf(c.dialog))
         }
     }
 
     @Test
-    fun `Rahmen sind sichtbar und Gold bleibt Schmuck`() {
-        assertTrue(contrast(Palette.Outline, Palette.Cream) >= 3.0)
-        assertTrue(contrast(Palette.Outline, Palette.Paper) >= 3.0)
-        // Der Grund, warum es GoldDeep gibt: reines Gold wäre als Schrift auf Creme zu blass.
-        assertTrue(contrast(Palette.Gold, Palette.Cream) < 3.0)
+    fun `Rahmen der Eingabefelder sind sichtbar und Gold bleibt Schmuck`() {
+        for ((name, c) in schemes) {
+            // Der Rahmen muss sich vom Feld innen und von der Scheibe außen abheben.
+            val glass = panes(c)
+            assertReadable("$name: Feldrahmen gegen die Scheibe", c.wellBorder, glass, min = 3.0)
+            assertReadable("$name: Feldrahmen gegen das Feld", c.wellBorder, over(listOf(c.well), glass), min = 3.0)
+            // Ist das Feld im Fokus, trägt der Rahmen die Farbe der Etiketten.
+            assertReadable("$name: Fokusrahmen", c.label, glass, min = 3.0)
+        }
+        // Der Grund, warum es eine eigene Etikettenfarbe gibt: reines Gold wäre als Schrift auf hellem Grund zu blass.
+        assertTrue(contrast(Palette.Gold, LightGlass.backdropTop) < 3.0)
+        assertTrue(contrast(LightGlass.label, LightGlass.backdropTop) >= 4.5)
+    }
+
+    @Test
+    fun `Glas ist durchscheinend wie im Entwurf festgelegt`() {
+        // Dunkel: Weiß mit etwa 6 bis 10 Prozent Deckkraft. Hell: Weiß mit etwa 55 bis 70 Prozent.
+        // (Ein halbes Prozent Spielraum, weil Farben die Deckkraft nur in 256 Stufen speichern.)
+        for (fill in listOf(DarkGlass.glassTop, DarkGlass.glassBottom)) assertTrue(fill.alpha in 0.055f..0.105f)
+        for (fill in listOf(LightGlass.glassTop, LightGlass.glassBottom)) assertTrue(fill.alpha in 0.545f..0.705f)
+        // Die Kante ist oben heller als unten (Lichtreflex).
+        for ((_, c) in schemes) {
+            val ground = c.glassTop.compositeOver(c.backdropTop)
+            assertTrue(c.rimTop.compositeOver(ground).luminance() > c.rimBottom.compositeOver(ground).luminance())
+        }
+        // Der dunkle Grund ist ein tiefes Blauschwarz, kein reines Schwarz.
+        assertTrue(DarkGlass.backdropBottom.blue > DarkGlass.backdropBottom.red && DarkGlass.backdropBottom.luminance() > 0f)
     }
 }

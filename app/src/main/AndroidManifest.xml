@@ -16,7 +16,7 @@
         android:fullBackupContent="false"
         android:icon="@drawable/ic_launcher"
         android:label="Claude Voice"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.ClaudeVoice">
 
         <activity
             android:name=".MainActivity"

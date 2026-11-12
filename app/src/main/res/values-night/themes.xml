@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Die dunkle Fassung von values/themes.xml: gilt, wenn das Handy im Dunkelmodus läuft. -->
+    <color name="window_backdrop">#0D1525</color>
+
+    <style name="Theme.ClaudeVoice" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_backdrop</item>
+    </style>
+</resources>

@@ -88,6 +88,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("pausemusic", true)
         set(v) = sp.edit().putBoolean("pausemusic", v).apply()
 
+    /** Erscheinungsbild der Oberfläche: "system" (folgt dem Handy), "hell" oder "dunkel". */
+    var appearance: String
+        get() = sp.getString("appearance", "system") ?: "system"
+        set(v) = sp.edit().putString("appearance", v).apply()
+
     /** Gelerntes Stimmprofil je Mikrofon-Art, als "pegel;tonhoehe;proben". */
     fun voiceProfile(mic: String): String? = sp.getString("voice_$mic", null)
     fun saveVoiceProfile(mic: String, value: String) = sp.edit().putString("voice_$mic", value).apply()

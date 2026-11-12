@@ -78,3 +78,12 @@ dependencies {
     testImplementation("androidx.compose.ui:ui-test-junit4") // Version kommt aus der Compose-BOM oben
     testImplementation("io.github.takahirom.roborazzi:roborazzi:1.76.0")
 }
+
+// --- Glas-Optik --------------------------------------------------------------------------------
+dependencies {
+    // Zeichnet weich, was hinter schwebendem Glas liegt (Start/Stopp-Knopf, Antwortkarte).
+    // 1.6.10 ist die letzte Fassung, die zu unserem Compose (1.8) passt: 1.7 setzt Compose 1.9
+    // voraus, die 2.x-Reihe Compose 1.12 und Kotlin 2.4. Wer Compose anhebt, kann nachziehen;
+    // ab 2.0 heißen die Aufrufe anders (hazeEffect wird zu hazeBlur).
+    implementation("dev.chrisbanes.haze:haze:1.6.10")
+}

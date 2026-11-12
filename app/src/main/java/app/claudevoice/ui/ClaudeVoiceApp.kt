@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,11 +34,29 @@ import kotlinx.coroutines.withContext
  * [MainScreen] und [SettingsScreen] zeichnen nur. Hier wird entschieden, welche Seite zu sehen ist,
  * und hier (nur hier) wird mit [Prefs], [MemoryStore], [ListenService] und [AppState] gesprochen.
  * Diese Trennung macht die Seiten testbar und hält die Android-Abhängigkeiten an einer Stelle.
+ *
+ * Auch das Erscheinungsbild (hell, dunkel oder wie das Handy) wird hier gelesen und angewendet, damit
+ * ein Wechsel in den Einstellungen sofort wirkt. [onDarkChange] meldet der Activity, ob gerade dunkel
+ * gezeichnet wird: sie stellt danach die Symbole von Status- und Navigationsleiste hell oder dunkel.
  */
 @Composable
-fun ClaudeVoiceApp() {
+fun ClaudeVoiceApp(onDarkChange: (Boolean) -> Unit = {}) {
     val context = LocalContext.current
     val prefs = remember { Prefs(context) }
+    var appearance by remember { mutableStateOf(Appearance.fromKey(prefs.appearance)) }
+    val dark = appearance.isDark(isSystemInDarkTheme())
+    LaunchedEffect(dark) { onDarkChange(dark) }
+
+    // Auf dem Handy mit echter Unschärfe hinter schwebendem Glas (in den Tests bleibt sie aus).
+    ClaudeVoiceTheme(appearance, backdropBlur = true) {
+        Screens(prefs, onAppearanceChange = { appearance = it })
+    }
+}
+
+/** Entscheidet, welche Seite zu sehen ist, und verbindet sie mit Service und Speicher. */
+@Composable
+private fun Screens(prefs: Prefs, onAppearanceChange: (Appearance) -> Unit) {
+    val context = LocalContext.current
     val ui by AppState.ui.collectAsStateWithLifecycle()
 
     // "rememberSaveable" übersteht auch das Drehen des Handys. Ohne Schlüssel geht es direkt in die Einstellungen.
@@ -74,7 +93,7 @@ fun ClaudeVoiceApp() {
         val close = { hasKeys = prefs.hasKeys; showSettings = false }
         // Die Zurück-Geste soll die Einstellungen schließen, nicht die App.
         BackHandler(onBack = close)
-        SettingsRoute(prefs, running = ui.running, onClose = close)
+        SettingsRoute(prefs, running = ui.running, onAppearanceChange = onAppearanceChange, onClose = close)
     } else {
         MainScreen(
             ui = ui,
@@ -109,7 +128,7 @@ private fun rememberNow(ticking: Boolean): Long {
 
 /** Die Einstellungen samt Anbindung: lädt die Werte, legt Änderungen sofort ab, öffnet den Dateiauswähler. */
 @Composable
-private fun SettingsRoute(prefs: Prefs, running: Boolean, onClose: () -> Unit) {
+private fun SettingsRoute(prefs: Prefs, running: Boolean, onAppearanceChange: (Appearance) -> Unit, onClose: () -> Unit) {
     val context = LocalContext.current
     val memory = remember { MemoryStore(context) }
     val scope = rememberCoroutineScope()
@@ -145,7 +164,12 @@ private fun SettingsRoute(prefs: Prefs, running: Boolean, onClose: () -> Unit) {
         notes = notes,
         running = running,
         actions = SettingsActions(
-            onFormChange = { changed -> prefs.save(old = form, new = changed); form = changed },
+            onFormChange = { changed ->
+                prefs.save(old = form, new = changed)
+                // Das Erscheinungsbild gilt für die ganze App, deshalb zusätzlich nach oben melden.
+                if (changed.appearance != form.appearance) onAppearanceChange(changed.appearance)
+                form = changed
+            },
             // Textdateien aller Art. "octet-stream" steht dabei, weil manche Speicher-Apps
             // Markdown-Dateien (.md) nicht als Text melden und sie sonst ausgegraut wären.
             onAddFile = { linkError = null; picker.launch(arrayOf("text/*", "application/octet-stream")) },
@@ -177,6 +201,7 @@ private fun Prefs.toForm() = SettingsForm(
     character = character,
     about = about,
     pauseMusic = pauseMusic,
+    appearance = Appearance.fromKey(appearance),
 )
 
 /** Schreibt nur das Feld, das sich geändert hat (beim Tippen ist das immer genau eines). */
@@ -191,4 +216,5 @@ private fun Prefs.save(old: SettingsForm, new: SettingsForm) {
     if (new.character != old.character) character = new.character
     if (new.about != old.about) about = new.about
     if (new.pauseMusic != old.pauseMusic) pauseMusic = new.pauseMusic
+    if (new.appearance != old.appearance) appearance = new.appearance.key
 }

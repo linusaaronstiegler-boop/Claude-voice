@@ -2,12 +2,17 @@ package app.claudevoice.ui
 
 import android.app.Application
 import android.content.ComponentName
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.ScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -15,10 +20,10 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasParent
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -29,12 +34,17 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.test.core.app.ApplicationProvider
+import app.claudevoice.applySystemBars
 import app.claudevoice.core.UiState
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -53,7 +63,11 @@ import org.robolectric.annotation.GraphicsMode
  * (nach app/build/outputs/roborazzi/). Die Bilder sind zum Ansehen gedacht, nicht zum automatischen
  * Vergleich; was sich prüfen lässt (gesperrte Auswahl, Tippflächen, Rückmeldungen), prüfen die Tests.
  *
- * Gezeichnet wird in zwei Handygrößen: 412 dp breit (übliches großes Handy) und 360 dp (schmal und kurz).
+ * Gezeichnet wird hell und dunkel in 412 dp Breite (übliches großes Handy), dazu dunkel in 360 dp
+ * (schmal und kurz). Diese Bilder entstehen per Software und zeigen das Glas ohne Unschärfe: so muss
+ * es auch schon nach Glas aussehen. Zwei weitere Bilder ("unschaerfe") lassen Robolectric so zeichnen
+ * wie die Grafikkarte eines Handys; nur dort ist zu sehen, wie die Mitschrift hinter dem schwebenden
+ * Glas verschwimmt. Ein echtes Handy ersetzt das nicht, es ist aber dieselbe Zeichen-Bibliothek.
  * Alle Beispieltexte sind erfunden.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -69,6 +83,13 @@ class ScreensTest {
             val app = ApplicationProvider.getApplicationContext<Application>()
             Shadows.shadowOf(app.packageManager)
                 .addActivityIfNotPresent(ComponentName(app.packageName, ComponentActivity::class.java.name))
+            // Nur für die Unschärfe-Bilder: Robolectric soll wie die Grafikkarte eines Handys zeichnen.
+            // Der Schalter gilt für das ganze Testprogramm, deshalb wird er danach wieder entfernt.
+            if ("unschaerfe" in description.methodName) System.setProperty(HARDWARE_SWITCH, "hardware")
+        }
+
+        override fun finished(description: Description) {
+            System.clearProperty(HARDWARE_SWITCH)
         }
     }
 
@@ -111,6 +132,9 @@ class ScreensTest {
         latencyMs = 780,
     )
 
+    /** Nach dem Stopp: die Auswahl ist wieder da, Mitschrift und letzte Antwort stehen noch. */
+    private val stopped = answering.copy(running = false, speaking = false, status = "Bereit")
+
     private val form = SettingsForm(
         anthropicKey = "beispiel-kein-echter-schluessel",
         elevenKey = "beispiel-kein-echter-schluessel",
@@ -127,61 +151,110 @@ class ScreensTest {
     private val linkError = "Datei zu groß (41200 Zeichen, Grenze 30000). Bitte eine kürzere Fassung wählen."
 
     @Composable
-    private fun Main(ui: UiState, hasKeys: Boolean = true, hint: String? = null, actions: MainActions = MainActions()) {
-        ClaudeVoiceTheme { MainScreen(ui, now, ListenChoices(), hasKeys, hint, actions) }
+    private fun Main(
+        ui: UiState,
+        hasKeys: Boolean = true,
+        hint: String? = null,
+        actions: MainActions = MainActions(),
+        choices: ListenChoices = ListenChoices(),
+        appearance: Appearance = Appearance.Light,
+    ) {
+        ClaudeVoiceTheme(appearance) { MainScreen(ui, now, choices, hasKeys, hint, actions) }
     }
 
     // --- Bilder -----------------------------------------------------------------------------
+    // Jeder Zustand in beiden Erscheinungsbildern. Der Dateiname sagt, was zu sehen ist:
+    // Seite, Zustand, Breite in dp, hell oder dunkel.
 
     @Test
-    fun bild_haupt_bereit_ohne_schluessel_412() {
-        compose.setContent { Main(idle, hasKeys = false) }
-        shoot("haupt_bereit_ohne_schluessel_412")
-        assertTouchTargets()
-    }
+    fun bild_haupt_bereit_ohne_schluessel_412_hell() = shootMain("haupt_bereit_ohne_schluessel_412_hell", idle, Appearance.Light, hasKeys = false)
 
     @Test
-    fun bild_haupt_hoert_zu_412() {
-        compose.setContent { Main(listening) }
-        shoot("haupt_hoert_zu_412")
-        assertTouchTargets()
-    }
+    fun bild_haupt_bereit_ohne_schluessel_412_dunkel() = shootMain("haupt_bereit_ohne_schluessel_412_dunkel", idle, Appearance.Dark, hasKeys = false)
 
     @Test
-    fun bild_haupt_antwortet_412() {
-        compose.setContent { Main(answering) }
-        shoot("haupt_antwortet_412")
-        assertTouchTargets()
-    }
+    fun bild_haupt_hoert_zu_412_hell() = shootMain("haupt_hoert_zu_412_hell", listening, Appearance.Light)
 
     @Test
-    @Config(qualifiers = PHONE_360)
-    fun bild_haupt_bereit_ohne_schluessel_360() {
-        compose.setContent { Main(idle, hasKeys = false) }
-        shoot("haupt_bereit_ohne_schluessel_360")
-        assertTouchTargets()
-    }
+    fun bild_haupt_hoert_zu_412_dunkel() = shootMain("haupt_hoert_zu_412_dunkel", listening, Appearance.Dark)
+
+    @Test
+    fun bild_haupt_antwortet_412_hell() = shootMain("haupt_antwortet_412_hell", answering, Appearance.Light)
+
+    @Test
+    fun bild_haupt_antwortet_412_dunkel() = shootMain("haupt_antwortet_412_dunkel", answering, Appearance.Dark)
 
     @Test
     @Config(qualifiers = PHONE_360)
-    fun bild_haupt_antwortet_360() {
-        compose.setContent { Main(answering) }
-        shoot("haupt_antwortet_360")
-        assertTouchTargets()
-    }
-
-    @Test
-    fun bild_einstellungen_412() = shootSettings("einstellungen_412")
+    fun bild_haupt_bereit_ohne_schluessel_360_dunkel() = shootMain("haupt_bereit_ohne_schluessel_360_dunkel", idle, Appearance.Dark, hasKeys = false)
 
     @Test
     @Config(qualifiers = PHONE_360)
-    fun bild_einstellungen_360() = shootSettings("einstellungen_360")
+    fun bild_haupt_antwortet_360_dunkel() = shootMain("haupt_antwortet_360_dunkel", answering, Appearance.Dark)
+
+    @Test
+    fun bild_einstellungen_412_hell() = shootSettings("einstellungen_412_hell", Appearance.Light)
+
+    @Test
+    fun bild_einstellungen_412_dunkel() = shootSettings("einstellungen_412_dunkel", Appearance.Dark)
+
+    @Test
+    @Config(qualifiers = PHONE_360)
+    fun bild_einstellungen_360_dunkel() = shootSettings("einstellungen_360_dunkel", Appearance.Dark)
+
+    // Nach dem Stopp ist die Mitschrift länger als der Platz über der schwebenden Antwortkarte.
+    // Ohne Unschärfe blendet sie davor aus.
+    @Test
+    fun bild_haupt_angehalten_412_hell() = shootMain("haupt_angehalten_412_hell", stopped, Appearance.Light)
+
+    @Test
+    fun bild_haupt_angehalten_412_dunkel() = shootMain("haupt_angehalten_412_dunkel", stopped, Appearance.Dark)
+
+    // Derselbe Zustand mit echter Unschärfe (siehe oben): unter der Antwortkarte verschwimmt die Mitschrift.
+    @Test
+    fun bild_haupt_unschaerfe_412_dunkel() = shootBlurred("haupt_unschaerfe_412_dunkel", Appearance.Dark)
+
+    @Test
+    fun bild_haupt_unschaerfe_412_hell() = shootBlurred("haupt_unschaerfe_412_hell", Appearance.Light)
+
+    private fun shootBlurred(name: String, appearance: Appearance) {
+        compose.setContent {
+            ClaudeVoiceTheme(appearance, backdropBlur = true) { MainScreen(stopped, now, ListenChoices(), true, null, MainActions()) }
+        }
+        shoot(name)
+        assertTouchTargets()
+    }
+
+    // Die Rückfrage vor dem Löschen einer Notiz. Ein Dialog ist ein eigenes Fenster; das Bild zeigt nur ihn.
+    @Test
+    fun bild_einstellungen_notiz_loeschen_412_dunkel() = shootDeleteDialog("einstellungen_notiz_loeschen_412_dunkel", Appearance.Dark)
+
+    @Test
+    fun bild_einstellungen_notiz_loeschen_412_hell() = shootDeleteDialog("einstellungen_notiz_loeschen_412_hell", Appearance.Light)
+
+    private fun shootDeleteDialog(name: String, appearance: Appearance) {
+        compose.setContent {
+            ClaudeVoiceTheme(appearance) { SettingsScreen(form, files, null, notes, running = false, SettingsActions()) }
+        }
+        compose.onAllNodesWithText("Löschen")[0].performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNode(isDialog()).captureRoboImage("build/outputs/roborazzi/$name.png")
+        assertTouchTargets()
+    }
+
+    private fun shootMain(name: String, ui: UiState, appearance: Appearance, hasKeys: Boolean = true) {
+        compose.setContent { Main(ui, hasKeys = hasKeys, appearance = appearance) }
+        shoot(name)
+        assertTouchTargets()
+    }
 
     /** Die Einstellungen sind länger als der Bildschirm: mehrere Bilder, jeweils eine Bildschirmhöhe weiter. */
-    private fun shootSettings(name: String) {
+    private fun shootSettings(name: String, appearance: Appearance) {
         val scroll = ScrollState(0)
         compose.setContent {
-            ClaudeVoiceTheme { SettingsScreen(form, files, linkError, notes, running = false, SettingsActions(), scrollState = scroll) }
+            ClaudeVoiceTheme(appearance) {
+                SettingsScreen(form.copy(appearance = appearance), files, linkError, notes, running = false, SettingsActions(), scrollState = scroll)
+            }
         }
         compose.waitForIdle()
         val step = scroll.viewportSize * 9 / 10 // etwas Überlappung, damit an der Schnittkante nichts verloren geht
@@ -268,18 +341,37 @@ class ScreensTest {
     }
 
     @Test
-    fun waehrend_des_zuhoerens_ist_die_auswahl_gesperrt() {
+    fun waehrend_des_zuhoerens_steht_die_auswahl_nur_als_kurzfassung_da() {
         var changes = 0
         val count = MainActions(onModeChange = { changes++ }, onMicChange = { changes++ }, onReachChange = { changes++ })
-        // Ohne Mitschrift bleiben die Auswahlleisten im Bild (mit Mitschrift rollen sie nach oben weg).
-        compose.setContent { Main(UiState(running = true, startedAtMs = now - 5_000, status = "Hört zu (Handy-Mikro)"), actions = count) }
-        allChoices.forEach {
-            compose.onNodeWithText(it).assertIsNotEnabled()
-            compose.onNodeWithText(it).performClick()
+        val chosen = ListenChoices(mode = MODE_WECKWORT, bluetoothMic = false, reach = REACH_RAUM)
+        compose.setContent {
+            Main(UiState(running = true, startedAtMs = now - 5_000, status = "Hört zu (Handy-Mikro)"), actions = count, choices = chosen)
         }
+        // Gesperrt heißt jetzt: die Leisten sind gar nicht da. Es gibt nichts, das man vergeblich antippt.
+        allChoices.forEach { compose.onAllNodesWithText(it).assertCountEquals(0) }
+        // Stattdessen steht in der Status-Scheibe, was gilt, und wie man es ändert.
+        compose.onNodeWithTag("locked_choices").assertIsDisplayed()
+        compose.onNodeWithText("$LABEL_WECKWORT · Handy-Mikro · Ganzer Raum").assertIsDisplayed().performClick()
+        compose.onNodeWithText("zum Ändern erst stoppen").assertIsDisplayed()
         assertEquals(0, changes)
         compose.onNodeWithTag("status").assertIsDisplayed()
         compose.onNodeWithText("Hört zu (Handy-Mikro) · 0:05").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = PHONE_360)
+    fun auf_kurzen_bildschirmen_rollen_lage_und_kurzfassung_mit_der_mitschrift() {
+        var ui by mutableStateOf(listening.copy(transcript = emptyList(), partial = ""))
+        compose.setContent { Main(ui) }
+        // Ohne Mitschrift ist beides zu sehen ...
+        compose.onNodeWithText("Dauer-Zuhören · AirPods-Mikro · Mein Gespräch").assertIsDisplayed()
+        compose.onNodeWithText(listening.scene!!).assertIsDisplayed()
+        // ... mit langer Mitschrift rollt es nach oben weg und macht dem Gespräch Platz.
+        ui = ui.copy(transcript = (1..40).map { "NAH S2: Zeile Nummer $it der Mitschrift." })
+        compose.onNodeWithText("Zeile Nummer 40 der Mitschrift.").assertIsDisplayed()
+        compose.onAllNodesWithText(listening.scene!!).assertCountEquals(0)
+        compose.onNodeWithTag("status").assertIsDisplayed()
     }
 
     @Test
@@ -350,6 +442,144 @@ class ScreensTest {
         compose.onAllNodesWithText("Und noch eine neue Zeile.").assertCountEquals(0)
     }
 
+    // --- Enge Verhältnisse ------------------------------------------------------------------
+    // Querformat, sehr große Schrift, ein schmales Handy: hier zeigt sich, ob etwas übereinander
+    // gerät oder abgeschnitten wird. Die Bilder dazu tragen "quer", "schrift" oder "320" im Namen.
+
+    /** Zeichnet [content] so, als wäre am Handy die Schriftgröße auf das [scale]-Fache gestellt. */
+    @Composable
+    private fun FontScale(scale: Float, content: @Composable () -> Unit) {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = scale), content = content)
+    }
+
+    private fun boundsOf(tag: String) = compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+
+    /**
+     * Der schwebende Bereich darf nie über der Status-Scheibe liegen (sonst stünde Schrift auf Schrift),
+     * und der große Knopf muss ganz im Bild bleiben.
+     */
+    private fun assertDockClearOfStatus() {
+        compose.waitForIdle()
+        val status = boundsOf("status_card")
+        val dock = boundsOf("dock")
+        assertTrue("Der schwebende Bereich beginnt bei ${dock.top}, der Status reicht bis ${status.bottom}", dock.top >= status.bottom)
+        val button = compose.onNodeWithTag("start_stop").fetchSemanticsNode()
+        assertTrue("Der große Knopf ist gestaucht", button.size.height >= with(compose.density) { 48.dp.roundToPx() })
+        assertTrue("Der große Knopf ist angeschnitten", button.boundsInRoot.height >= button.size.height - 1)
+        assertTrue("Der große Knopf ragt aus dem Bild", button.boundsInRoot.bottom <= compose.onRoot().fetchSemanticsNode().size.height)
+    }
+
+    private val trouble = "Verbindung zur Spracherkennung unterbrochen. Neuer Versuch in wenigen Sekunden, bitte warten."
+
+    @Test
+    @Config(qualifiers = PHONE_LANDSCAPE)
+    fun im_querformat_bleibt_der_status_frei() {
+        var ui by mutableStateOf(answering)
+        compose.setContent { Main(ui, appearance = Appearance.Dark) }
+        shoot("haupt_antwortet_quer_640_dunkel")
+        assertDockClearOfStatus()
+        // Wird es eng, gibt der Text der Antwort nach; "Antwort stoppen" bleibt ganz und bedienbar.
+        val stop = compose.onNodeWithText("Antwort stoppen").fetchSemanticsNode()
+        assertTrue("Antwort stoppen ist angeschnitten", stop.boundsInRoot.height >= stop.size.height - 1)
+        assertTouchTargets()
+        // Auch mit einer Meldung obendrauf.
+        ui = answering.copy(error = trouble)
+        assertDockClearOfStatus()
+        ui = idle.copy(error = trouble)
+        assertDockClearOfStatus()
+    }
+
+    @Test
+    fun bei_doppelt_grosser_schrift_bleibt_der_status_frei_und_die_mitschrift_sichtbar() {
+        compose.setContent { ClaudeVoiceTheme(Appearance.Light) { FontScale(2f) { MainScreen(answering, now, ListenChoices(), true, null, MainActions()) } } }
+        shoot("haupt_antwortet_412_hell_schrift_200")
+        assertDockClearOfStatus()
+        // Bei so großer Schrift zählt der Bildschirm als kurz: Lage und Auswahl rollen mit der Mitschrift
+        // mit, statt die halbe Seite zu belegen. So bleibt die neueste Zeile zwischen Status und Karte zu sehen.
+        val newest = compose.onAllNodesWithText(answering.question!!)[0].fetchSemanticsNode().boundsInRoot
+        assertTrue("Die neueste Zeile liegt unter dem Status", newest.top >= boundsOf("status_card").bottom)
+        assertTrue("Die neueste Zeile liegt unter dem schwebenden Bereich", newest.bottom <= boundsOf("dock").top)
+    }
+
+    @Test
+    @Config(qualifiers = PHONE_360)
+    fun auf_kurzen_bildschirmen_bleibt_der_status_auch_mit_meldung_und_antwort_frei() {
+        compose.setContent { Main(answering.copy(error = trouble), appearance = Appearance.Dark) }
+        assertDockClearOfStatus()
+        assertTouchTargets()
+    }
+
+    /** Wie die Beschriftungen aller Auswahlfelder gerade gesetzt sind (Zeilen, Umbrüche, Überlauf). */
+    private fun segmentLayouts(): List<TextLayoutResult> {
+        compose.waitForIdle()
+        // Im "unzusammengefassten" Baum ist der Text ein eigener Knoten unter dem antippbaren Feld.
+        val isSegment = SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
+        return compose.onAllNodes(hasParent(isSegment), useUnmergedTree = true).fetchSemanticsNodes().map { node ->
+            val result = mutableListOf<TextLayoutResult>()
+            node.config[SemanticsActions.GetTextLayoutResult].action!!.invoke(result)
+            result.single()
+        }
+    }
+
+    private fun assertNothingCutOff(layouts: List<TextLayoutResult>) {
+        for (layout in layouts) {
+            val text = layout.layoutInput.text
+            // Zu hoch: es gibt mehr Zeilen, als in das Feld passen (die unteren wären unsichtbar).
+            assertFalse("'$text' ist unten abgeschnitten", layout.didOverflowHeight)
+            // Zu breit: eine Zeile ist länger als das Feld. (Bewusst an den Zeilen gemessen und nicht mit
+            // "didOverflowWidth": das schlägt schon an, wenn das Feld nur einen Bildpunkt Luft lässt.)
+            for (line in 0 until layout.lineCount) {
+                val width = layout.getLineRight(line) - layout.getLineLeft(line)
+                assertTrue("'$text' ist seitlich abgeschnitten (Zeile $width, Feld ${layout.size.width})", width <= layout.size.width + 0.5f)
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = PHONE_360)
+    fun auswahlleisten_brechen_bei_grosser_schrift_sauber_um() {
+        compose.setContent { ClaudeVoiceTheme(Appearance.Dark) { FontScale(1.5f) { MainScreen(idle, now, ListenChoices(), true, null, MainActions()) } } }
+        shoot("haupt_bereit_360_dunkel_schrift_150")
+        val layouts = segmentLayouts()
+        assertEquals(allChoices.size, layouts.size)
+        assertNothingCutOff(layouts)
+        assertTrue("Bei dieser Schriftgröße sollte etwas umbrechen", layouts.any { it.lineCount > 1 })
+        // Umbrochen wird nur am Leerzeichen oder hinter einem Bindestrich, nie mitten in einer Silbe.
+        for (layout in layouts) {
+            val text = layout.layoutInput.text.text
+            for (line in 0 until layout.lineCount - 1) {
+                val last = text[layout.getLineEnd(line) - 1]
+                assertTrue("'$text' bricht hinter '$last' um", last == ' ' || last == BREAK_ALLOWED)
+            }
+        }
+        assertTouchTargets()
+    }
+
+    @Test
+    @Config(qualifiers = PHONE_360)
+    fun auswahlleisten_verlieren_auch_bei_doppelt_grosser_schrift_nichts() {
+        compose.setContent { ClaudeVoiceTheme(Appearance.Light) { FontScale(2f) { MainScreen(idle, now, ListenChoices(), true, null, MainActions()) } } }
+        // Noch enger. Wie auch immer dann umbrochen wird: es muss alles zu lesen sein,
+        // die Leisten wachsen dafür in die Höhe.
+        val layouts = segmentLayouts()
+        assertEquals(allChoices.size, layouts.size)
+        assertNothingCutOff(layouts)
+    }
+
+    @Test
+    @Config(qualifiers = PHONE_320)
+    fun auf_schmalen_handys_wird_der_titel_kleiner_statt_abgeschnitten() {
+        compose.setContent { Main(idle, appearance = Appearance.Dark) }
+        shoot("haupt_bereit_320_dunkel")
+        val title = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText("Claude Voice").fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action!!.invoke(title)
+        // "Ellipsized" heißt: der Text endet in "…", weil er nicht ganz hineinpasst.
+        assertFalse("Der Titel ist abgeschnitten", title.single().isLineEllipsized(0) || title.single().hasVisualOverflow)
+        assertNothingCutOff(segmentLayouts())
+        assertTouchTargets()
+    }
+
     // --- Bedienung der Einstellungen --------------------------------------------------------
 
     @Test
@@ -403,6 +633,94 @@ class ScreensTest {
     }
 
     @Test
+    fun erscheinungsbild_laesst_sich_in_den_einstellungen_waehlen() {
+        var current by mutableStateOf(form)
+        compose.setContent {
+            ClaudeVoiceTheme(current.appearance) {
+                SettingsScreen(current, emptyList(), null, emptyList(), running = false, SettingsActions(onFormChange = { current = it }))
+            }
+        }
+        compose.onNodeWithText("System").performScrollTo().assertIsSelected()
+        compose.onNodeWithText("Dunkel").performScrollTo().performClick()
+        assertEquals(Appearance.Dark, current.appearance)
+        compose.onNodeWithText("Dunkel").assertIsSelected()
+        compose.onNodeWithText("Hell").performClick()
+        assertEquals(Appearance.Light, current.appearance)
+        // Alles andere bleibt, wie es war.
+        assertEquals(form.copy(appearance = Appearance.Light), current)
+    }
+
+    // --- Erscheinungsbild -------------------------------------------------------------------
+
+    /** Zeichnet nichts, merkt sich nur, ob das Thema gerade dunkel ist. */
+    private fun isDarkWith(appearance: Appearance): Boolean {
+        var dark: Boolean? = null
+        compose.setContent { ClaudeVoiceTheme(appearance) { dark = Glass.colors.isDark } }
+        compose.waitForIdle()
+        return dark!!
+    }
+
+    @Test
+    fun am_hellen_handy_ist_system_hell() = assertEquals(false, isDarkWith(Appearance.System))
+
+    @Test
+    @Config(qualifiers = PHONE_412_NIGHT)
+    fun am_dunklen_handy_ist_system_dunkel() = assertEquals(true, isDarkWith(Appearance.System))
+
+    @Test
+    @Config(qualifiers = PHONE_412_NIGHT)
+    fun hell_bleibt_hell_auch_am_dunklen_handy() = assertEquals(false, isDarkWith(Appearance.Light))
+
+    @Test
+    fun dunkel_bleibt_dunkel_auch_am_hellen_handy() = assertEquals(true, isDarkWith(Appearance.Dark))
+
+    // Der Fensterhintergrund (res/values/themes.xml) ist kurz zu sehen, bevor Compose zeichnet.
+    // Er muss dieselbe Farbe haben wie der Grund der Oberfläche, sonst blitzt es beim Start.
+    private fun windowBackdrop(): Int =
+        ApplicationProvider.getApplicationContext<Application>().getColor(app.claudevoice.R.color.window_backdrop)
+
+    @Test
+    fun fensterhintergrund_passt_zum_hellen_grund() = assertEquals(backdropArgb(dark = false), windowBackdrop())
+
+    @Test
+    @Config(qualifiers = PHONE_412_NIGHT)
+    fun fensterhintergrund_passt_zum_dunklen_grund() = assertEquals(backdropArgb(dark = true), windowBackdrop())
+
+    // Die Symbole in Status- und Navigationsleiste (Uhr, Akku, Zurück-Geste) müssen zum Grund passen.
+    // "Light" heißt in Android: die Leiste ist hell, ihre Symbole sind deshalb dunkel.
+    @Test
+    fun leistensymbole_passen_zum_erscheinungsbild() {
+        val activity = compose.activity
+        fun bars() = WindowInsetsControllerCompat(activity.window, activity.window.decorView)
+        fun windowColor() = (activity.window.decorView.background as ColorDrawable).color
+
+        compose.runOnUiThread { activity.applySystemBars(dark = true) }
+        assertFalse("Dunkel: helle Symbole in der Statusleiste", bars().isAppearanceLightStatusBars)
+        assertFalse("Dunkel: helle Symbole in der Navigationsleiste", bars().isAppearanceLightNavigationBars)
+        assertEquals(backdropArgb(dark = true), windowColor())
+
+        // Ein Wechsel in den Einstellungen ruft dieselbe Funktion noch einmal auf.
+        compose.runOnUiThread { activity.applySystemBars(dark = false) }
+        assertTrue("Hell: dunkle Symbole in der Statusleiste", bars().isAppearanceLightStatusBars)
+        assertTrue("Hell: dunkle Symbole in der Navigationsleiste", bars().isAppearanceLightNavigationBars)
+        assertEquals(backdropArgb(dark = false), windowColor())
+
+        // Die Leisten selbst bleiben durchsichtig: die Oberfläche zeichnet darunter durch.
+        @Suppress("DEPRECATION")
+        assertEquals(listOf(Color.TRANSPARENT, Color.TRANSPARENT), listOf(activity.window.statusBarColor, activity.window.navigationBarColor))
+    }
+
+    @Test
+    fun gespeicherte_werte_des_erscheinungsbilds() {
+        assertEquals(Appearance.Dark, Appearance.fromKey("dunkel"))
+        assertEquals(Appearance.Light, Appearance.fromKey("hell"))
+        assertEquals(Appearance.System, Appearance.fromKey("system"))
+        // Fehlt der Wert oder ist er unbekannt, gilt die Einstellung des Handys.
+        assertEquals(Appearance.System, Appearance.fromKey(null))
+        assertEquals(Appearance.System, Appearance.fromKey("lila"))
+    }
+
+    @Test
     fun schluessel_sind_verdeckt_bis_man_sie_zeigen_laesst() {
         compose.setContent { ClaudeVoiceTheme { SettingsScreen(form, emptyList(), null, emptyList(), running = false, SettingsActions()) } }
         // Verdeckt zeigt das Feld nur Punkte.
@@ -416,4 +734,10 @@ class ScreensTest {
 }
 
 private const val PHONE_412 = "w412dp-h915dp-xhdpi"
+private const val PHONE_412_NIGHT = "w412dp-h915dp-night-xhdpi"
 private const val PHONE_360 = "w360dp-h640dp-xhdpi"
+private const val PHONE_320 = "w320dp-h640dp-xhdpi"
+private const val PHONE_LANDSCAPE = "w640dp-h360dp-land-xhdpi"
+
+// Robolectric: "hardware" lässt Bilder über dieselbe Zeichen-Pipeline entstehen wie auf einem Handy.
+private const val HARDWARE_SWITCH = "robolectric.pixelCopyRenderMode"
