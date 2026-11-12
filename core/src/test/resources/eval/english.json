@@ -1,0 +1,357 @@
+[
+  {
+    "id": "en-01",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 105, "who": "liam", "speaker": "partner", "proximity": "mittel", "text": "so I finally booked Munich. last weekend of September me and two guys from my course"},
+      {"ago_s": 96, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "nice. das wird aber voll, like really really packed"},
+      {"ago_s": 88, "who": "song", "speaker": "medien", "proximity": "fern", "text": "we were dancing till the lights came on, baby till the lights came on"},
+      {"ago_s": 79, "who": "liam", "speaker": "partner", "proximity": "mittel", "text": "thing I never got though. it's called Oktoberfest and basically the whole thing happens in September"},
+      {"ago_s": 71, "who": "jannik", "speaker": "partner", "proximity": "mittel", "text": "stimmt eigentlich. keine Ahnung warum. Marketing?"},
+      {"ago_s": 63, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "honestly never thought about it. it's just always been like that"},
+      {"ago_s": 44, "who": "flur-a", "speaker": "dritte", "proximity": "fern", "text": "does anybody know whose jacket this is? the green one"},
+      {"ago_s": 31, "who": "jannik", "speaker": "partner", "proximity": "mittel", "text": "ich war noch nie da ich bin echt der Falsche dafür"}
+    ],
+    "trigger": {"who": "liam", "speaker": "partner", "proximity": "mittel", "text": "no but seriously you two are the Germans here. why is it in September if it's called Oktoberfest"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "It began in October 1810 as the wedding celebration of Crown Prince Ludwig of Bavaria and was later moved forward into September for the milder weather.",
+      "why": "Liam stellt im Gespräch des Trägers eine Wissensfrage, und beide Anwesenden haben vorher erkennbar keine Antwort gehabt; Songtext und Jackenfrage aus dem Flur gehören nicht dazu."
+    },
+    "ambiguous": false,
+    "tags": ["exchange-student", "partner-question", "nobody-knows", "english-trigger", "lyrics-distractor", "bystander-distractor", "code-switching"]
+  },
+  {
+    "id": "en-02",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 98, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "yeah hi Graham. can you hear me okay"},
+      {"ago_s": 90, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "good good. no it's fine I'm just walking over to the office"},
+      {"ago_s": 74, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm. so the list price is twenty four hundred per unit. right"},
+      {"ago_s": 61, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "and you would give us fifteen percent off if we take all forty"},
+      {"ago_s": 47, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "no that sounds fair in principle. I just have to run it past Katrin"},
+      {"ago_s": 33, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "mhm. mhm. yes I'm writing it down"},
+      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "per unit. äh. good question give me a second"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "one sec Graham. alfred was sind 15 Prozent von 2400"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "360 (der Stückpreis läge mit dem Rabatt also bei 2040).",
+      "why": "Der Träger spricht Alfred mitten im englischen Telefonat mit Namen an; die Bitte selbst ist auf Deutsch gestellt, also antwortet Alfred auf Deutsch, obwohl das Gespräch sonst englisch läuft."
+    },
+    "ambiguous": false,
+    "tags": ["call", "one-sided-call", "direct-address", "wake-name", "code-switching", "answer-language-german", "mental-arithmetic", "stt-number-format"]
+  },
+  {
+    "id": "en-03",
+    "scene": "solo",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 112, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Good morning everyone and thank you for having me today."},
+      {"ago_s": 103, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Let me start with a question. How long does light from the sun need to reach us? Roughly eight minutes."},
+      {"ago_s": 91, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Eight minutes. So the sun you see is always the sun from eight minutes ago."},
+      {"ago_s": 78, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "ne das klingt zu steif. nochmal von vorne"},
+      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Good morning everybody. Thanks for having me."},
+      {"ago_s": 52, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "I'd like to open with a simple question."},
+      {"ago_s": 38, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "Folie eins. klick. okay"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "How long does sunlight actually take to reach the earth?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Der Träger probt allein einen englischen Vortrag; das ist die rhetorische Einstiegsfrage aus seinem eigenen Text, die er im ersten Durchlauf gut anderthalb Minuten vorher schon selbst beantwortet hat."
+    },
+    "ambiguous": false,
+    "tags": ["practising-english", "rehearsal", "rhetorical", "self-answered", "fact-question-lookalike", "restart", "handy-mic", "wearer-alone"]
+  },
+  {
+    "id": "en-04",
+    "scene": "solo",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 95, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "okay Vorstellungsgespräch üben. tell me a bit about yourself"},
+      {"ago_s": 86, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "sure. I am a software developer and I live in Mannheim"},
+      {"ago_s": 73, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "at the moment I work for a logistics company. we build the routing software"},
+      {"ago_s": 60, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "nächste Frage. what would you say is your biggest strength"},
+      {"ago_s": 49, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "I think I am very reliable and I learn new things fast"},
+      {"ago_s": 34, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "and how long have you been in your current job"},
+      {"ago_s": 22, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "I am working there since three years"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "since three years. hm no. for three years? which one is it"},
+    "expect": {
+      "answer": true,
+      "length": "mittel",
+      "gist": "'For three years', and with the present perfect: 'I have been working there for three years.' 'For' goes with a length of time, 'since' with a starting point such as 'since 2021'.",
+      "why": "Der Träger übt allein Englisch und fragt sich laut, welche Präposition stimmt; die Interviewfragen davor spricht er selbst in der Rolle des Interviewers, erst hier will er wirklich etwas wissen."
+    },
+    "ambiguous": false,
+    "tags": ["practising-english", "wonder-aloud", "grammar", "self-posed-questions-in-history", "english-trigger", "no-wake-name", "wearer-alone"]
+  },
+  {
+    "id": "en-05",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": 13,
+    "history": [
+      {"ago_s": 52, "who": "callum", "speaker": "partner", "proximity": "mittel", "text": "so are you actually doing the full one in April or just the half"},
+      {"ago_s": 45, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "the full one I think. if my knee plays along"},
+      {"ago_s": 33, "who": "callum", "speaker": "partner", "proximity": "mittel", "text": "mental. I couldn't even tell you how far that is"},
+      {"ago_s": 24, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "forty two something. hey Jarvis how long is a marathon exactly"},
+      {"ago_s": 16, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "A marathon is 42.195 kilometres."},
+      {"ago_s": 10, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "forty two point two K he says"},
+      {"ago_s": 4, "who": "callum", "speaker": "partner", "proximity": "mittel", "text": "yeah kilometres mean nothing to me mate"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "and in miles"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "About 26.2 miles.",
+      "why": "Kurz nach Alfreds Antwort schiebt der Träger eine Anschlussfrage nach; das Fragment ergibt nur als Rückfrage an Alfred Sinn, weil Callum gerade gesagt hat, dass er die Strecke nicht kennt und ihm Kilometer nichts sagen."
+    },
+    "ambiguous": false,
+    "tags": ["follow-up", "after-alfred", "elliptical", "fragment", "hey-jarvis-in-history", "exchange-student", "english-trigger", "unit-conversion", "music-playing"]
+  },
+  {
+    "id": "en-06",
+    "scene": "medien",
+    "mic": "handy",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 104, "who": "tv-crew", "speaker": "medien", "proximity": "nah", "text": "Commander the bulkhead on deck four is solid titanium. The cutter is not getting through."},
+      {"ago_s": 95, "who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Jarvis, seal off deck four."},
+      {"ago_s": 90, "who": "tv-computer", "speaker": "medien", "proximity": "nah", "text": "Deck four sealed, Commander."},
+      {"ago_s": 77, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "boah die Effekte sehen aus wie von 2005"},
+      {"ago_s": 61, "who": "tv-crew", "speaker": "medien", "proximity": "nah", "text": "They have maybe ten minutes of air left in there, sir."},
+      {"ago_s": 48, "who": "ich", "speaker": "ich", "proximity": "mittel", "text": "na dann macht halt die Tür auf Leute"},
+      {"ago_s": 27, "who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Then we burn through it. Get me the plasma torch."}
+    ],
+    "trigger": {"who": "tv-commander", "speaker": "medien", "proximity": "nah", "text": "Jarvis, what temperature does titanium melt at?"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Zeile ist Dialog aus der englischen Serie: 'Jarvis' ist dort der Bordcomputer, der kurz vorher schon angesprochen wurde und geantwortet hat; der Träger kommentiert nur auf Deutsch vom Sofa aus."
+    },
+    "ambiguous": false,
+    "tags": ["tv-dialogue", "wake-word-in-media", "name-collision", "fact-question-lookalike", "media-near", "handy-mic", "english-media"]
+  },
+  {
+    "id": "en-07",
+    "scene": "medien",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 88, "who": "tv-anwalt", "speaker": "medien", "proximity": "mittel", "text": "Your Honor the defense has been sitting on this document for three weeks."},
+      {"ago_s": 77, "who": "tv-anwaeltin", "speaker": "medien", "proximity": "mittel", "text": "And if they won't hand it over we will subpoena the phone records. All of them."},
+      {"ago_s": 68, "who": "jule", "speaker": "partner", "proximity": "nah", "text": "warte was will die jetzt machen. ich hab's nicht verstanden"},
+      {"ago_s": 60, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "die will irgendwie an die Telefondaten ran glaub ich"},
+      {"ago_s": 47, "who": "tv-anwalt", "speaker": "medien", "proximity": "mittel", "text": "Objection. Counsel is testifying."},
+      {"ago_s": 41, "who": "tv-richter", "speaker": "medien", "proximity": "mittel", "text": "Sustained."},
+      {"ago_s": 24, "who": "jule", "speaker": "partner", "proximity": "nah", "text": "ohne Untertitel bin ich bei dem Juristenzeug echt raus"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "sie hat gesagt we will sapina the phone records. was heißt das überhaupt sapina"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "'Subpoena' heißt: per gerichtlicher Anordnung vorladen bzw. die Herausgabe von Unterlagen erzwingen, hier also der Telefondaten.",
+      "why": "Der Träger fragt sich im Gespräch mit Jule laut nach der Bedeutung eines Wortes aus der Serie, und auf dem Sofa weiß es niemand; 'sapina' ist das verhörte 'subpoena' aus der Fernsehzeile davor."
+    },
+    "ambiguous": false,
+    "tags": ["tv-dialogue", "wonder-aloud", "stt-error", "word-meaning", "media-in-history", "answer-language-german", "code-switching", "no-wake-name"]
+  },
+  {
+    "id": "en-08",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 96, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "tell me how far is it to Galway from here, how far is it to Galway"},
+      {"ago_s": 88, "who": "callum", "speaker": "partner", "proximity": "mittel", "text": "ha this song. they play it in every Irish pub on the planet"},
+      {"ago_s": 80, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "is that where you're from, Galway"},
+      {"ago_s": 73, "who": "callum", "speaker": "partner", "proximity": "mittel", "text": "close. about half an hour outside. west coast"},
+      {"ago_s": 62, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "never been over there. I only know Dublin"},
+      {"ago_s": 54, "who": "callum", "speaker": "partner", "proximity": "mittel", "text": "other side of the island mate. couple of hours on the bus from Dublin"},
+      {"ago_s": 41, "who": "song", "speaker": "medien", "proximity": "mittel", "text": "and the rain came down on the harbour wall and I never heard you call"},
+      {"ago_s": 30, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "we should all go over at Easter honestly"},
+      {"ago_s": 18, "who": "callum", "speaker": "partner", "proximity": "mittel", "text": "you'd love it. you just need a proper rain jacket"}
+    ],
+    "trigger": {"who": "song", "speaker": "medien", "proximity": "mittel", "text": "so tell me how far is it to Galway from here, how far is it to Galway"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Das ist der Refrain des Lieds, das im Pub läuft und anderthalb Minuten vorher schon fast wortgleich kam; zum Gespräch passt er nur, weil das Lied das Thema überhaupt erst ausgelöst hat."
+    },
+    "ambiguous": false,
+    "tags": ["song-lyrics", "ambient-music", "english-media", "repeated-chorus", "same-topic-as-conversation", "same-language-as-conversation", "fact-question-lookalike", "exchange-student"]
+  },
+  {
+    "id": "en-09",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": 22,
+    "history": [
+      {"ago_s": 55, "who": "tourist-dad", "speaker": "dritte", "proximity": "mittel", "text": "okay guys two more rooms and then we get lunch. deal"},
+      {"ago_s": 48, "who": "tourist-kid", "speaker": "dritte", "proximity": "mittel", "text": "Dad Dad look at this one"},
+      {"ago_s": 38, "who": "merle", "speaker": "partner", "proximity": "mittel", "text": "boah guck dir den Blauwal an. der geht ja durch den ganzen Saal"},
+      {"ago_s": 30, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Alfred wie lang wird so ein Blauwal eigentlich"},
+      {"ago_s": 24, "who": "alfred", "speaker": "alfred", "proximity": "nah", "text": "Bis zu etwa 30 Meter."},
+      {"ago_s": 18, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "bis zu dreißig Meter sagt er"},
+      {"ago_s": 12, "who": "merle", "speaker": "partner", "proximity": "mittel", "text": "krass das ist länger als unser Haus"},
+      {"ago_s": 6, "who": "tourist-dad", "speaker": "dritte", "proximity": "mittel", "text": "that's a blue whale buddy. biggest animal that has ever lived"}
+    ],
+    "trigger": {"who": "tourist-kid", "speaker": "dritte", "proximity": "mittel", "text": "and how much does it weigh"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Die Frage stellt ein fremdes Kind seinem Vater am selben Exponat, auf Englisch und als Reaktion auf dessen Satz; das Gespräch des Trägers mit Merle und Alfred läuft auf Deutsch, auch wenn Thema und Zeitpunkt wie eine Anschlussfrage an Alfred aussehen."
+    },
+    "ambiguous": false,
+    "tags": ["bystander", "bystander-near", "same-topic-as-wearer", "after-alfred", "follow-up-lookalike", "not-a-follow-up", "english-bystanders", "language-as-thread-cue"]
+  },
+  {
+    "id": "en-10",
+    "scene": "party",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 102, "who": "maeve", "speaker": "partner", "proximity": "mittel", "text": "so you're from Stuttgart originally. did I get that right"},
+      {"ago_s": 94, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "not really Stuttgart itself. I grew up in a tiny village about forty minutes south. Hohenstetten"},
+      {"ago_s": 85, "who": "maeve", "speaker": "partner", "proximity": "mittel", "text": "ah okay so proper countryside"},
+      {"ago_s": 77, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "yeah two hundred people and more cows than people"},
+      {"ago_s": 61, "who": "wg-b", "speaker": "dritte", "proximity": "fern", "text": "ey wer hat den Flaschenöffner gesehen"},
+      {"ago_s": 46, "who": "maeve", "speaker": "partner", "proximity": "mittel", "text": "that's funny my flatmate is from somewhere down there too. I have to tell her"},
+      {"ago_s": 33, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "oh echt. I mean really. where exactly"},
+      {"ago_s": 21, "who": "maeve", "speaker": "partner", "proximity": "mittel", "text": "no idea some place with a very long name. I'll text her right now"}
+    ],
+    "trigger": {"who": "maeve", "speaker": "partner", "proximity": "mittel", "text": "wait what was the name of that village again. Hohen something"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Maeve fragt den Träger nach seinem eigenen Heimatdorf, das er anderthalb Minuten vorher selbst genannt hat; das ist eine persönliche Rückfrage an ihn, die er sofort selbst beantwortet, auch wenn der Name im Verlauf steht."
+    },
+    "ambiguous": false,
+    "tags": ["personal-question", "recall-phrasing", "answer-in-history", "addressed-to-wearer", "wonder-aloud-lookalike", "exchange-student", "english-trigger"]
+  },
+  {
+    "id": "en-11",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "so what are we getting. ich nehm ein Helles"},
+      {"ago_s": 47, "who": "flo", "speaker": "partner", "proximity": "mittel", "text": "für mich ein Radler ich muss noch fahren"},
+      {"ago_s": 38, "who": "dev", "speaker": "partner", "proximity": "mittel", "text": "Radler. no clue what that is. I'll just get a normal beer"},
+      {"ago_s": 30, "who": "flo", "speaker": "partner", "proximity": "mittel", "text": "nee probier das mal. ist Bier mit Zitronenlimo halb halb"},
+      {"ago_s": 22, "who": "flo", "speaker": "partner", "proximity": "mittel", "text": "trinkt man im Sommer nach dem Radfahren daher der Name"},
+      {"ago_s": 14, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "it's really good when it's this hot"},
+      {"ago_s": 6, "who": "dev", "speaker": "partner", "proximity": "mittel", "text": "you guys keep forgetting my German is still rubbish"}
+    ],
+    "trigger": {"who": "dev", "speaker": "partner", "proximity": "mittel", "text": "beer with what"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Flo hat schon gesagt, was drin ist, nur eben auf Deutsch; Devs Nachfrage ist eine Bitte um Wiederholung an die beiden, und der Träger hat die Antwort gehört und kann sie selbst auf Englisch sagen."
+    },
+    "ambiguous": false,
+    "tags": ["already-answered", "cross-language-answer", "repeat-request", "fragment", "exchange-student", "english-trigger", "code-switching"]
+  },
+  {
+    "id": "en-12",
+    "scene": "call",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 85, "who": "owen", "speaker": "partner", "proximity": "mittel", "text": "hang on so that thing is listening to us right now"},
+      {"ago_s": 77, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "yeah it runs on my phone and it talks into my AirPods. only I hear it"},
+      {"ago_s": 66, "who": "owen", "speaker": "partner", "proximity": "mittel", "text": "that is slightly creepy mate. and it just butts in whenever"},
+      {"ago_s": 58, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "no only when there's a real question nobody can answer. or when I call it"},
+      {"ago_s": 47, "who": "owen", "speaker": "partner", "proximity": "mittel", "text": "call it how. does it have a name"},
+      {"ago_s": 39, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "I named it Alfred. like Batman's butler"},
+      {"ago_s": 30, "who": "owen", "speaker": "partner", "proximity": "mittel", "text": "ha. of course you did"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "so I either say Alfred or hey Jarvis and then just ask whatever I want. pretty neat right"},
+    "expect": {
+      "answer": false,
+      "length": "none",
+      "gist": "",
+      "why": "Der Träger erklärt Owen im Videocall nur, wie man den Assistenten anspricht; die Namen werden genannt, nicht gerufen, es folgt kein Auftrag, und 'pretty neat right' ist eine Meinungsfrage an Owen."
+    },
+    "ambiguous": false,
+    "tags": ["video-call", "name-mentioned-not-addressed", "wake-word-in-statement", "talking-about-assistant", "opinion-question", "no-request", "english-trigger"]
+  },
+  {
+    "id": "en-13",
+    "scene": "alltag",
+    "mic": "airpods",
+    "music_playing": true,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 72, "who": "tessa", "speaker": "partner", "proximity": "mittel", "text": "so my parents get in on Thursday. could you maybe pick them up. I have that exam"},
+      {"ago_s": 64, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "Thursday. sure. what time"},
+      {"ago_s": 57, "who": "tessa", "speaker": "partner", "proximity": "mittel", "text": "they land at seven forty in the evening. terminal two I think let me check"},
+      {"ago_s": 44, "who": "tessa", "speaker": "partner", "proximity": "mittel", "text": "yeah terminal two. the flight from Edinburgh"},
+      {"ago_s": 35, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "okay if I don't write that down it's gone in five minutes"},
+      {"ago_s": 27, "who": "tessa", "speaker": "partner", "proximity": "mittel", "text": "want me to text it to you"},
+      {"ago_s": 19, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "nah all good. watch this"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Jarvis make a note. Tessa's parents land Thursday six forty no sorry seven forty pm terminal two"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "A brief confirmation that repeats the corrected details: noted, Tessa's parents land Thursday at 7:40 pm, Terminal 2 (not 6:40).",
+      "why": "Der Träger ruft den Assistenten mit dem Weckwort und gibt einen Merkauftrag; dass der Inhalt reine Terminlogistik ist, spielt bei direkter Anrede keine Rolle, und bestätigt wird die korrigierte Uhrzeit."
+    },
+    "ambiguous": false,
+    "tags": ["direct-address", "hey-jarvis", "command-remember", "logistics-content", "self-correction", "exchange-student", "english-trigger", "music-playing"]
+  },
+  {
+    "id": "en-14",
+    "scene": "unterricht",
+    "mic": "airpods",
+    "music_playing": false,
+    "assistant_spoke_ago_s": null,
+    "history": [
+      {"ago_s": 96, "who": "dozent", "speaker": "partner", "proximity": "fern", "text": "Okay everybody pair up and compare wedding traditions from your countries. Ten minutes."},
+      {"ago_s": 84, "who": "hana", "speaker": "partner", "proximity": "mittel", "text": "okay so in Japan a lot of people do a shrine ceremony and then a big party in a hotel"},
+      {"ago_s": 73, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "here you kind of have two. church if you want it but the legal one is always separate"},
+      {"ago_s": 62, "who": "hana", "speaker": "partner", "proximity": "mittel", "text": "separate how. like on a different day"},
+      {"ago_s": 55, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "often yeah. my cousin only did the legal part last year no church at all"},
+      {"ago_s": 41, "who": "dozent", "speaker": "partner", "proximity": "fern", "text": "And while you talk think about this. Which tradition would you never want to give up?"},
+      {"ago_s": 27, "who": "hana", "speaker": "partner", "proximity": "mittel", "text": "and where does the legal part happen. in a court? sorry my German is zero I never know these words"}
+    ],
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "no not in a court. it's at the äh Standesamt. how do you say that in English, Standesamt"},
+    "expect": {
+      "answer": true,
+      "length": "kurz",
+      "gist": "Registry office (also 'register office'; 'civil registry office' is fine too).",
+      "why": "Der Träger sucht mitten im englischen Satz das englische Wort für 'Standesamt' und fragt laut danach; Hana kann kein Deutsch und kann nicht helfen, und die Arbeitsfrage des Dozenten davor ist nicht gemeint."
+    },
+    "ambiguous": false,
+    "tags": ["exchange-student", "word-search", "code-switching", "wonder-aloud", "translation", "teacher-question-in-history", "english-trigger", "no-wake-name"]
+  }
+]
