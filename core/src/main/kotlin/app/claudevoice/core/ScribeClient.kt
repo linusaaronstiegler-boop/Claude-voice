@@ -30,6 +30,22 @@ import java.util.concurrent.TimeUnit
  * Einstellungen ab, läuft der Rest der Sitzung mit einer einfachen, bewährten Einstellung weiter.
  * Gespeichert wird hier nichts: Audio und Text werden nur durchgereicht.
  *
+ * Damit die App nie unbemerkt taub wird, gelten zwei Fristen:
+ *  - Steht die Sitzung nicht innerhalb von [startTimeoutMs], wird der Versuch abgebrochen und wiederholt.
+ *    Sonst könnte ein Server, der die Verbindung annimmt und dann schweigt, die App für immer bei
+ *    "Verbinde …" festhalten.
+ *  - Der Server schickt auf unseren Wunsch alle 3 s ein Lebenszeichen, auch wenn niemand spricht. Bleibt
+ *    es trotz laufendem Audio [stallTimeoutMs] lang still, hängt die Sitzung, und es wird neu verbunden.
+ *
+ * Stand der Prüfung: Namen und Aufbau aller Nachrichten und Parameter stammen aus der ElevenLabs-Doku.
+ * Am echten Dienst ließ sich ohne Key nur der Anfang nachstellen (November 2026). Der Server nimmt die
+ * Verbindung immer an und prüft dann zuerst Modell, Audioformat, commit_strategy, Stille-Schwelle,
+ * Abstand der Lebenszeichen, Sprache und die Schlüsselbegriffe. Passt etwas nicht, schickt er die
+ * Nachricht "invalid_request" und beendet die Verbindung. Beide Adressen dieses Clients bestehen diese
+ * Prüfung. Erst danach kommt der Key an die Reihe; fehlt er oder ist er falsch, folgt die Nachricht
+ * "auth_error". Alles hinter der Anmeldung (Sprechertrennung, Lebenszeichen, Sitzungslimit) ist bisher
+ * nur gegen die Doku geprüft, nicht gegen den Dienst.
+ *
  * [keyterms] sind Namen und Begriffe, die das Modell bevorzugt richtig schreiben soll, zum Beispiel
  * der Name des Assistenten. Erlaubt sind höchstens 50 Begriffe mit je höchstens 20 Zeichen; was nicht
  * passt, wird weggelassen, damit der Server die Verbindung nicht deswegen ablehnt.
@@ -40,6 +56,12 @@ class ScribeClient(
     private val listener: Transcriber.Listener,
     baseUrl: String = "wss://api.elevenlabs.io",
     keyterms: List<String> = emptyList(),
+    /** So lange darf es vom Verbindungsaufbau bis zur stehenden Sitzung dauern. Nur Tests stellen das kürzer. */
+    private val startTimeoutMs: Long = 15_000,
+    /** So lange darf der Server trotz laufendem Audio schweigen. Nur Tests stellen das kürzer. */
+    private val stallTimeoutMs: Long = 15_000,
+    /** Erste Wartezeit vor dem Neuverbinden. Nur Tests stellen sie kürzer. */
+    private val retryBaseMs: Long = 1_000,
 ) : Transcriber {
 
     private val json = ObjectMapper()
@@ -57,10 +79,11 @@ class ScribeClient(
     private val worker = ScheduledThreadPoolExecutor(1) { task -> Thread(task, "scribe").apply { isDaemon = true } }
         .apply { executeExistingDelayedTasksAfterShutdownPolicy = false }
 
-    // Nur diese drei Felder werden auch von anderen Threads gelesen, deshalb @Volatile.
+    // Nur diese vier Felder werden auch von anderen Threads gelesen oder geschrieben, deshalb @Volatile.
     @Volatile private var closed = false
     @Volatile private var socket: WebSocket? = null // die aktuelle Verbindung, auch während des Aufbaus
     @Volatile private var live: WebSocket? = null   // dieselbe Verbindung, sobald die Sitzung steht
+    @Volatile private var audioAtNanos = 0L         // wann das Mikrofon zuletzt etwas gesendet hat
 
     // Alles ab hier gehört allein dem worker-Thread.
     private var begun = false
@@ -71,6 +94,9 @@ class ScribeClient(
     private var startedAtNanos = 0L      // 0 = die Sitzung steht (noch) nicht
     private var heardTranscript = false
     private var draftSpeaker: String? = null
+    private var heardAtNanos = 0L        // wann der Server zuletzt irgendetwas geschickt hat
+    private var watching = false         // true = in dieser Sitzung wird auf Lebenszeichen geachtet
+    private var stallRestarts = 0        // wie oft schon wegen Schweigens neu verbunden wurde
 
     override fun connect() = post {
         // Nur der erste Aufruf zählt; ums Neuverbinden kümmert sich der Client danach selbst.
@@ -84,12 +110,14 @@ class ScribeClient(
     override fun sendAudio(pcm: ByteArray, length: Int) {
         // Kommt vom Mikrofon-Thread und darf nie warten: ein Blick auf das Feld, dann raus damit.
         val ws = live ?: return
-        if (length <= 0) return
+        val n = minOf(length, pcm.size)
+        if (n <= 0) return
         val node = json.createObjectNode()
             .put("message_type", "input_audio_chunk")
-            .put("audio_base_64", Base64.getEncoder().encodeToString(pcm.copyOf(length)))
+            .put("audio_base_64", Base64.getEncoder().encodeToString(pcm.copyOf(n)))
             .put("commit", false)
             .put("sample_rate", 16000)
+        audioAtNanos = System.nanoTime()
         ws.send(json.writeValueAsString(node))
     }
 
@@ -98,7 +126,7 @@ class ScribeClient(
      * danach kommt nichts mehr, und neu verbunden wird auch nicht.
      */
     override fun close() {
-        closed = true
+        closed = true // zuerst, siehe started()
         val wasLive = live != null
         live = null
         worker.shutdown() // wartende Aufgaben (auch ein geplantes Neuverbinden) verfallen
@@ -112,49 +140,74 @@ class ScribeClient(
     private fun open() {
         hangUp()
         val id = link
-        val request = Request.Builder()
-            .url(if (conservative) fallbackUrl else liveUrl)
-            .header("xi-api-key", apiKey)
-            .build()
-        val ws = http.newWebSocket(request, object : WebSocketListener() {
-            // OkHttp ruft diese Funktionen auf seinen Threads auf. Wir reichen alles an den worker weiter
-            // und prüfen dort, ob das Ereignis noch zur aktuellen Verbindung gehört (id == link).
-            override fun onMessage(webSocket: WebSocket, text: String) = post { if (id == link) handle(text) }
+        val request = try {
+            Request.Builder()
+                .url(if (conservative) fallbackUrl else liveUrl)
+                .header("xi-api-key", apiKey.trim())
+                .build()
+        } catch (e: IllegalArgumentException) {
+            // Zum Beispiel ein Zeilenumbruch mitten im eingefügten Key. Ein neuer Versuch würde nichts
+            // ändern, also bleibt es bei dieser einen Meldung. Den Text der Ausnahme geben wir bewusst
+            // nicht weiter, denn er enthält den Key.
+            listener.onConnection(false, "ElevenLabs-Key enthält ungültige Zeichen")
+            return
+        }
+        val ws = try {
+            http.newWebSocket(request, object : WebSocketListener() {
+                // OkHttp ruft diese Funktionen auf seinen Threads auf. Wir reichen alles an den worker weiter
+                // und prüfen dort, ob das Ereignis noch zur aktuellen Verbindung gehört (id == link).
+                override fun onMessage(webSocket: WebSocket, text: String) = post { if (id == link) handle(text) }
 
-            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                // Der Server verabschiedet sich. Ohne unsere Antwort bliebe die Verbindung halb offen hängen.
-                webSocket.close(1000, null)
-                ended(id, code, reason)
-            }
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    // Der Server verabschiedet sich. Ohne unsere Antwort bliebe die Verbindung halb offen hängen.
+                    webSocket.close(1000, null)
+                    ended(id, code, reason)
+                }
 
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) = ended(id, code, reason)
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) = ended(id, code, reason)
 
-            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                val status = response?.code
-                val why = t.message ?: t.javaClass.simpleName
-                post { if (id == link) failed(status, why) }
-            }
-        })
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    val status = response?.code
+                    val why = t.message ?: t.javaClass.simpleName
+                    post { if (id == link) failed(status, why) }
+                }
+            })
+        } catch (e: Exception) {
+            // OkHttp meldet Fehler sonst über onFailure. Wirft es hier doch einmal, darf der Client danach
+            // nicht für immer still bleiben: also wie jeder andere gescheiterte Versuch behandeln.
+            reconnect("Keine Verbindung zur Transkription: ${e.javaClass.simpleName}")
+            return
+        }
         socket = ws
         // close() kann genau zwischen Aufbau und Zuweisung gekommen sein und hat diese Verbindung dann
         // nicht gesehen. Dann räumen wir sie hier selbst ab.
         if (closed) ws.cancel()
+        // Frist für den Aufbau. Der Server meldet "session_started" sofort nach dem Verbinden. Bleibt das
+        // aus, gibt es sonst niemanden, der es merkt: OkHttp wartet auf eine geöffnete WebSocket-Verbindung
+        // beliebig lange, und die App stellt auch die Lesefrist für den Aufbau ab.
+        post(startTimeoutMs) {
+            if (id == link && live == null) reconnect("Transkription meldet sich nicht, neuer Versuch folgt")
+        }
     }
 
     private fun ended(id: Int, code: Int, reason: String) = post {
         if (id != link) return@post
-        val detail = if (reason.isBlank()) "$code" else "$code $reason"
-        reconnect(if (code == 1000) null else "Verbindung beendet ($detail)")
+        reconnect(closeText(code, reason, sessionStood = live != null))
     }
 
     /** Die Verbindung kam gar nicht zustande oder ist abgerissen. */
     private fun failed(status: Int?, why: String) {
         when (status) {
             null -> reconnect("Keine Verbindung zur Transkription: $why")
-            401, 403 -> reconnect("ElevenLabs-Key wurde abgelehnt ($status)")
-            // Laut Doku kommt eine Ablehnung der Einstellungen als Nachricht "invalid_request". Antwortet der
-            // Server stattdessen schon beim Verbindungsaufbau mit "ungültige Anfrage", bedeutet das dasselbe.
-            400, 422 -> if (conservative) reconnect("Transkription antwortet mit $status") else fallBack("HTTP $status")
+            // Am echten Dienst nachgestellt: Ein fehlender oder falscher Key wird NICHT schon hier abgelehnt.
+            // Der Server nimmt die Verbindung an und schickt danach die Nachricht "auth_error". Ein 401 kann
+            // also nur von einer Zwischenstation kommen; gemeint ist trotzdem dasselbe.
+            401 -> reconnect("ElevenLabs-Key wurde abgelehnt (401)")
+            // Abgelehnte Einstellungen kommen als Nachricht "invalid_request" (siehe serverError). Nur wenn
+            // der Server einen Wert gar nicht lesen kann (etwa diarize=vielleicht), weist er schon den
+            // Verbindungsaufbau mit 403 ab. Auch das heißt: mit diesen Einstellungen geht es nicht.
+            400, 403, 422 ->
+                if (conservative) reconnect("Transkription lehnt die Verbindung ab ($status)") else fallBack("HTTP $status")
             else -> reconnect("Transkription antwortet mit $status")
         }
     }
@@ -169,6 +222,7 @@ class ScribeClient(
         startedAtNanos = 0L
         heardTranscript = false
         draftSpeaker = null
+        watching = false
         if (wasLive) old?.close(1000, null) else old?.cancel()
     }
 
@@ -182,7 +236,7 @@ class ScribeClient(
         hangUp()
         // Erst einplanen, dann melden. Der worker arbeitet der Reihe nach, also beginnt der neue Aufbau
         // trotzdem erst nach der Meldung. Und er findet auch dann statt, wenn der listener einen Fehler wirft.
-        post(reconnectDelayMs(attempt++, atOnce)) { open() }
+        post(reconnectDelayMs(attempt++, atOnce, retryBaseMs)) { open() }
         if (wasLive || error != null) listener.onConnection(false, error)
     }
 
@@ -210,6 +264,8 @@ class ScribeClient(
     // Nachrichten des Servers
 
     private fun handle(raw: String) {
+        // Jede Nachricht zeigt, dass der Server noch arbeitet (siehe watch()).
+        heardAtNanos = System.nanoTime()
         val msg = try { json.readTree(raw) } catch (e: Exception) { return }
         if (msg == null || !msg.isObject) return
         val type = msg.path("message_type").asText("")
@@ -229,7 +285,16 @@ class ScribeClient(
     }
 
     private fun started() {
-        live = socket
+        val ws = socket ?: return
+        if (live != null) return // eine zweite Meldung derselben Sitzung ändert nichts
+        live = ws
+        // close() kann genau jetzt von einem anderen Thread kommen. Es setzt erst closed und leert dann
+        // live. Mit der Reihenfolge hier (erst live setzen, dann closed prüfen) bleibt live danach in
+        // jedem Fall leer, und das Mikrofon sendet nicht in eine beendete Verbindung.
+        if (closed) {
+            live = null
+            return
+        }
         startedAtNanos = System.nanoTime()
         val notice = if (conservative) {
             "Transkription läuft im einfachen Modus ohne Sprechertrennung (Server: $fallbackReason)"
@@ -246,7 +311,10 @@ class ScribeClient(
         // (Lebenszeichen in einer Pause) heißt "nichts offen". Wiederholt der Server nur den Text ohne
         // Wortliste, bleibt der gemerkte Sprecher stehen.
         when {
-            text.isBlank() -> draftSpeaker = null
+            text.isBlank() -> {
+                draftSpeaker = null
+                watchKeepalives()
+            }
             words != null && words.isArray -> draftSpeaker = dominantSpeaker(words)
         }
         val probability = msg.get("turn_probability")?.takeIf { it.isNumber }?.asDouble()?.coerceIn(0.0, 1.0)
@@ -293,6 +361,44 @@ class ScribeClient(
     }
 
     // ------------------------------------------------------------------------------------------
+    // Lebenszeichen
+
+    /**
+     * Der Server hat ein Lebenszeichen geschickt: einen leeren Zwischenstand in einer Sprechpause. Damit
+     * ist belegt, dass in dieser Sitzung alle paar Sekunden etwas kommt, auch wenn niemand spricht. Erst
+     * ab hier wird das überwacht. Ohne diesen Beleg wäre jede längere Stille ein falscher Alarm.
+     *
+     * Dass die Lebenszeichen wirklich so regelmäßig kommen, wissen wir nur aus der Doku. Darum ist der
+     * Schaden begrenzt, falls sie es nicht tun: Nach [MAX_STALL_RESTARTS] Neustarts wegen Schweigens
+     * gibt der Wächter auf, und es bleibt beim Verhalten ohne ihn.
+     */
+    private fun watchKeepalives() {
+        // In der einfachen Einstellung haben wir keine Lebenszeichen bestellt.
+        if (watching || conservative || stallRestarts >= MAX_STALL_RESTARTS) return
+        watching = true
+        watch(link)
+    }
+
+    private fun watch(id: Int) {
+        val tickMs = maxOf(1L, stallTimeoutMs / STALL_CHECKS)
+        post(tickMs) {
+            if (id != link) return@post
+            val now = System.nanoTime()
+            when {
+                // Lebenszeichen kommen nur, solange wir Audio schicken (Stille genügt). Liefert das Mikrofon
+                // gerade nichts, ist Schweigen des Servers normal, und die Frist beginnt von vorn.
+                now - audioAtNanos > tickMs * 1_000_000 -> heardAtNanos = now
+                now - heardAtNanos >= stallTimeoutMs * 1_000_000 -> {
+                    stallRestarts++
+                    reconnect("Transkription antwortet nicht mehr, neue Verbindung wird aufgebaut")
+                    return@post
+                }
+            }
+            watch(id)
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------
 
     /** Reiht eine Aufgabe beim worker ein. Nach close() passiert nichts mehr. */
     private fun post(delayMs: Long = 0, task: () -> Unit) {
@@ -322,6 +428,12 @@ class ScribeClient(
         /** So lange muss eine Sitzung gehalten haben, damit sie als gesund gilt. */
         private const val STABLE_NANOS = 10_000_000_000L
 
+        /** So oft je Frist schaut der Wächter nach, ob der Server noch etwas schickt. */
+        private const val STALL_CHECKS = 5
+
+        /** So oft verbindet der Wächter höchstens neu, solange dieser Client lebt. */
+        private const val MAX_STALL_RESTARTS = 3
+
         /**
          * Baut die Adresse mit allen Einstellungen. HttpUrl kodiert die Werte selbst, sodass auch ein
          * Schlüsselbegriff mit Leerzeichen oder Umlaut heil ankommt. Listen (secondary_languages, keyterms)
@@ -350,6 +462,8 @@ class ScribeClient(
                     .addQueryParameter("secondary_languages", "en")
                     .addQueryParameter("diarize", "true")
                     // Alle 3 s ein Lebenszeichen (leerer Zwischenstand), auch wenn niemand spricht.
+                    // Daran erkennt watch(), ob die Sitzung noch arbeitet. Die Doku rät, höchstens ein
+                    // Drittel der eigenen Frist zu wählen; bei 15 s Frist sind 3 s reichlich Abstand.
                     .addQueryParameter("keepalive_interval_ms", "3000")
                 keyterms.forEach { b.addQueryParameter("keyterms", it) }
             }
@@ -367,8 +481,24 @@ class ScribeClient(
          * damit ein Funkloch nicht zur Dauerschleife wird. [atOnce] gilt nur für den ersten Versuch;
          * klappt der nicht, wird ebenfalls gewartet.
          */
-        internal fun reconnectDelayMs(attempt: Int, atOnce: Boolean): Long =
-            if (atOnce && attempt <= 0) 0L else minOf(15_000L, 1_000L shl attempt.coerceIn(0, 4))
+        internal fun reconnectDelayMs(attempt: Int, atOnce: Boolean, baseMs: Long = 1_000L): Long =
+            if (atOnce && attempt <= 0) 0L else minOf(15 * baseMs, baseMs shl attempt.coerceIn(0, 4))
+
+        /**
+         * Was die App erfährt, wenn der Server die Verbindung von sich aus beendet (null = nichts, was der
+         * Nutzer lesen muss). [sessionStood] sagt, ob vorher eine Sitzung stand.
+         */
+        internal fun closeText(code: Int, reason: String, sessionStood: Boolean): String? {
+            val detail = if (reason.isBlank()) "$code" else "$code $reason"
+            return when {
+                // Der Server geht ohne Fehlermeldung, bevor je eine Sitzung stand. Das darf nicht lautlos
+                // bleiben, sonst stünde in der App für immer nur "Verbinde …".
+                !sessionStood -> "Transkription hat die Verbindung beendet, bevor die Sitzung stand ($detail)"
+                // 1000 ist der ordentliche Abschied, 1005 ein Abschied ohne Angabe eines Grundes.
+                code == 1000 || code == 1005 -> null
+                else -> "Verbindung beendet ($detail)"
+            }
+        }
 
         /** Kurze, klare Meldung für die Oberfläche statt des rohen Fehlertexts vom Server. */
         internal fun errorText(type: String, detail: String): String = when (type) {

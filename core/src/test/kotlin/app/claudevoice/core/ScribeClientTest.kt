@@ -7,6 +7,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -25,6 +26,11 @@ import kotlin.concurrent.thread
 /**
  * Der Client spricht hier mit einem Testserver auf dem eigenen Rechner (MockWebServer), der sich wie
  * ElevenLabs verhält. Geprüft wird also unser Umgang mit dem dokumentierten Protokoll, nicht der echte Dienst.
+ *
+ * Wo der Testserver Fehler spielt (kein Key, abgelehnte Einstellungen), tut er es so, wie der echte Dienst
+ * es im November 2026 ohne Key tatsächlich tat: Verbindung annehmen, eine Nachricht mit dem Fehler, dann
+ * Verbindungsende (1000 nach auth_error, 1008 "invalid_request" nach invalid_request). Alles hinter der
+ * Anmeldung ist dagegen nur der Doku nachgebaut.
  */
 class ScribeClientTest {
     private lateinit var server: MockWebServer
@@ -56,11 +62,32 @@ class ScribeClientTest {
     private fun connect(
         keyterms: List<String> = emptyList(),
         listener: Transcriber.Listener = recorder,
+        key: String = "key-123",
+        via: OkHttpClient = http,
+        startTimeoutMs: Long = 15_000,
+        stallTimeoutMs: Long = 15_000,
+        retryBaseMs: Long = 1_000,
     ): ScribeClient = ScribeClient(
-        "key-123", http, listener,
+        key, via, listener,
         baseUrl = server.url("/").toString().removeSuffix("/"),
         keyterms = keyterms,
+        startTimeoutMs = startTimeoutMs,
+        stallTimeoutMs = stallTimeoutMs,
+        retryBaseMs = retryBaseMs,
     ).also { client = it; it.connect() }
+
+    /** Spielt das Mikrofon: schickt alle 10 ms ein Stück Stille, solange [block] läuft. */
+    private fun withMic(client: ScribeClient, block: () -> Unit) {
+        val running = AtomicBoolean(true)
+        val chunk = ByteArray(320)
+        val mic = thread { while (running.get()) { client.sendAudio(chunk, chunk.size); Thread.sleep(10) } }
+        try {
+            block()
+        } finally {
+            running.set(false)
+            mic.join(2_000)
+        }
+    }
 
     /** Legt fest, wie sich der Testserver bei der nächsten Verbindung verhält. */
     private fun serve(onOpen: (WebSocket) -> Unit = {}, onAudio: (WebSocket, String) -> Unit = { _, _ -> }) {
@@ -88,7 +115,11 @@ class ScribeClientTest {
 
     @Test fun `Verbindungsadresse nennt Modell Satzende-Erkennung Sprachen und Schluesselbegriffe`() {
         serve(onOpen = { it.send(STARTED) })
-        connect(keyterms = listOf("Alfred", " Claude Voice ", "", "alfred", "Donaudampfschifffahrtsgesellschaft"))
+        // Der Key kommt mit Leerraum drumherum an, wie er beim Einfügen leicht entsteht.
+        connect(
+            keyterms = listOf("Alfred", " Claude Voice ", "", "alfred", "Donaudampfschifffahrtsgesellschaft"),
+            key = " key-123\n",
+        )
         assertEquals("conn:true:null:fresh", next())
 
         val request = server.takeRequest(5, TimeUnit.SECONDS)!!
@@ -145,6 +176,12 @@ class ScribeClientTest {
         assertEquals(16000, sent["sample_rate"].asInt())
         assertFalse(sent["commit"].asBoolean())
         assertTrue(Base64.getDecoder().decode(sent["audio_base_64"].asText()).contentEquals(byteArrayOf(1, 2, 3, 4)))
+
+        // Eine zu große Längenangabe darf keine erfundene Stille anhängen, und leere Stücke gehen nicht raus.
+        client.sendAudio(byteArrayOf(7, 8), 10)
+        client.sendAudio(byteArrayOf(7, 8), 0)
+        val second = ObjectMapper().readTree(received.poll(5, TimeUnit.SECONDS))
+        assertTrue(Base64.getDecoder().decode(second["audio_base_64"].asText()).contentEquals(byteArrayOf(7, 8)))
         assertNull(received.poll(200, TimeUnit.MILLISECONDS))
     }
 
@@ -255,6 +292,9 @@ class ScribeClientTest {
             it.send("""{"message_type":"committed_transcript_with_timestamps","text":"Hallo.","words":[]}""")
             it.send("""{"message_type":"etwas_neues","text":"?"}""")
             it.send("kein JSON")
+            // Eine zweite Startmeldung derselben Sitzung darf nicht als neue Sitzung gelten, sonst
+            // vergäße die Pipeline mitten im Gespräch alle Sprecher.
+            it.send(STARTED)
             it.send("""{"message_type":"committed_transcript","text":"Hallo."}""")
         })
         connect()
@@ -269,7 +309,7 @@ class ScribeClientTest {
     @Test fun `Nach invalid_request laeuft die Sitzung einmalig mit der einfachen Einstellung weiter`() {
         serve(onOpen = {
             it.send("""{"message_type":"invalid_request","error":"The 'diarize' parameter is only supported by scribe_v3_live."}""")
-            it.close(1008, "invalid")
+            it.close(1008, "invalid_request")
         })
         serve(onOpen = { it.send(STARTED) }, onAudio = { ws, _ ->
             ws.send("""{"message_type":"partial_transcript","text":"Wie hoch"}""")
@@ -314,16 +354,44 @@ class ScribeClientTest {
         assertEquals("scribe_v2_realtime", server.takeRequest(5, TimeUnit.SECONDS)!!.requestUrl!!.queryParameter("model_id"))
     }
 
+    @Test fun `Ein 403 beim Aufbau gilt als abgelehnte Einstellung und nicht als falscher Key`() {
+        // So antwortet der echte Dienst, wenn er einen Wert der Adresse nicht lesen kann (etwa
+        // diarize=vielleicht). Einen falschen Key meldet er dagegen nie auf diesem Weg.
+        server.enqueue(MockResponse().setResponseCode(403))
+        server.enqueue(MockResponse().setResponseCode(403))
+        serve(onOpen = { it.send(STARTED) })
+        connect(retryBaseMs = 50)
+
+        // Das erste 403 führt still zur einfachen Einstellung. Scheitert auch die, wird es ehrlich gemeldet.
+        assertEquals("conn:false:Transkription lehnt die Verbindung ab (403)", next())
+        assertEquals(
+            "conn:true:Transkription läuft im einfachen Modus ohne Sprechertrennung (Server: HTTP 403):fresh",
+            next(),
+        )
+        val models = (1..3).map { server.takeRequest(5, TimeUnit.SECONDS)!!.requestUrl!!.queryParameter("model_id") }
+        assertEquals(listOf("scribe_v3_live", "scribe_v2_realtime", "scribe_v2_realtime"), models)
+    }
+
     @Test fun `Abgelehnter Key beim Verbindungsaufbau wird gemeldet`() {
         server.enqueue(MockResponse().setResponseCode(401))
         connect()
         assertEquals("conn:false:ElevenLabs-Key wurde abgelehnt (401)", next())
     }
 
+    @Test fun `Ungueltige Zeichen im Key werden einmal gemeldet und nicht endlos versucht`() {
+        // Ein Zeilenumbruch mitten im Key: Daraus lässt sich keine Anfrage bauen.
+        connect(key = "sk_abc\ndef", retryBaseMs = 50)
+        assertEquals("conn:false:ElevenLabs-Key enthält ungültige Zeichen", next())
+        assertNull(events.poll(400, TimeUnit.MILLISECONDS))
+        assertEquals(0, server.requestCount)
+    }
+
     @Test fun `Fehlermeldung auth_error wird als abgelehnter Key gemeldet`() {
+        // Wortlaut und Ablauf wie beim echten Dienst: Er nimmt die Verbindung an, auch ohne gültigen Key,
+        // schickt diese Nachricht und beendet die Verbindung dann ordentlich (1000).
         serve(onOpen = {
-            it.send("""{"message_type":"auth_error","error":"Invalid API key."}""")
-            it.close(1008, "auth")
+            it.send("""{"message_type":"auth_error","error":"You must be authenticated to use this endpoint."}""")
+            it.close(1000, null)
         })
         connect()
         assertEquals("conn:false:ElevenLabs-Key wurde abgelehnt", next())
@@ -411,6 +479,139 @@ class ScribeClientTest {
         // "Sofort" gilt nur für den ersten Versuch, sonst könnte daraus eine Dauerschleife werden.
         assertEquals(0L, ScribeClient.reconnectDelayMs(0, atOnce = true))
         assertEquals(2_000L, ScribeClient.reconnectDelayMs(1, atOnce = true))
+        // Die kürzere Grundwartezeit der Tests folgt demselben Muster.
+        assertEquals(listOf(50L, 100L, 750L), listOf(0, 1, 9).map { ScribeClient.reconnectDelayMs(it, atOnce = false, baseMs = 50) })
+    }
+
+    @Test fun `Abschied des Servers wird je nach Lage gemeldet`() {
+        // Ordentlicher Abschied (1000) oder Abschied ohne Angabe (1005) aus einer stehenden Sitzung: kein Fehler.
+        assertNull(ScribeClient.closeText(1000, "", sessionStood = true))
+        assertNull(ScribeClient.closeText(1005, "", sessionStood = true))
+        assertEquals("Verbindung beendet (1011)", ScribeClient.closeText(1011, " ", sessionStood = true))
+        assertEquals("Verbindung beendet (1001 Wartung)", ScribeClient.closeText(1001, "Wartung", sessionStood = true))
+        assertEquals(
+            "Transkription hat die Verbindung beendet, bevor die Sitzung stand (1000)",
+            ScribeClient.closeText(1000, "", sessionStood = false),
+        )
+    }
+
+    @Test fun `Geht der Server ohne Fehlermeldung bevor die Sitzung steht bleibt das nicht lautlos`() {
+        serve(onOpen = { it.close(1000, null) })
+        serve(onOpen = { it.send(STARTED) })
+        connect(retryBaseMs = 50)
+        assertEquals("conn:false:Transkription hat die Verbindung beendet, bevor die Sitzung stand (1000)", next())
+        assertEquals("conn:true:null:fresh", next())
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // Fristen: nie unbemerkt taub
+
+    @Test fun `Bleibt session_started aus wird nach der Frist neu verbunden`() {
+        // Der Server nimmt die Verbindung an und sagt dann nichts. Ohne Frist stünde die App für immer
+        // bei "Verbinde ...".
+        serve()
+        serve(onOpen = { it.send(STARTED) })
+        connect(startTimeoutMs = 600, retryBaseMs = 50)
+        assertEquals("conn:false:Transkription meldet sich nicht, neuer Versuch folgt", next())
+        assertEquals("conn:true:null:fresh", next())
+        assertEquals(2, server.requestCount)
+        // Die Frist der ersten Verbindung darf die zweite, die längst steht, nicht mehr treffen.
+        assertNull(events.poll(900, TimeUnit.MILLISECONDS))
+    }
+
+    @Test fun `Antwortet der Server beim Aufbau gar nicht wird trotzdem neu verbunden`() {
+        // Wie in der App: ohne Lesefrist. Dann wartet OkHttp beliebig lange auf die Antwort zum Aufbau.
+        val patient = http.newBuilder().readTimeout(0, TimeUnit.SECONDS).build()
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+        serve(onOpen = { it.send(STARTED) })
+        connect(via = patient, startTimeoutMs = 600, retryBaseMs = 50)
+        assertEquals("conn:false:Transkription meldet sich nicht, neuer Versuch folgt", next())
+        assertEquals("conn:true:null:fresh", next())
+    }
+
+    @Test fun `Schweigt der Server trotz laufendem Audio wird neu verbunden`() {
+        // Erste Sitzung: ein Lebenszeichen, danach nichts mehr, obwohl weiter Audio ankommt.
+        val alive = AtomicBoolean()
+        serve(onOpen = { it.send(STARTED) }, onAudio = { ws, _ -> if (alive.compareAndSet(false, true)) ws.send(KEEPALIVE) })
+        serve(onOpen = { it.send(STARTED) })
+        val client = connect(stallTimeoutMs = 400, retryBaseMs = 50)
+        assertEquals("conn:true:null:fresh", next())
+        withMic(client) {
+            assertEquals("partial::null", next())
+            assertEquals("conn:false:Transkription antwortet nicht mehr, neue Verbindung wird aufgebaut", next())
+            assertEquals("conn:true:null:fresh", next())
+        }
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test fun `Solange der Server etwas schickt gilt die Sitzung als lebendig`() {
+        // Lebenszeichen und Zwischenstände in kürzerem Abstand als die Frist, insgesamt aber länger als
+        // die Frist: kein Alarm.
+        serve(onOpen = { ws ->
+            ws.send(STARTED)
+            thread {
+                repeat(14) { i ->
+                    ws.send(if (i % 2 == 0) KEEPALIVE else """{"message_type":"partial_transcript","text":"Hallo"}""")
+                    Thread.sleep(100)
+                }
+            }
+        })
+        val client = connect(stallTimeoutMs = 800, retryBaseMs = 50)
+        assertEquals("conn:true:null:fresh", next())
+        withMic(client) {
+            repeat(14) { i -> assertEquals(if (i % 2 == 0) "partial::null" else "partial:Hallo:null", next()) }
+        }
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `Ohne Lebenszeichen vom Server gibt es keinen falschen Alarm`() {
+        // Der Server schickt nie ein Lebenszeichen. Dann wissen wir nicht, ob er überhaupt welche schickt,
+        // und Stille darf nicht als Störung gelten.
+        serve(onOpen = { it.send(STARTED); it.send("""{"message_type":"partial_transcript","text":"Hallo"}""") })
+        val client = connect(stallTimeoutMs = 300, retryBaseMs = 50)
+        assertEquals("conn:true:null:fresh", next())
+        assertEquals("partial:Hallo:null", next())
+        withMic(client) { assertNull(events.poll(1_200, TimeUnit.MILLISECONDS)) }
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `Ohne Audio vom Mikrofon ist Schweigen des Servers kein Fehler`() {
+        // Lebenszeichen kommen nur, solange wir Audio schicken. Liefert das Mikrofon nichts, ist Stille normal.
+        serve(onOpen = { it.send(STARTED); it.send(KEEPALIVE) })
+        connect(stallTimeoutMs = 300, retryBaseMs = 50)
+        assertEquals("conn:true:null:fresh", next())
+        assertEquals("partial::null", next())
+        assertNull(events.poll(1_200, TimeUnit.MILLISECONDS))
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `In der einfachen Einstellung wird nicht auf Lebenszeichen geachtet`() {
+        // Dort sind keine Lebenszeichen bestellt. Ein leerer Zwischenstand beweist dann nichts.
+        server.enqueue(MockResponse().setResponseCode(400))
+        serve(onOpen = { it.send(STARTED); it.send(KEEPALIVE) })
+        val client = connect(stallTimeoutMs = 300, retryBaseMs = 50)
+        assertTrue(next()!!.startsWith("conn:true:Transkription läuft im einfachen Modus"))
+        assertEquals("partial::null", next())
+        withMic(client) { assertNull(events.poll(1_200, TimeUnit.MILLISECONDS)) }
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test fun `Nach drei Neustarts wegen Schweigens gibt der Waechter auf`() {
+        // Kämen die Lebenszeichen am echten Dienst anders als dokumentiert, darf daraus keine Dauerschleife
+        // aus Neuverbinden werden: Jede neue Sitzung vergisst die gelernten Sprecher.
+        repeat(4) { serve(onOpen = { it.send(STARTED); it.send(KEEPALIVE) }) }
+        val client = connect(stallTimeoutMs = 300, retryBaseMs = 20)
+        withMic(client) {
+            repeat(3) {
+                assertEquals("conn:true:null:fresh", next())
+                assertEquals("partial::null", next())
+                assertEquals("conn:false:Transkription antwortet nicht mehr, neue Verbindung wird aufgebaut", next())
+            }
+            assertEquals("conn:true:null:fresh", next())
+            assertEquals("partial::null", next())
+            assertNull(events.poll(1_200, TimeUnit.MILLISECONDS))
+        }
+        assertEquals(4, server.requestCount)
     }
 
     // ------------------------------------------------------------------------------------------
@@ -473,7 +674,44 @@ class ScribeClientTest {
         assertFalse(mic.isAlive)
     }
 
+    @Test fun `close in jeder Phase des Aufbaus hinterlaesst nichts Laufendes`() {
+        val failure = AtomicReference<Throwable>()
+        val chunk = ByteArray(320)
+        repeat(20) { round ->
+            serve(onOpen = { it.send(STARTED); it.send(KEEPALIVE) })
+            // Kurze Fristen, damit ein vergessener Zeitgeber sich innerhalb des Tests verraten würde.
+            val c = ScribeClient(
+                "key-123", http, recorder,
+                baseUrl = server.url("/").toString().removeSuffix("/"),
+                startTimeoutMs = 40, stallTimeoutMs = 40, retryBaseMs = 10,
+            )
+            val running = AtomicBoolean(true)
+            val mic = thread {
+                try {
+                    while (running.get()) { c.sendAudio(chunk, chunk.size); Thread.yield() }
+                } catch (t: Throwable) {
+                    failure.set(t)
+                }
+            }
+            c.connect()
+            Thread.sleep((round % 10) * 3L) // close() trifft so jede Phase: vor, während und nach dem Sitzungsstart
+            c.close()
+            c.sendAudio(chunk, chunk.size)
+            running.set(false)
+            mic.join(2_000)
+        }
+        Thread.sleep(300) // alle Fristen und Wartezeiten der geschlossenen Clients wären jetzt längst abgelaufen
+        events.clear()
+        val requests = server.requestCount
+        assertNull(events.poll(300, TimeUnit.MILLISECONDS))
+        assertEquals(requests, server.requestCount)
+        assertNull(failure.get())
+    }
+
     private companion object {
-        const val STARTED = """{"message_type":"session_started","session_id":"s1","config":{"model_id":"scribe_v3_live"}}"""
+        const val STARTED ="""{"message_type":"session_started","session_id":"s1","config":{"model_id":"scribe_v3_live"}}"""
+
+        /** Lebenszeichen in einer Sprechpause: ein leerer Zwischenstand. */
+        const val KEEPALIVE = """{"message_type":"partial_transcript","text":""}"""
     }
 }
