@@ -66,6 +66,11 @@ class VoiceClassifier(
             // Handy auf dem Tisch oder in der Tasche: Lautstärke trennt schlechter, die Tonhöhe muss helfen.
             MicMode.HANDY -> when {
                 own?.pitchHz != null && f.pitchHz != null && pitchFits && below <= 12 -> Voice.ICH
+                // NAH heißt hier nur "nah am Handy". Ohne gelernte Tonhöhe kann das auch der Träger selbst sein.
+                // Für die Pipeline ist NAH trotzdem die richtige Angabe: Sie wartet bei NAH ab, ob ein Mensch
+                // antwortet, und behandelt die Stimme nicht wie die des Trägers ("Nur ich", Nachfragen).
+                // Ein "?" an dieser Stelle hätte genau diese Vorsicht ausgeschaltet. Dass hinter NAH am Handy
+                // auch er stecken kann, erfährt das Modell dort, wo der Text für es entsteht (Persona.userMessage).
                 below <= 14 -> Voice.NAH
                 else -> Voice.FERN
             }

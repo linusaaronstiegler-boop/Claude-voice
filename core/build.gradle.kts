@@ -41,7 +41,7 @@ fun JavaExec.evalOptions(vararg names: String) {
 
 tasks.register<JavaExec>("evalDump") {
     group = "verification"
-    description = "Schreibt System-Prompt, Testfälle in drei Modi, Erwartungen und Stapel nach core/build/eval. Optional: -PsystemFile=<pfad>"
+    description = "Schreibt System-Prompt, Testfälle in vier Modi, Erwartungen und Stapel nach core/build/eval. Optional: -PsystemFile=<pfad>"
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("app.claudevoice.core.eval.EvalDumpKt")
     args(layout.buildDirectory.dir("eval").get().asFile.absolutePath)
@@ -57,6 +57,15 @@ tasks.register<JavaExec>("evalLive") {
     mainClass.set("app.claudevoice.core.eval.EvalLiveKt")
     args(layout.buildDirectory.dir("eval").get().asFile.absolutePath)
     evalOptions("run", "systemFile", "modes", "only")
+}
+
+tasks.register<JavaExec>("evalCheck") {
+    group = "verification"
+    description = "Prüft die Antworten eines vorhandenen Laufs auf MEMO, MUTE und auffällige Absagen (sendet nichts). Optionen: -Prun=<name> -Pmodes=<liste> -Ponly=<liste>"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("app.claudevoice.core.eval.EvalCheckKt")
+    args(layout.buildDirectory.dir("eval").get().asFile.absolutePath)
+    evalOptions("run", "modes", "only")
 }
 
 // --- Weckwort "Hey Jarvis" ------------------------------------------------------------------

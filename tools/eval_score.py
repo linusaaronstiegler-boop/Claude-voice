@@ -39,7 +39,7 @@ from collections import Counter
 WORD_CAPS = {"kurz": 22, "mittel": 50, "lang": 120}
 DEFAULT_CAP = "mittel"  # gilt in der App, wenn hinter SAY keine bekannte Länge steht
 KEYWORDS = ("MEMO:", "MUTE:")
-MODE_ORDER = ["korrekt", "verrauscht", "ohne"]
+MODE_ORDER = ["korrekt", "verrauscht", "ohne", "handy"]
 INT_MAX = 2**31 - 1
 
 

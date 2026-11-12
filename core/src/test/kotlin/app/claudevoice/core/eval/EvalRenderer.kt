@@ -1,6 +1,7 @@
 package app.claudevoice.core.eval
 
 import app.claudevoice.core.Line
+import app.claudevoice.core.MicMode
 import app.claudevoice.core.Persona
 import app.claudevoice.core.Situation
 import app.claudevoice.core.Turn
@@ -12,7 +13,15 @@ import java.util.Random
  *
  * Im echten Betrieb stammen sie aus Lautstärke, Stimmlage und Diarisierung und sind oft falsch. Der Prompt
  * soll am Inhalt entscheiden und mit jeder Qualität dieser Angaben zurechtkommen. Deshalb läuft jeder
- * Fall in drei Fassungen: mit richtigen Angaben, mit teilweise falschen und ganz ohne.
+ * Fall in vier Fassungen: mit richtigen Angaben, mit teilweise falschen, ganz ohne und so, wie ihn das
+ * Handy-Mikrofon liefert.
+ *
+ * Für Fälle am Handy-Mikrofon gilt in jedem Modus dasselbe wie in der App: Trägt keine Zeile ein ICH,
+ * schreibt [Persona.userMessage] "?" statt NAH und setzt den Hinweis in die Lage. In "ohne" trifft das jeden
+ * Fall am Handy-Mikrofon. In "korrekt" träfe es nur Fälle, in denen der Träger gar nicht spricht, in
+ * "verrauscht" auch solche, in denen die Störung jedes ICH gelöscht hat; "korrekt" und "verrauscht" stehen bei
+ * Handy-Fällen also für ein Handy mit gespeichertem Stimmprofil. Wie viele Fälle es je Modus sind, druckt der
+ * Test "Lage und Etiketten widersprechen sich in keinem Fall und keinem Modus".
  */
 enum class TagMode(val id: String) {
     /** Die Akustik liegt überall richtig. */
@@ -20,7 +29,17 @@ enum class TagMode(val id: String) {
     /** Etwa jede vierte Stimmen-Angabe ist falsch, Sprecher-Kürzel fehlen oder sind vertauscht. */
     VERRAUSCHT("verrauscht"),
     /** Der Stimmenfilter ist komplett ausgefallen: jede Zeile "?" und kein Kürzel. */
-    OHNE("ohne");
+    OHNE("ohne"),
+    /**
+     * So, wie es am Handy-Mikrofon ankommt: Ohne Stimmprofil kann der Stimmenfilter dort niemanden vom
+     * Träger unterscheiden ([app.claudevoice.core.VoiceClassifier]). Er meldet für jede Stimme NAH, für leise
+     * FERN und nie ICH. Im Text für das Modell steht dann "?" statt NAH und ein Hinweis in der Lage; das
+     * macht wie in der App [Persona.userMessage], nicht dieser Modus. Die Sprecher-Kürzel bleiben richtig,
+     * denn die Diarisierung hängt nicht am Mikrofon. Auch die Lage nennt in diesem Modus immer das
+     * Handy-Mikrofon, gleich für welches Mikrofon der Fall geschrieben wurde: Gemessen wird, wie der Prompt
+     * mit genau dem zurechtkommt, was dieses Mikrofon liefert.
+     */
+    HANDY("handy");
 
     companion object {
         fun of(id: String): TagMode? = entries.firstOrNull { it.id == id }
@@ -61,14 +80,18 @@ object EvalRenderer {
             TagMode.KORREKT -> truth
             TagMode.OHNE -> truth.map { if (it.voice == Voice.ALFRED) it else Tag(Voice.UNKLAR, null) }
             TagMode.VERRAUSCHT -> corrupt(case.id, truth, labels.values.toList())
+            TagMode.HANDY -> all.map { Tag(phoneVoice(it), labels[it.who]) }
         }
         val lines = all.mapIndexed { i, l ->
             Line(id = i + 1L, atMs = NOW_MS - l.agoSec * 1000, voice = tags[i].voice, text = l.text.trim(), speaker = tags[i].speaker)
         }
         // "Gesichert" ist der Sprecher, wenn die (im jeweiligen Modus sichtbare) Stimm-Schätzung ICH lautet:
         // genau so entscheidet es auch die App.
+        // Im Modus "handy" gehört das Mikrofon zum Modus, nicht zum Fall: Angaben wie vom Handy und dazu eine
+        // Lage, die das Kopfhörer-Mikrofon nennt, kämen im Betrieb praktisch nie zusammen vor.
+        val mic = if (mode == TagMode.HANDY) MicMode.HANDY else case.mic
         val situation = Situation(
-            LOCAL_TIME, case.mic, case.musicPlaying, case.assistantSpokeAgoSec, scene = null,
+            LOCAL_TIME, mic, case.musicPlaying, case.assistantSpokeAgoSec, scene = null,
             speakerVerified = lines.last().voice == Voice.ICH,
         )
         return Turn(lines.dropLast(1), lines.last(), situation)
@@ -83,6 +106,17 @@ object EvalRenderer {
         l.speaker == EvalCases.WEARER -> Voice.ICH
         l.proximity == "fern" -> Voice.FERN
         else -> Voice.NAH // "nah" und "mittel": beides Gesprächsnähe
+    }
+
+    /**
+     * Stimmen-Schätzung am Handy-Mikrofon ohne Stimmprofil, so wie der Stimmenfilter sie liefert: Wer leise
+     * ankommt, gilt als FERN, alle anderen sind NAH. Das gilt auch für den Träger selbst: Am Handy ist er NAH
+     * wie jeder andere, und steht er weit weg vom Handy, ist er ebenfalls FERN.
+     */
+    private fun phoneVoice(l: EvalLine): Voice = when {
+        l.speaker == EvalCases.ASSISTANT -> Voice.ALFRED
+        l.proximity == "fern" -> Voice.FERN
+        else -> Voice.NAH
     }
 
     /**

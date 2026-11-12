@@ -36,6 +36,22 @@ class VoiceClassifierTest {
         assertEquals(Voice.NAH, unknown.classify(f(-28.0, 118.0)))
     }
 
+    @Test fun `Handy ohne gelernte Tonhoehe vergibt nie ICH und nennt nahe Stimmen NAH`() {
+        // Laut, mittel, leise, mit und ohne messbare Tonhöhe: Nie darf daraus ICH werden, das hieße Vertrauen
+        // ohne Nachweis. Nahe Stimmen bleiben NAH: Daran hängt in der Pipeline die Vorsicht gegenüber Stimmen,
+        // die nicht als die des Trägers erkannt sind (abwarten, ob ein Mensch antwortet; "Nur ich"; Nachfragen).
+        // Dass am Handy auch der Träger hinter NAH stecken kann, sagt erst Persona.userMessage dem Modell.
+        for (c in listOf(VoiceClassifier(MicMode.HANDY), VoiceClassifier(MicMode.HANDY, VoiceProfile(-25.0, null, 3)))) {
+            assertEquals(Voice.NAH, c.classify(f(-26.0, 115.0)))
+            assertEquals(Voice.NAH, c.classify(f(-30.0, 210.0)))
+            assertEquals(Voice.NAH, c.classify(f(-34.0, null)))
+            assertEquals(Voice.FERN, c.classify(f(-45.0, 115.0)))
+            assertEquals(Voice.FERN, c.classify(f(-60.0, 115.0)))
+            val seen = (0..60).flatMap { step -> listOf(115.0, 180.0, null).map { pitch -> c.classify(f(-10.0 - step, pitch)) } }.toSet()
+            assertEquals(setOf(Voice.NAH, Voice.FERN), seen)
+        }
+    }
+
     @Test fun `Profil wird aus Anreden gelernt und gemittelt`() {
         val c = VoiceClassifier(MicMode.AIRPODS)
         c.learnOwn(f(-20.0, 110.0))

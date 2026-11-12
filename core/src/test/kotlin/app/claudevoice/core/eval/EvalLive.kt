@@ -147,10 +147,12 @@ So läuft die Auswertung gegen das echte Modell (${AnthropicClaude.ANSWER_MODEL}
 Optionen:
   -Prun=<name>          Name des Laufs, Ausgaben landen in core/build/eval/out/<name>/ (Standard: live)
   -PsystemFile=<pfad>   diesen Text als System-Prompt verwenden statt des Prompts der App
-  -Pmodes=korrekt,ohne  nur diese Modi (Standard: korrekt, verrauscht, ohne)
+  -Pmodes=korrekt,ohne  nur diese Modi (Standard: ${TagMode.entries.joinToString(", ") { it.id }})
   -Ponly=solo-01,edge-  nur diese Fälle (IDs oder ID-Anfänge)
 
 Ohne Schlüssel: ./gradlew :core:evalDump schreibt alle Eingaben nach core/build/eval/.
+Antworten, die schon in core/build/eval/out/<name>/ liegen, prüft ./gradlew :core:evalCheck -Prun=<name>
+auf MEMO, MUTE und auffällige Absagen (sendet nichts).
 """.trim()
 }
 
@@ -200,6 +202,12 @@ fun main(args: Array<String>) {
     if (result.failures.isNotEmpty()) {
         println("evalLive: ${result.failures.size} Aufrufe fehlgeschlagen, siehe errors.jsonl. Diese Fälle fehlen in der Auswertung.")
     }
+    // Gleich im Anschluss, was das Auswertungs-Skript nicht sieht: MEMO, MUTE und auffällige Absagen.
+    val check = EvalCheck.run(runDir, cases, modes)
+    println()
+    EvalCheck.describe(run, check).forEach(::println)
+    EvalCheck.write(runDir, check)
+    println()
     println("Weiter: python3 tools/eval_score.py $run")
     // Ausdrücklich beenden: Der HTTP-Client hält sonst noch Threads offen und Gradle würde warten.
     exitProcess(if (result.failures.isEmpty()) 0 else 1)

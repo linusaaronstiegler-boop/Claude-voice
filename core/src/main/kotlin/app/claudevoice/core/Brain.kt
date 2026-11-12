@@ -13,6 +13,9 @@ data class Tidy(val scene: String?, val aside: Set<Long>)
 class Brain(private val claude: ClaudeApi, profile: Profile) {
     val system: String = Persona.systemPrompt(profile)
 
+    /** Die Rufnamen des Assistenten. Der Ordner braucht sie, um "Alfred, ..." als Anrede an ihn zu erkennen. */
+    private val names: List<String> = Persona.calledNames(profile)
+
     /** Blockiert, bis die Antwort vollständig ist; [onText] bekommt den Text stückweise. */
     fun respond(turn: Turn, cancel: CancelToken = CancelToken(), onText: (String) -> Unit) =
         claude.respond(system, Persona.userMessage(turn), cancel, onText)
@@ -25,11 +28,20 @@ class Brain(private val claude: ClaudeApi, profile: Profile) {
 
     fun tidy(lines: List<Line>, previousScene: String?, mic: MicMode, nowMs: Long): Tidy {
         if (lines.isEmpty()) return Tidy(previousScene, emptySet())
-        val reply = claude.quick(Persona.TIDY_SYSTEM, Persona.tidyMessage(lines, previousScene, mic, nowMs), 200)
+        val reply = claude.quick(Persona.TIDY_SYSTEM, Persona.tidyMessage(lines, previousScene, mic, nowMs, names), 200)
         return parseTidy(reply, lines)
     }
 
     companion object {
+        /**
+         * Eine Zeilennummer oder ein Bereich ("3-9", "3 bis 9") in der ABSEITS-Zeile.
+         *
+         * Die Zahl muss für sich stehen: Direkt davor und dahinter darf weder Buchstabe noch Ziffer sein.
+         * Sonst würde die 2 aus dem Sprecher-Kürzel "S2" als Zeile 2 gelesen. Der zweite Teil ist freiwillig
+         * und fängt das Ende eines Bereichs ein, mit Bindestrich, Gedankenstrich oder "bis".
+         */
+        private val ASIDE_NUMBER = Regex("(?<![\\p{L}\\d])(\\d+)(?:\\s*(?:-|–|—|bis)\\s*(\\d+))?(?![\\p{L}\\d])")
+
         fun parseTidy(reply: String, lines: List<Line>): Tidy {
             var scene: String? = null
             val aside = HashSet<Long>()
@@ -39,9 +51,16 @@ class Brain(private val claude: ClaudeApi, profile: Profile) {
                     line.startsWith("SZENE:", ignoreCase = true) ->
                         scene = line.substringAfter(':').trim().takeIf { it.isNotEmpty() }
                     line.startsWith("ABSEITS:", ignoreCase = true) ->
-                        Regex("\\d+").findAll(line.substringAfter(':')).forEach { m ->
-                            // Das Modell nennt Zeilennummern (1-basiert); wir übersetzen sie in Zeilen-IDs.
-                            lines.getOrNull(m.value.toInt() - 1)?.let { aside += it.id }
+                        for (m in ASIDE_NUMBER.findAll(line.substringAfter(':'))) {
+                            // toIntOrNull statt toInt: Eine unsinnig lange Ziffernfolge darf nicht das ganze
+                            // Ergebnis des Ordners (samt Szene) mit einer Ausnahme zunichtemachen.
+                            val first = m.groupValues[1].toIntOrNull() ?: continue
+                            // Ein Bereich meint alle Zeilen dazwischen. Gerade bei einem laufenden Fernseher
+                            // schreibt das Modell gern "3-9"; nur die Ränder zu markieren, wäre falsch.
+                            val last = m.groupValues[2].takeIf { it.isNotEmpty() }?.let { it.toIntOrNull() ?: Int.MAX_VALUE } ?: first
+                            // Das Modell nennt Zeilennummern (1-basiert); wir übersetzen sie in Zeilen-IDs und
+                            // bleiben dabei innerhalb der Zeilen, die es gibt ("8-100000" endet bei der letzten).
+                            for (n in maxOf(first, 1)..minOf(last, lines.size)) aside += lines[n - 1].id
                         }
                 }
             }

@@ -45,7 +45,7 @@ object EvalSetup {
         return Options(positional, named)
     }
 
-    /** Modi aus einer Liste wie "korrekt,ohne"; leer = alle drei. */
+    /** Modi aus einer Liste wie "korrekt,ohne"; leer = alle. */
     fun modes(names: List<String>): List<TagMode> {
         if (names.isEmpty()) return TagMode.entries
         return names.map { name ->
@@ -63,7 +63,8 @@ object EvalSetup {
  *
  *  - `system.txt`                 der System-Prompt
  *  - `cases/<modus>/<id>.txt`     je Fall und Modus die exakte Nutzer-Nachricht
- *  - `expected.json`              was erwartet wird (liest `tools/eval_score.py`)
+ *  - `expected.json`              was erwartet wird (liest `tools/eval_score.py`). Darin stehen zum Nachlesen
+ *                                 auch die Erwartungen an MEMO, MUTE und Sprechtext, die [EvalCheck] prüft.
  *  - `batches/<modus>-NN.json`    die Fälle in gemischten Sechser-Stapeln
  *  - `parser_check.json`          Beispiel-Antworten, gelesen vom ReplyParser der App (siehe [EvalParserCheck])
  *
@@ -92,6 +93,14 @@ object EvalDump {
                 "ambiguous" to c.ambiguous,
                 "tags" to c.tags,
                 "scene" to c.scene,
+                // Die prüfbaren Erwartungen an Sonderzeilen und Sprechtext (siehe EvalExpect; null = keine Angabe).
+                "memo" to c.expect.memo,
+                "mute_minutes" to c.expect.muteMinutes,
+                "forbidden" to c.expect.forbidden,
+                "required" to c.expect.required,
+                // Je Modus: Gilt die Stimme der auslösenden Äußerung als die des Trägers? Nur dann darf eine
+                // MEMO- oder MUTE-Zeile stehen. Das hängt an den Angaben des Modus, nicht am Fall allein.
+                "verified" to TagMode.entries.associateTo(LinkedHashMap()) { it.id to EvalRenderer.render(c, it).situation.speakerVerified },
             )
         }
         File(outDir, "expected.json").writeText(json.writeValueAsString(expected) + "\n", Charsets.UTF_8)
@@ -142,5 +151,6 @@ fun main(args: Array<String>) {
     println("  geschrieben nach ${outDir.absolutePath}:")
     println("    system.txt, expected.json, parser_check.json, cases/<modus>/<id>.txt ($modes x ${summary.cases}), batches/<modus>-NN.json ($modes x ${summary.batchesPerMode})")
     println("Weiter: Modell-Antworten nach out/<lauf>/<modus>/<id>.txt legen (oder ./gradlew :core:evalLive -Prun=<lauf>),")
-    println("        dann  python3 tools/eval_score.py <lauf>")
+    println("        dann  python3 tools/eval_score.py <lauf>            spricht es, wenn es soll?")
+    println("        und   ./gradlew :core:evalCheck -Prun=<lauf>        stimmen MEMO, MUTE und die Absagen?")
 }

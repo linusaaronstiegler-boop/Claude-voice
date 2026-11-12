@@ -22,8 +22,29 @@ data class EvalLine(
     val text: String,
 )
 
-/** Was ein Mensch für richtig hält: sprechen oder schweigen, und wenn sprechen, wie lang und mit welchem Kern. */
-data class EvalExpect(val answer: Boolean, val length: String, val gist: String, val why: String)
+/**
+ * Was ein Mensch für richtig hält: sprechen oder schweigen, und wenn sprechen, wie lang und mit welchem Kern.
+ *
+ * Die letzten vier Angaben sind freiwillig und machen prüfbar, was sonst nur im Kern ([gist]) als Prosa
+ * stünde. Ausgewertet werden sie von [EvalCheck], nicht von `tools/eval_score.py`:
+ *  - [memo]: true = hier soll eine MEMO-Zeile entstehen, false = hier darf keine entstehen (etwa bei einer
+ *    Bitte um Erinnerung, die der Assistent nicht einlösen kann).
+ *  - [muteMinutes]: so viele Minuten soll die MUTE-Zeile nennen.
+ *  - [forbidden], [required]: Muster (reguläre Ausdrücke, Groß- und Kleinschreibung egal), die im Sprechtext
+ *    nicht vorkommen dürfen bzw. vorkommen sollen. Ein Treffer ist kein Urteil, nur ein "bitte nachlesen".
+ * [memo] = true und [muteMinutes] gelten nur dort, wo die Stimme der auslösenden Äußerung als die des Trägers
+ * gesichert ist. Wo sie es nicht ist, ist jede Sonderzeile falsch, in jedem Fall und ohne weitere Angabe.
+ */
+data class EvalExpect(
+    val answer: Boolean,
+    val length: String,
+    val gist: String,
+    val why: String,
+    val memo: Boolean? = null,
+    val muteMinutes: Int? = null,
+    val forbidden: List<String> = emptyList(),
+    val required: List<String> = emptyList(),
+)
 
 /** Ein Testfall: ein Gesprächsausschnitt, die auslösende Äußerung und die erwartete Entscheidung. */
 data class EvalCase(
@@ -69,6 +90,9 @@ object EvalCases {
     private val HISTORY_KEYS = setOf("ago_s", "who", "speaker", "proximity", "text")
     private val TRIGGER_KEYS = setOf("who", "speaker", "proximity", "text")
     private val EXPECT_KEYS = setOf("answer", "length", "gist", "why")
+    /** Dürfen fehlen. Die älteren Falldateien kennen sie nicht und bleiben damit gültig. */
+    private val EXPECT_OPTIONAL_KEYS = setOf("memo", "mute_minutes", "forbidden", "required")
+    private const val MAX_MUTE_MINUTES = 600 // so viel lässt die App höchstens zu (ReplyParser)
 
     /**
      * IDs werden zu Dateinamen (`cases/<modus>/<id>.txt`), Szenen zu Gruppen in der Auswertung. Deshalb nur
@@ -216,13 +240,27 @@ object EvalCases {
     }
 
     private fun readExpect(node: JsonNode, ambiguous: Boolean?, r: Reporter): EvalExpect? {
-        if (!keysOk(node, EXPECT_KEYS, "expect", r)) return null
+        if (!keysOk(node, EXPECT_KEYS, "expect", r, optional = EXPECT_OPTIONAL_KEYS)) return null
         val answer = bool(node, "answer", "expect.answer", r)
         val length = string(node, "length", "expect.length", r)
         val gist = string(node, "gist", "expect.gist", r, allowBlank = true)
         val why = string(node, "why", "expect.why", r)
-        if (answer == null || length == null || gist == null || why == null) return null
         var ok = true
+
+        // Die freiwilligen, prüfbaren Angaben (siehe EvalExpect).
+        val memo = if (node.has("memo")) bool(node, "memo", "expect.memo", r).also { if (it == null) ok = false } else null
+        val muteMinutes = node.get("mute_minutes")?.let { v ->
+            if (v.isIntegralNumber && v.canConvertToInt() && v.asInt() in 1..MAX_MUTE_MINUTES) v.asInt()
+            else { r.fail("expect.mute_minutes", "muss eine ganze Zahl von Minuten zwischen 1 und $MAX_MUTE_MINUTES sein"); ok = false; null }
+        }
+        val forbidden = patterns(node, "forbidden", r) ?: run { ok = false; emptyList() }
+        val required = patterns(node, "required", r) ?: run { ok = false; emptyList() }
+        if (answer == false) {
+            // Nach SKIP liest die App nichts mehr. Eine Erwartung an Sonderzeilen oder Sprechtext wäre hier ein Versehen.
+            for (key in EXPECT_OPTIONAL_KEYS) if (node.has(key)) { r.fail("expect.$key", "passt nicht zu answer=false (wer schweigt, schreibt nichts)"); ok = false }
+        }
+
+        if (answer == null || length == null || gist == null || why == null) return null
         if (answer) {
             if (length !in LENGTHS) { r.fail("expect.length", "'$length' passt nicht zu answer=true (erlaubt: ${LENGTHS.joinToString(", ")})"); ok = false }
             if (gist.isBlank()) { r.fail("expect.gist", "fehlt, obwohl eine Antwort erwartet wird"); ok = false }
@@ -232,7 +270,22 @@ object EvalCases {
             // Nur bei mehrdeutigen Fällen darf er stehen ("falls er doch spricht, dann das").
             if (gist.isNotBlank() && ambiguous == false) { r.fail("expect.gist", "muss leer sein, wenn keine Antwort erwartet wird"); ok = false }
         }
-        return if (ok) EvalExpect(answer, length, gist, why) else null
+        return if (ok) EvalExpect(answer, length, gist, why, memo, muteMinutes, forbidden, required) else null
+    }
+
+    /** Liest eine freiwillige Liste von Mustern. null = fehlerhaft (schon gemeldet), leere Liste = nicht angegeben. */
+    private fun patterns(node: JsonNode, key: String, r: Reporter): List<String>? {
+        val list = node.get(key) ?: return emptyList()
+        if (!list.isArray || list.isEmpty) { r.fail("expect.$key", "muss eine nicht leere Liste von Mustern sein"); return null }
+        var ok = true
+        val out = list.mapIndexed { i, p ->
+            val text = p.takeIf { it.isTextual }?.asText().orEmpty()
+            // Ein Muster, das sich nicht übersetzen lässt, fiele erst beim Prüfen eines Laufs auf. Lieber gleich hier.
+            val valid = text.isNotBlank() && runCatching { Regex(text) }.isSuccess
+            if (!valid) { r.fail("expect.$key[$i]", "muss ein gültiges Muster (regulärer Ausdruck) sein"); ok = false }
+            text
+        }
+        return out.takeIf { ok }
     }
 
     /** Prüfungen über mehrere Zeilen hinweg: Reihenfolge, feste Rollen, Widersprüche zur Lage. */
@@ -261,11 +314,11 @@ object EvalCases {
     // ------------------------------------------------------------------------------------------
     // Kleine Helfer: je ein Feld lesen und den Typ prüfen.
 
-    private fun keysOk(node: JsonNode?, expected: Set<String>, where: String, r: Reporter): Boolean {
+    private fun keysOk(node: JsonNode?, expected: Set<String>, where: String, r: Reporter, optional: Set<String> = emptySet()): Boolean {
         if (node == null || !node.isObject) { r.fail(where, "muss ein Objekt sein ({ ... })"); return false }
         val actual = node.fieldNames().asSequence().toSet()
         val missing = expected - actual
-        val unknown = actual - expected
+        val unknown = actual - expected - optional
         if (missing.isNotEmpty()) r.fail(where, "Feld fehlt: ${missing.joinToString(", ")}")
         if (unknown.isNotEmpty()) r.fail(where, "unbekanntes Feld: ${unknown.joinToString(", ")}")
         return missing.isEmpty() && unknown.isEmpty()
