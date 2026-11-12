@@ -171,12 +171,12 @@
       {"ago_s": 15, "who": "pong-b", "speaker": "dritte", "proximity": "fern", "text": "Das war Ellbogen, der zählt nicht! Wer entscheidet das jetzt?"},
       {"ago_s": 7, "who": "paula", "speaker": "partner", "proximity": "mittel", "text": "Was? Ich versteh hier drin kein Wort."}
     ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "all fred schreib dir mal auf montag powerbank und regenschirm für paula mitbringen"},
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "ja gleich. all fred schreib dir mal auf montag powerbank und regenschirm für paula mitbringen"},
     "expect": {
       "answer": true,
       "length": "kurz",
       "gist": "Knappe Bestätigung, dass notiert ist: am Montag Powerbank und Regenschirm für Paula mitbringen.",
-      "why": "Der Träger spricht Alfred im Partylärm mit zerhackt erkanntem Namen an und gibt einen Notizauftrag; das ist ein Befehl an den Assistenten und nichts, was an die Runde gerichtet wäre."
+      "why": "Nach einem kurzen Wort zu Paula spricht der Träger Alfred im Partylärm mit zerhackt erkanntem Namen an und gibt einen Notizauftrag; das ist ein Befehl an den Assistenten und nichts, was an die Runde gerichtet wäre."
     },
     "ambiguous": false,
     "tags": ["direct-address", "name-garbled", "stt-split-words", "command-remember", "loud-room", "crosstalk"]
@@ -226,7 +226,7 @@
       "answer": true,
       "length": "kurz",
       "gist": "Nein, es liegt nicht am Gin, sondern am Chinin im Tonic Water, das unter UV- bzw. Schwarzlicht bläulich fluoresziert.",
-      "why": "Die Warum-Frage aus dem eigenen Gespräch wurde von Marek nur falsch beantwortet, und der Träger zweifelt die Erklärung jetzt hörbar an."
+      "why": "Die Warum-Frage aus dem eigenen Gespräch wurde von Marek nur falsch beantwortet, und der Träger fragt sich jetzt hörbar, ob die Erklärung stimmt."
     },
     "ambiguous": false,
     "tags": ["wrong-answer-in-history", "wearer-doubts", "wearer-wonders", "no-wake-name", "lyrics-in-history"]
