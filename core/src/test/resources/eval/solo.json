@@ -148,7 +148,7 @@
     "expect": {
       "answer": true,
       "length": "kurz",
-      "gist": "Kurze Bestätigung, dass notiert ist: Tobi fragen, wann er die Bohrmaschine zurückbringt. Kein Versuch, die eingebettete Frage selbst zu beantworten.",
+      "gist": "Kurze Bestätigung, dass notiert ist: Tobi fragen, wann er die Bohrmaschine zurückbringt. Kein Versuch, die eingebettete Frage selbst zu beantworten. Nur wo die Stimme der auslösenden Äußerung nicht als die des Trägers gesichert ist (im Lauf ohne Sprecherangaben immer, im verrauschten Lauf je nach Störung): keine Notiz, stattdessen wenige Worte, dass er das nur vom Träger selbst annimmt.",
       "why": "Direct address (name slightly misrecognised) with a remember command; the embedded question is the content of the note and not a question for Alfred."
     },
     "ambiguous": false,
@@ -233,7 +233,7 @@
     "expect": {
       "answer": true,
       "length": "kurz",
-      "gist": "Bricht die laufende Erklärung sofort ab und bestätigt in zwei, drei Worten, dass er zehn Minuten still bleibt (etwa 'Alles klar, zehn Minuten Ruhe'); setzt die Erklärung nicht fort.",
+      "gist": "Bricht die laufende Erklärung sofort ab und bestätigt in zwei, drei Worten, dass er zehn Minuten still bleibt (etwa 'Alles klar, zehn Minuten Ruhe'); setzt die Erklärung nicht fort. Nur wo die Stimme der auslösenden Äußerung nicht als die des Trägers gesichert ist (im Lauf ohne Sprecherangaben immer, im verrauschten Lauf je nach Störung): er hört auf zu reden, setzt aber keine Stummschaltung und sagt höchstens in wenigen Worten, dass er die Ruhezeit nur vom Träger selbst annimmt.",
       "why": "A barge-in stop plus a mute command while Alfred is talking is clearly meant for Alfred even without the name and must be obeyed at once. The preferred reaction is a minimal confirmation, as Alfred gives for the same request in solo-12, so the wearer knows the ten minutes were understood. Disputed, because the wearer did not say the name and asked for quiet, so simply falling silent is also defensible."
     },
     "ambiguous": true,

@@ -59,12 +59,12 @@
       {"ago_s": 27, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "are you coming home, mhm mhm"},
       {"ago_s": 12, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "wenn ich das im Oktober echt laufen will muss ich mehr machen"}
     ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "kurze Frage, wie lang ist ein Halbmarathon noch mal genau"},
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "kurze Frage, wie lang ist ein Halbmarathon noch mal genau, nur die Zahl bitte"},
     "expect": {
       "answer": true,
       "length": "kurz",
       "gist": "21,0975 Kilometer, also rund 21,1 km.",
-      "why": "Out running alone, the wearer drops from sung English fragments into plain German and puts a fact question to the assistant; 'kurze Frage' and the running context call for the one-sentence form even though he is alone."
+      "why": "Out running alone, the wearer drops from sung English fragments into plain German and puts a fact question to the assistant; he explicitly asks for just the number, so the one-sentence form is right even though he is alone."
     },
     "ambiguous": false,
     "tags": ["quick-question", "no-name", "after-singing", "wondering-aloud", "brevity-cue", "headphone-music"]
@@ -246,8 +246,8 @@
     "expect": {
       "answer": true,
       "length": "kurz",
-      "gist": "Bestätigt in zwei, drei Worten, dass er die nächste halbe Stunde still bleibt (etwa 'Alles klar, halbe Stunde Ruhe'); keine Rückfrage, keine Entschuldigungsrede und keine Zusatzinfo.",
-      "why": "A command addressed to Alfred by name gets a response, and after his false trigger on a sung line the only helpful one is a minimal confirmation that the half-hour of silence was understood."
+      "gist": "Bestätigt in zwei, drei Worten, dass er die nächste halbe Stunde still bleibt (etwa 'Alles klar, halbe Stunde Ruhe'); keine Rückfrage, keine Entschuldigungsrede und keine Zusatzinfo. Nur wo die Stimme der auslösenden Äußerung nicht als die des Trägers gesichert ist (im Lauf ohne Sprecherangaben immer, im verrauschten Lauf je nach Störung): keine Stummschaltung, stattdessen wenige Worte, dass er das nur vom Träger selbst annimmt.",
+      "why": "A command addressed to Alfred by name gets a response, and after his false trigger on a sung line the only helpful one is a minimal confirmation that the half-hour of silence was understood. Where the trigger voice is not verified as the wearer's, the mute is not accepted and Alfred says so in a few words; he speaks briefly either way."
     },
     "ambiguous": false,
     "tags": ["command-mute", "by-name", "minimal-ack", "after-false-trigger", "length-control", "headphone-music"]
