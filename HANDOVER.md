@@ -1,5 +1,55 @@
 # Projektprotokoll (neueste zuerst)
 
+## 2026-11-12 (Gegenprüfung nach dem Zusammenführen) – Tests am gehärteten Vorfilter, fünf Nahtstellen repariert
+Anlass: Gesprächssteuerung, gehärteter Vorfilter und Sprech-Sicherheitsnetz wurden zusammengeführt; acht
+Tests waren rot und wurden an die neuen Einstufungen angeglichen. Diese Runde hat das unabhängig geprüft
+und die Stellen durchgespielt, an denen die drei Teile aufeinandertreffen.
+
+**Geprüft**
+- Jeder ersetzte Beispielsatz mit dem echten Vorfilter eingestuft (die Tests prüfen das jetzt selbst).
+  Keine Erwartung gelockert oder gestrichen.
+- Jede Regel, die einer der acht Tests bewacht, einzeln gebrochen (zwölf Mutationen an `Pipeline.kt`):
+  Der Test fällt jedes Mal durch. Dasselbe für die neuen Tests unten (sieben Mutationen).
+- Zwei weitere Tests wieder auf ihren Namen gebracht: „Nachfrage ohne Fragewort“ benutzte „und seit wann“,
+  das der Vorfilter inzwischen selbst als möglichen Anlass einstuft. Jetzt „und in Fuß“ (COLD).
+
+**Repariert (je mit Test)**
+- Rang 0 in `Pipeline.claimOf`: „Keine Ahnung, wie das heißt“ ist für den Vorfilter eine klare Frage, für
+  `Heuristics.isRealContent` aber keine Antwort. Die Pipeline hielt den Satz deshalb für einen Einwurf wie
+  „Warum?“, und die nächste Quizfrage aus dem Fernseher nahm dem Träger die Antwort weg. Jetzt zwei
+  Maßstäbe (`Pipeline.isAside`): Kommt der Satz neu dazu, steht er wie bisher zurück (die ratlose Reaktion
+  eines Freundes verdrängt die Frage nicht); wartet er selbst, zählt `Heuristics.saysSomething`.
+- Echo-Filter: Es kannte nur den Text, wie das Modell ihn schrieb („3 km“). Zu hören ist seit dem
+  Sicherheitsnetz die ausgeschriebene Fassung; ein Echo davon („drei Kilometer und 250 Meter“) rutschte
+  als fremde Zeile in die Mitschrift. Jetzt zählen die Wörter beider Fassungen.
+- Fenster nach dem Weckwort: Ein „Ja.“ oder „Hey“ ohne Namen gilt weiter als bloßer Ruf, legt aber nicht
+  mehr fest, wer gerufen hat (außer die Akustik erkennt den Träger). Vorher machte ein „Ja.“ aus dem
+  Fernseher den Fernseher zum Rufer, und sein nächster Satz ging als direkte Bitte ans Modell.
+- Längendeckel: Seit der Aufruf hinter dem Deckel weiterläuft (für MEMO/MUTE am Schluss), galt der
+  Assistent als sprechend, bis das Modell fertig war, und überhörte so lange jede Frage ohne Anrede; riss
+  die Verbindung in dieser Zeit ab, wurde der laufende Satz abgeschnitten und ein Fehler gemeldet. Jetzt
+  endet der Auftrag mit dem Ton, den Rest liest ein eigener Leser nur noch auf Sonderzeilen
+  (`Pipeline.drain`), hinter derselben Schranke `trusted`.
+- „Stopp“ zwischen zwei Aufträgen: Der neue Auftrag lief an und wurde gleich wieder abgebrochen. Lag
+  seine Antwort schon bereit, sprach er dazwischen den ersten Satz (der Test dazu fiel unter Last etwa
+  jedes zwölfte Mal durch). Jetzt startet er erst, wenn feststeht, dass kein Stopp dazwischenkam.
+
+**Offen (bewusst nicht geändert, Entscheidung des Besitzers)**
+- „Wie viele Zeitzonen hat Russland?“ und gleich danach „Und China?“, bevor die erste Antwort zu hören ist:
+  Die verkürzte Anschlussfrage ist für den Vorfilter MAYBE, steht als beiläufige Aussage zurück und verfällt,
+  sobald die erste Antwort gesprochen ist. Nach der Antwort gestellt, wird sie als Nachfrage beantwortet.
+- Eine Merk-Bitte ohne Anrede („merk dir bitte …“) ist nie HOT; sie hängt an der Vorprüfung, und die fragt
+  nur nach einem Wissenswunsch. Verlässlich ist nur „Alfred, merk dir …“.
+- Nach dem Weckwort gilt „Gruß und ein unbekanntes Wort“ als verhörter Ruf. Das verschluckt auch eine
+  Zwei-Wort-Bitte wie „Hey, Uhrzeit?“ (war schon vor dem Zusammenführen so).
+- Das Echo-Filter kennt den Wortlaut einer Antwort erst, wenn sie zu Ende ist (ebenfalls schon vorher so).
+
+**Stand der Tests** nach dem Einspielen auf den Hauptzweig: 482 Kern-Tests (1 übersprungen: braucht einen
+Schlüssel), 126 App-Tests, alle grün; APK mit Weckwort gebaut, Lint ohne Fehler.
+
+**Nicht geprüft**: weiterhin kein Lauf mit echten Schlüsseln und keiner auf einem Gerät. `Persona.kt` ist
+unverändert, die Auswertung war deshalb nicht nötig.
+
 ## 2026-11-12 (Prüfrunde) – unabhängige Durchsichten, Reparaturen, neues Design
 Anlass: Frage „Wie gut ist es schon, geht es besser?“. Antwort der Prüfrunde: gebaut und schlüssig,
 aber mit Fehlern, die beim ersten Gerätetest sofort aufgefallen wären.

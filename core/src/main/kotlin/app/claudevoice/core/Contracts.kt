@@ -20,8 +20,10 @@ interface Transcriber {
         /**
          * Zwischenstand der laufenden Äußerung; spätere Zwischenstände ersetzen frühere.
          * [turnProbability] 0..1: wie sicher der Anbieter ist, dass der Sprecher fertig ist (null = unbekannt).
+         * [speaker] ist die vorläufige Sprecher-ID des Anbieters, dieselbe, die später [onCommitted] nennt
+         * (null = unbekannt). Mit ihr kann die App schon vor dem Satzende einschätzen, wer spricht.
          */
-        fun onPartial(text: String, turnProbability: Double?)
+        fun onPartial(text: String, turnProbability: Double?, speaker: String? = null)
 
         /**
          * Fertige Äußerung. [speaker] ist eine vorläufige Sprecher-ID des Anbieters oder null,

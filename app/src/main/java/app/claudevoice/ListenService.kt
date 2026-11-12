@@ -105,7 +105,6 @@ class ListenService : Service() {
     private var mic: MicSource? = null
     private var speaker: AndroidSpeaker? = null
     @Volatile private var pipeline: Pipeline? = null
-    private var brain: Brain? = null
     private var synth: ElevenTts? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var standbyWatch: Job? = null
@@ -367,7 +366,6 @@ class ListenService : Service() {
             return
         }
 
-        brain = ready.brain
         // Vorwärmen, während der Nutzer noch gar nichts gesagt hat: Die Verbindung zur Sprachausgabe steht
         // dann schon, und Claude hat Regeln und Gedächtnis bereits zwischengespeichert.
         tts.warmUp()
@@ -432,16 +430,16 @@ class ListenService : Service() {
             (tone ?: ToneGenerator(AudioManager.STREAM_MUSIC, 55).also { tone = it })
                 .startTone(ToneGenerator.TONE_PROP_BEEP, 120)
         }
-        lastActivityMs = System.currentTimeMillis()
+        // Die Fenster der Bereitschaft zählen auf der Uhr, die seit dem Einschalten des Handys läuft. Die
+        // Wanduhr kann vom Netz verstellt werden; spränge sie zurück, bliebe die Übertragung entsprechend
+        // länger offen, und genau das darf in der Bereitschaft nie still passieren.
+        lastActivityMs = SystemClock.elapsedRealtime()
         wokeAtMs = lastActivityMs
         // Die Pipeline merkt sich das Weckwort: die folgende Äußerung gilt als Anrede, auch wenn die
-        // Transkription "Hey Jarvis" verhört.
+        // Transkription "Hey Jarvis" verhört. Sie wärmt dabei auch die Verbindungen auf, die für die
+        // Antwort gebraucht werden (Sprachausgabe immer, Claude nur nach längerer Ruhe). Zwischen Weckwort
+        // und Ende der Frage vergehen ein, zwei Sekunden; so kostet das die Antwort keine Zeit.
         pipe.onWakeWord()
-        // Zwischen Weckwort und Ende der Frage vergehen ein, zwei Sekunden. In dieser Zeit werden die
-        // Verbindungen aufgewärmt, die für die Antwort gebraucht werden. Nach längerer Bereitschaft sind
-        // sie sonst geschlossen, und ihr Neuaufbau ginge von der Antwortzeit ab.
-        out.prepare()
-        brain?.let { b -> scope.launch(Dispatchers.IO) { runCatching { b.warmUp() } } }
         openStream()
     }
 
@@ -456,12 +454,13 @@ class ListenService : Service() {
         val mine = AtomicReference<Transcriber>()
         AppState.ui.update { it.copy(status = "Verbinde …") }
         val listener = object : Transcriber.Listener {
-            override fun onPartial(text: String, turnProbability: Double?) = pipe.onPartial(text, turnProbability)
+            override fun onPartial(text: String, turnProbability: Double?, speaker: String?) =
+                pipe.onPartial(text, turnProbability, speaker)
 
             override fun onCommitted(text: String, speaker: String?, segment: Int?) {
                 // Nur die Bitte direkt nach dem Weckwort hält das Fenster offen. Dass danach irgendwer im
                 // Raum weiterredet, darf die Übertragung nicht endlos verlängern.
-                val now = System.currentTimeMillis()
+                val now = SystemClock.elapsedRealtime()
                 if (now - wokeAtMs < ACTIVE_WINDOW_MS) lastActivityMs = now
                 pipe.onCommitted(text, speaker, segment)
             }
@@ -524,7 +523,7 @@ class ListenService : Service() {
                 delay(1_000)
                 // Solange der Assistent spricht, bleibt das Fenster offen (für Nachfragen); danach zählt die
                 // Zeit. Spätestens nach MAX_AWAKE_MS ist Schluss, bis das Weckwort erneut fällt.
-                val now = System.currentTimeMillis()
+                val now = SystemClock.elapsedRealtime()
                 val speaking = AppState.ui.value.speaking
                 if (speaking) lastActivityMs = now
                 if (!speaking && (now - lastActivityMs > ACTIVE_WINDOW_MS || now - wokeAtMs > MAX_AWAKE_MS)) {

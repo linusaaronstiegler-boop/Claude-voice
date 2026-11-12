@@ -73,6 +73,21 @@ class AnthropicClaudeTest {
         assertEquals("disabled", body["thinking"]["type"].asText())
     }
 
+    @Test fun `Vorpruefung nutzt das schnelle Modell und dieselbe Verbindung wie die uebrigen Aufrufe`() {
+        val reply = """{"id":"msg_3","type":"message","role":"assistant","model":"claude-haiku-5-5","content":[{"type":"text","text":"JA"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":5,"output_tokens":1}}"""
+        repeat(2) { server.enqueue(MockResponse().setHeader("content-type", "application/json").setBody(reply)) }
+        val claude = AnthropicClaude("sk-test", server.url("/").toString())
+        assertEquals("JA", claude.quick("System", "Text", 200))
+        assertEquals("JA", claude.gate("System", "Text", 10))
+
+        val first = server.takeRequest()
+        val second = server.takeRequest()
+        assertEquals("claude-haiku-5-5", ObjectMapper().readTree(second.body.readUtf8())["model"].asText())
+        // Die kurze Frist darf keine eigene Verbindung kosten: Der zweite Aufruf läuft über die schon offene.
+        assertEquals(0, first.sequenceNumber)
+        assertEquals(1, second.sequenceNumber)
+    }
+
     @Test fun `Abbruch-Signal beendet den laufenden Strom ohne Fehler`() {
         val events = StringBuilder()
         events.append("event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet-5-5\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":5,\"output_tokens\":1}}}\n\n")

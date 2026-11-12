@@ -318,7 +318,7 @@ class ScribeClient(
             words != null && words.isArray -> draftSpeaker = dominantSpeaker(words)
         }
         val probability = msg.get("turn_probability")?.takeIf { it.isNumber }?.asDouble()?.coerceIn(0.0, 1.0)
-        listener.onPartial(text, probability)
+        listener.onPartial(text, probability, draftSpeaker)
     }
 
     private fun committed(msg: JsonNode) {

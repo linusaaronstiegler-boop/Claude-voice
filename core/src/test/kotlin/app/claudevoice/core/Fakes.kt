@@ -2,7 +2,9 @@ package app.claudevoice.core
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -74,3 +76,86 @@ fun tone(hz: Double, amplitude: Double, ms: Int, rate: Int = 16000): ByteArray {
 }
 
 fun silence(ms: Int) = ByteArray(16000 * ms / 1000 * 2)
+
+/**
+ * Lautsprecher-Attrappe, die wie der echte zwei Dinge trennt: was die Sprachausgabe schon bekommen hat
+ * ([received], auch hinter der noch geschlossenen Schranke) und was wirklich zu hören war ([spoken]).
+ * Mit [clock] und [playMs] dauert das Abspielen einer Antwort so lange auf der Uhr des Tests.
+ */
+class RecordingSpeaker(
+    private val clock: java.util.concurrent.atomic.AtomicLong? = null,
+    private val playMs: Long = 0,
+) : Speaker {
+    val received = java.util.concurrent.CopyOnWriteArrayList<String>()
+    val spoken = java.util.concurrent.CopyOnWriteArrayList<String>()
+    val prepares = java.util.concurrent.atomic.AtomicInteger()
+
+    override suspend fun speak(sentences: ReceiveChannel<String>, release: Deferred<Boolean>?, onFirstAudio: () -> Unit) {
+        kotlinx.coroutines.coroutineScope {
+            val ready = kotlinx.coroutines.channels.Channel<String>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+            val intake = launch {
+                for (s in sentences) { received += s; ready.send(s) }
+                ready.close()
+            }
+            if (release != null && !release.await()) {
+                intake.cancel()
+                return@coroutineScope
+            }
+            var any = false
+            for (s in ready) {
+                if (!any) onFirstAudio()
+                any = true
+                spoken += s
+            }
+            if (any) clock?.addAndGet(playMs)
+        }
+    }
+
+    override fun stop() {}
+    override fun prepare() { prepares.incrementAndGet() }
+}
+
+/**
+ * Verdrahtung wie im Dienst auf dem Handy: die Pipeline auf Dispatchers.Default, Modell-Aufrufe auf
+ * Dispatchers.IO, also echte Threads. Nur so lässt sich prüfen, was passiert, während ein Aufruf
+ * wirklich noch unterwegs ist. Die Uhr stellt der Test von Hand ([clock]).
+ */
+class ThreadRig(
+    val claude: ClaudeApi,
+    config: Pipeline.Config = Pipeline.Config(),
+    val speaker: RecordingSpeaker = RecordingSpeaker(),
+    val clock: java.util.concurrent.atomic.AtomicLong = java.util.concurrent.atomic.AtomicLong(0),
+) {
+    val state = kotlinx.coroutines.flow.MutableStateFlow(UiState())
+    val env = FakeEnv()
+    val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+    val pipeline = Pipeline(
+        Brain(claude, Profile()), speaker, state, scope, kotlinx.coroutines.Dispatchers.IO, config, env,
+    ) { clock.get() }.also { it.start() }
+
+    /** Der Träger spricht: laute, tiefe Stimme am Kopfhörer-Mikro, dann die fertige Äußerung. */
+    fun wearerSays(text: String) = says(115.0, 8000.0, 600, text)
+
+    /** Irgendeine Stimme: [ms] Ton in Tonhöhe [hz] und Lautstärke [amplitude], dann die fertige Äußerung. */
+    fun says(hz: Double, amplitude: Double, ms: Int, text: String) {
+        pipeline.onAudio(silence(300), 9600)
+        val t = tone(hz, amplitude, ms)
+        pipeline.onAudio(t, t.size)
+        pipeline.onCommitted(text, null, null)
+    }
+
+    fun close() {
+        pipeline.stop()
+        scope.cancel()
+    }
+}
+
+/** Wartet höchstens [ms] Millisekunden echte Zeit darauf, dass [condition] wahr wird. */
+fun waitFor(ms: Long, condition: () -> Boolean): Boolean {
+    val end = System.nanoTime() + ms * 1_000_000
+    while (System.nanoTime() < end) {
+        if (condition()) return true
+        Thread.sleep(10)
+    }
+    return condition()
+}

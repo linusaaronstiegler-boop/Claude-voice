@@ -254,7 +254,7 @@ class AudioGateTest {
     @Test fun `Rueckrufe erreichen den Listener nur solange die Verbindung die aktuelle ist`() {
         val seen = ArrayList<String>()
         val inner = object : Transcriber.Listener {
-            override fun onPartial(text: String, turnProbability: Double?) { seen += "partial" }
+            override fun onPartial(text: String, turnProbability: Double?, speaker: String?) { seen += "partial" }
             override fun onCommitted(text: String, speaker: String?, segment: Int?) { seen += "committed" }
             override fun onDiarized(segment: Int, parts: List<SpokenPart>) { seen += "diarized" }
             override fun onSpeakersMerged(from: String, to: String) { seen += "merged" }

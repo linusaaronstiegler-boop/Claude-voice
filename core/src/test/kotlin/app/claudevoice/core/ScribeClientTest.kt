@@ -40,9 +40,14 @@ class ScribeClientTest {
     /** Alles, was der Client an die App meldet, in Reihenfolge und als gut lesbarer Text. */
     private val events = LinkedBlockingQueue<String>()
     private val diarized = LinkedBlockingQueue<Pair<Int, List<SpokenPart>>>()
+    /** Der vorläufige Sprecher je Zwischenstand, in Reihenfolge (null = unbekannt). */
+    private val partialSpeakers = java.util.concurrent.CopyOnWriteArrayList<String?>()
 
     private val recorder = object : Transcriber.Listener {
-        override fun onPartial(text: String, turnProbability: Double?) { events += "partial:$text:$turnProbability" }
+        override fun onPartial(text: String, turnProbability: Double?, speaker: String?) {
+            partialSpeakers += speaker
+            events += "partial:$text:$turnProbability"
+        }
         override fun onCommitted(text: String, speaker: String?, segment: Int?) { events += "committed:$text:$speaker:$segment" }
         override fun onDiarized(segment: Int, parts: List<SpokenPart>) { diarized += segment to parts }
         override fun onSpeakersMerged(from: String, to: String) { events += "merged:$from>$to" }
@@ -235,6 +240,8 @@ class ScribeClientTest {
         assertEquals("partial:Aha:null", next())
         assertEquals("partial::null", next())
         assertEquals("committed:Aha.:null:null", next())
+        // Jeder Zwischenstand nennt schon den Sprecher, den die fertige Äußerung später tragen würde.
+        assertEquals(listOf("speaker_1", "speaker_2", "speaker_2", "speaker_0", null), partialSpeakers.toList())
     }
 
     @Test fun `Diarisierung fasst aufeinanderfolgende Woerter eines Sprechers zusammen`() {
@@ -636,7 +643,7 @@ class ScribeClientTest {
             it.send("""{"message_type":"committed_transcript","text":"Wie hoch?"}""")
         })
         connect(listener = object : Transcriber.Listener by recorder {
-            override fun onPartial(text: String, turnProbability: Double?) { error("Fehler in der App") }
+            override fun onPartial(text: String, turnProbability: Double?, speaker: String?) { error("Fehler in der App") }
         })
         assertEquals("conn:true:null:fresh", next())
         assertEquals("conn:true:Transkription: interner Fehler (IllegalStateException)", next())

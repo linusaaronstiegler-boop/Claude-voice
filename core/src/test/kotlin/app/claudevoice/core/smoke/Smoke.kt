@@ -81,7 +81,7 @@ fun main() {
         val committedAt = AtomicLong(0)
         val error = AtomicReference<String?>(null)
         val client = ScribeClient(eleven, http, object : Transcriber.Listener {
-            override fun onPartial(text: String, turnProbability: Double?) {}
+            override fun onPartial(text: String, turnProbability: Double?, speaker: String?) {}
             override fun onCommitted(t: String, speaker: String?, segment: Int?) {
                 if (t.isNotBlank() && committedAt.compareAndSet(0, System.currentTimeMillis())) { text.set(t); done.countDown() }
             }

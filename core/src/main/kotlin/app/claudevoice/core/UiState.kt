@@ -15,7 +15,10 @@ data class UiState(
     val scene: String? = null,
     /** Letzte Entscheidung in Klartext, z. B. "übersprungen: hintergrund" oder "antwortet (kurz)". */
     val lastDecision: String? = null,
-    /** Zeit vom Ende der Äußerung bis zum ersten hörbaren Ton der letzten Antwort. */
+    /**
+     * Zeit vom Ende der Äußerung bis zum ersten hörbaren Ton der letzten Antwort. "Ende" ist das letzte neue
+     * Wort in der Mitschrift, nicht das spätere Eintreffen der fertigen Äußerung: So fühlt sich die Wartezeit an.
+     */
     val latencyMs: Long? = null,
     /** Bis wann der Assistent auf Wunsch schweigt (0 = nicht stumm). */
     val mutedUntilMs: Long = 0,

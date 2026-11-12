@@ -61,7 +61,11 @@ class SonioxClientTest {
         val events = LinkedBlockingQueue<Event>()
 
         private fun add(text: String) { events += Event(text, System.nanoTime()) }
-        override fun onPartial(text: String, turnProbability: Double?) = add("partial:$text")
+        val partialSpeakers = java.util.concurrent.CopyOnWriteArrayList<String?>()
+        override fun onPartial(text: String, turnProbability: Double?, speaker: String?) {
+            partialSpeakers += speaker
+            add("partial:$text")
+        }
         override fun onCommitted(text: String, speaker: String?, segment: Int?) = add("committed:$segment:$speaker:$text")
         override fun onDiarized(segment: Int, parts: List<SpokenPart>) =
             add("diarized:$segment:" + parts.joinToString(" | ") { "${it.speaker}=${it.text}@${it.startSec}-${it.endSec}" })
@@ -199,6 +203,8 @@ class SonioxClientTest {
         assertEquals("diarized:0:1=Wie geht es dir?@0.6-1.4 | 2=Gut, danke.@1.6-2.2", rec.next())
         assertEquals("committed:1:2:Und du?", rec.next())
         assertEquals("diarized:1:2=Und du?@3.0-3.5", rec.next())
+        // Schon der Zwischenstand nennt den vorläufigen Hauptsprecher, denselben wie die fertige Äußerung.
+        assertEquals(listOf<String?>("1"), rec.partialSpeakers.toList())
     }
 
     @Test fun `Redebeitrag ohne Pause wird an einer Wortgrenze geteilt`() {

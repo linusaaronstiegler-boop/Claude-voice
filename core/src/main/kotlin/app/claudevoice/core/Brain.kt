@@ -7,7 +7,8 @@ data class Tidy(val scene: String?, val aside: Set<Long>)
  * Die drei Denk-Aufgaben, jeweils ein API-Aufruf:
  *  - [respond]: entscheiden UND antworten in einem gestreamten Aufruf (starkes Modell). Das erste Wort
  *    der Ausgabe ist die Entscheidung. Ein Aufruf statt zwei spart einen ganzen Netz-Umlauf.
- *  - [pregate]: billige Vorprüfung für Äußerungen, die nicht wie eine Frage aussehen.
+ *  - [pregate]: billige Vorprüfung für Äußerungen, die nicht wie eine Frage aussehen. Sie läuft im selben
+ *    Auftrag direkt vor [respond] und hat eine eigene kurze Frist, damit sie nie eine Antwort aufhält.
  *  - [tidy]: sortiert im Hintergrund, was zum Gespräch des Trägers gehört (nicht zeitkritisch).
  */
 class Brain(private val claude: ClaudeApi, profile: Profile) {
@@ -16,15 +17,19 @@ class Brain(private val claude: ClaudeApi, profile: Profile) {
     /** Die Rufnamen des Assistenten. Der Ordner braucht sie, um "Alfred, ..." als Anrede an ihn zu erkennen. */
     private val names: List<String> = Persona.calledNames(profile)
 
+    /** So heißen seine eigenen Zeilen in der Mitschrift; dasselbe Wort steht in der Legende des System-Prompts. */
+    private val selfLabel: String = Persona.selfLabel(profile)
+
     /** Blockiert, bis die Antwort vollständig ist; [onText] bekommt den Text stückweise. */
     fun respond(turn: Turn, cancel: CancelToken = CancelToken(), onText: (String) -> Unit) =
-        claude.respond(system, Persona.userMessage(turn), cancel, onText)
+        claude.respond(system, Persona.userMessage(turn, selfLabel), cancel, onText)
 
     /** Beim Start aufrufen: lädt Regeln und Gedächtnis vorab in den Zwischenspeicher der API. */
     fun warmUp() = claude.warmUp(system)
 
+    /** Kurze Frist, kein zweiter Versuch (siehe [ClaudeApi.gate]): Scheitert sie, wirft sie eine Ausnahme. */
     fun pregate(turn: Turn): Boolean =
-        claude.quick(Persona.PREGATE_SYSTEM, Persona.userMessage(turn), 10).trim().uppercase().startsWith("JA")
+        claude.gate(Persona.PREGATE_SYSTEM, Persona.userMessage(turn, selfLabel), 10).trim().uppercase().startsWith("JA")
 
     fun tidy(lines: List<Line>, previousScene: String?, mic: MicMode, nowMs: Long): Tidy {
         if (lines.isEmpty()) return Tidy(previousScene, emptySet())

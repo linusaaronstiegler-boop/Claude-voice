@@ -854,6 +854,17 @@ object Heuristics {
         return if (rest.size < w.size) content > CLUELESS_SLACK else content >= 2
     }
 
+    /**
+     * Sagt die Äußerung für sich genommen etwas (mindestens zwei Wörter, die kein Füllsel sind)?
+     *
+     * Der Unterschied zu [isRealContent] ist die Ratlosigkeit. "Keine Ahnung, wie das heißt" ist als Reaktion
+     * auf eine Frage keine Antwort, darum zählt es dort nicht. Für sich genommen ist derselbe Satz aber ein
+     * Wissenswunsch und kein leerer Einwurf wie "Warum?". Wer wissen will, ob eine Äußerung ein eigenes
+     * Anliegen trägt, fragt deshalb hier. Was für [isRealContent] Inhalt ist, sagt auch hier etwas.
+     */
+    fun saysSomething(text: String): Boolean =
+        words(text).map(Words::fold).count { it.isNotEmpty() && it !in Words.FILLERS } >= 2
+
     // ==============================================================================================
 
     /** Levenshtein-Abstand: wie viele Buchstaben muss man einfügen, löschen oder tauschen. */

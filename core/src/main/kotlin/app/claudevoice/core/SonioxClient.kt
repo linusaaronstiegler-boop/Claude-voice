@@ -285,10 +285,13 @@ class SonioxClient(
                 }
             }
             // Zwischenstand = alles Feste des laufenden Redebeitrags plus die vorläufigen Tokens dieser Nachricht.
-            val partial = textOf(bySpeaker(finals + pending))
+            val parts = bySpeaker(finals + pending)
+            val partial = textOf(parts)
             if (partial != lastPartial) {
                 lastPartial = partial
-                listener.onPartial(partial, null)
+                // Vorläufiger Sprecher: wer bisher am meisten Text beigetragen hat (so rechnet auch endTurn).
+                val speaker = parts.groupBy({ it.speaker }, { it.text.length }).maxByOrNull { it.value.sum() }?.key
+                listener.onPartial(partial, null, speaker)
             }
         }
 

@@ -34,7 +34,7 @@ class ServiceReportsTest {
     /** Sammelt, was ein Client über seine Verbindung meldet. */
     private class Reports : Transcriber.Listener {
         val errors = LinkedBlockingQueue<String>()
-        override fun onPartial(text: String, turnProbability: Double?) {}
+        override fun onPartial(text: String, turnProbability: Double?, speaker: String?) {}
         override fun onCommitted(text: String, speaker: String?, segment: Int?) {}
         override fun onConnection(connected: Boolean, error: String?, fresh: Boolean) {
             if (!connected && error != null) errors += error

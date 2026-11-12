@@ -43,6 +43,14 @@ class CancelToken {
 }
 
 /**
+ * So lange darf die billige Vorprüfung höchstens dauern. Warum so knapp: Sie steht vor der eigentlichen
+ * Antwort. Eine unbenannte Antwort, die später als vier Sekunden nach der Äußerung käme, wird ohnehin
+ * verworfen; eine Vorprüfung mit der üblichen Frist (zwölf Sekunden, ein zweiter Versuch) würde also
+ * nur Zeit verbrennen. Läuft die Frist ab, entscheidet das starke Modell eben ohne sie.
+ */
+const val GATE_TIMEOUT_MS = 1_500L
+
+/**
  * Schmale Schnittstelle zu Claude. Der Rest der App kennt nur diese Funktionen;
  * in Tests wird sie durch eine Attrappe ersetzt, damit keine echten API-Aufrufe nötig sind.
  */
@@ -55,6 +63,13 @@ interface ClaudeApi {
 
     /** Schnelles Modell für kurze Urteile (Vorprüfung, Ordner). Antwort als Ganzes. */
     fun quick(system: String, user: String, maxTokens: Long): String
+
+    /**
+     * Wie [quick], aber für ein Urteil, auf das eine Antwort wartet (die Vorprüfung): höchstens
+     * [GATE_TIMEOUT_MS] lang und ohne zweiten Versuch. Wer länger braucht, scheitert mit einer Ausnahme;
+     * der Aufrufer macht dann ohne das Urteil weiter. Attrappen dürfen einfach [quick] benutzen.
+     */
+    fun gate(system: String, user: String, maxTokens: Long): String = quick(system, user, maxTokens)
 
     /** Lädt den System-Prompt vorab in den Zwischenspeicher der API, damit schon die erste echte Antwort schnell ist. */
     fun warmUp(system: String) {}
@@ -75,6 +90,13 @@ class AnthropicClaude(apiKey: String, baseUrl: String? = null) : ClaudeApi {
         .maxRetries(1)
         .apply { if (baseUrl != null) baseUrl(baseUrl) }
         .build()
+
+    // Derselbe Client (dieselbe schon offene Verbindung), nur mit kurzer Frist und ohne Wiederholung.
+    private val hurried: AnthropicClient = client.withOptions {
+        val limit = Duration.ofMillis(GATE_TIMEOUT_MS)
+        it.timeout(Timeout.builder().connect(limit).read(limit).request(limit).build())
+        it.maxRetries(0)
+    }
 
     private fun answerParams(system: String, user: String, maxTokens: Long): BetaMessageCreateParams =
         BetaMessageCreateParams.builder()
@@ -126,7 +148,11 @@ class AnthropicClaude(apiKey: String, baseUrl: String? = null) : ClaudeApi {
         client.beta().messages().create(answerParams(system, "(Vorwärmen)", 0L))
     }
 
-    override fun quick(system: String, user: String, maxTokens: Long): String {
+    override fun quick(system: String, user: String, maxTokens: Long): String = quick(client, system, user, maxTokens)
+
+    override fun gate(system: String, user: String, maxTokens: Long): String = quick(hurried, system, user, maxTokens)
+
+    private fun quick(via: AnthropicClient, system: String, user: String, maxTokens: Long): String {
         val params = MessageCreateParams.builder()
             .model(QUICK_MODEL)
             .maxTokens(maxTokens)
@@ -135,7 +161,7 @@ class AnthropicClaude(apiKey: String, baseUrl: String? = null) : ClaudeApi {
             .thinking(ThinkingConfigDisabled.builder().build())
             .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.LOW).build())
             .build()
-        return client.messages().create(params).content()
+        return via.messages().create(params).content()
             .mapNotNull { block -> block.text().orElse(null)?.text() }
             .joinToString("")
     }

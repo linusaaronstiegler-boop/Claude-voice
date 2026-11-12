@@ -210,6 +210,33 @@ class HeuristicsTableTest {
         assertTrue("falsch:\n" + wrong.joinToString("\n") { "\"${it.first}\" soll ${it.second}" }, wrong.isEmpty())
     }
 
+    @Test fun `eigenes Anliegen gegen blossen Einwurf`() {
+        // Die Pipeline fragt hiernach, ob eine wartende Äußerung für sich ein Anliegen trägt (Pipeline.isAside).
+        // Anders als bei isRealContent zählt Ratlosigkeit vor einer Frage mit: Der Satz ist ein Wissenswunsch.
+        val rows = listOf(
+            "keine Ahnung wie das heißt" to true,
+            "weiß nicht wie der heißt" to true,
+            "keine Ahnung wer das war" to true,
+            "nicht sicher ob das stimmt" to true,
+            "Stimmt das?" to true,
+            "Wann fängt der Film an?" to true,
+
+            "Warum?" to false,
+            "Ja wieso?" to false,
+            "Wann?" to false,
+            "keine Ahnung" to false,
+            "ähm gute Frage" to false,
+            "" to false,
+        )
+        val wrong = rows.filter { (text, expected) -> Heuristics.saysSomething(text) != expected }
+        assertTrue("falsch:\n" + wrong.joinToString("\n") { "\"${it.first}\" soll ${it.second}" }, wrong.isEmpty())
+        // Die ersten vier sind genau die Fälle, in denen sich die beiden Maßstäbe unterscheiden.
+        for ((text, _) in rows.take(4)) assertEquals(text, false, Heuristics.isRealContent(text))
+        // Was als Antwort auf eine Frage zählt, sagt erst recht für sich etwas.
+        val odd = CONTENT_ROWS.filter { (text, content) -> content && !Heuristics.saysSomething(text) }.map { it.first }
+        assertTrue("Inhalt, aber kein Anliegen: $odd", odd.isEmpty())
+    }
+
     @Test fun `Zwischenstaende und krumme Eingaben bringen nichts zum Absturz`() {
         // Der Vorfilter sieht jeden Zwischenstand der Transkription, also auch halbe Sätze.
         // Hier läuft jede Zeile Wort für Wort durch alle Funktionen; es darf nur nichts schiefgehen.

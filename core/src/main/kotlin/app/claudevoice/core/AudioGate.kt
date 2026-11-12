@@ -161,8 +161,8 @@ class CurrentOnlyListener(
     private val inner: Transcriber.Listener,
     private val isCurrent: () -> Boolean,
 ) : Transcriber.Listener {
-    override fun onPartial(text: String, turnProbability: Double?) {
-        if (isCurrent()) inner.onPartial(text, turnProbability)
+    override fun onPartial(text: String, turnProbability: Double?, speaker: String?) {
+        if (isCurrent()) inner.onPartial(text, turnProbability, speaker)
     }
 
     override fun onCommitted(text: String, speaker: String?, segment: Int?) {

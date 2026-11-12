@@ -83,14 +83,14 @@ class ConversationBuffer(
          * Schreibt die Mitschrift so auf, wie das Modell sie liest: pro Zeile Alter, Stimmen-Schätzung und
          * Sprecher-Kürzel; die Äußerung, um die es geht, zuletzt und mit ">>" markiert.
          */
-        fun render(history: List<Line>, trigger: Line): String = buildString {
+        fun render(history: List<Line>, trigger: Line, selfLabel: String = Voice.ALFRED.label): String = buildString {
             for (line in history) {
                 val ago = ((trigger.atMs - line.atMs) / 1000).coerceAtLeast(0)
                 append("[vor ").append(ago).append(" s] ")
                 if (line.aside) append("(abseits) ")
-                append(who(line)).append(": ").append(line.text).append('\n')
+                append(who(line, selfLabel)).append(": ").append(line.text).append('\n')
             }
-            append(">> [jetzt] ").append(who(trigger)).append(": ").append(trigger.text)
+            append(">> [jetzt] ").append(who(trigger, selfLabel)).append(": ").append(trigger.text)
         }
 
         /** Nummerierte Fassung für den Ordner. */
@@ -101,6 +101,14 @@ class ConversationBuffer(
             }
         }.trimEnd()
 
-        fun who(line: Line): String = if (line.speaker != null) "${line.voice.label} ${line.speaker}" else line.voice.label
+        /**
+         * Das Etikett vor einer Zeile. [selfLabel] ist der Name, unter dem die eigenen Zeilen des Assistenten
+         * stehen. Für das Modell ist das sein eingestellter Name (heißt er "Jarvis", steht dort JARVIS und
+         * nicht ALFRED, sonst hielte es seine eigene Antwort für die eines Dritten).
+         */
+        fun who(line: Line, selfLabel: String = Voice.ALFRED.label): String {
+            val label = if (line.voice == Voice.ALFRED) selfLabel else line.voice.label
+            return if (line.speaker != null) "$label ${line.speaker}" else label
+        }
     }
 }

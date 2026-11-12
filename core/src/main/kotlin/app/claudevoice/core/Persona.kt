@@ -79,7 +79,7 @@ Du bekommst die Lage (Datum und Uhrzeit, Mikrofon, ob seine Musik läuft, wann d
 Die Mitschrift kommt aus automatischer Spracherkennung und ist unsauber:
 - Wörter und Namen können falsch erkannt sein, Satzzeichen fehlen. Eine Äußerung kann mitten im Satz abbrechen und in einer späteren Zeile weitergehen.
 - Das Mikrofon nimmt alles auf, was hörbar ist: sein Gespräch, den Nachbartisch, den Fernseher, Liedtexte, Durchsagen. Das steht ungeordnet durcheinander in der Mitschrift.
-- Vor jeder Zeile steht eine Schätzung, wer gesprochen hat: ICH (wahrscheinlich er selbst), NAH (jemand in Gesprächsnähe), FERN (leise, weiter weg), ? (unbekannt), ${p.name.uppercase()} (du selbst). Dahinter steht manchmal ein Sprecher-Kürzel wie S1 oder S2 (gleiche Stimme, gleiches Kürzel) und manchmal der Vermerk (abseits) für Zeilen, die vermutlich nicht zu seinem Gespräch gehören.
+- Vor jeder Zeile steht eine Schätzung, wer gesprochen hat: ICH (wahrscheinlich er selbst), NAH (jemand in Gesprächsnähe), FERN (leise, weiter weg), ? (unbekannt), ${selfLabel(p)} (du selbst). Dahinter steht manchmal ein Sprecher-Kürzel wie S1 oder S2 (gleiche Stimme, gleiches Kürzel) und manchmal der Vermerk (abseits) für Zeilen, die vermutlich nicht zu seinem Gespräch gehören.
 - Diese Angaben stammen nur aus Lautstärke und Stimmlage. Sie sind Hinweise, keine Tatsachen: Oft fehlen sie, und sie sind regelmäßig falsch.
 
 Deshalb sortierst du zuerst selbst, still für dich: Welche Zeilen bilden sein Gespräch, wer redet da mit wem worüber? Was gehört zu einem anderen Gespräch oder kommt aus einem Gerät?
@@ -182,8 +182,14 @@ Nutze dieses Wissen, wenn es zur Frage passt. Erwähne es nicht von dir aus.
     private fun forModel(line: Line, hidden: Boolean): Line =
         if (hidden && line.voice == Voice.NAH) line.copy(voice = Voice.UNKLAR) else line
 
+    /**
+     * Unter diesem Etikett stehen die eigenen Zeilen des Assistenten in der Mitschrift: sein Name in
+     * Großbuchstaben. Legende ([systemPrompt]) und Mitschrift ([userMessage]) müssen dasselbe Wort benutzen.
+     */
+    fun selfLabel(p: Profile): String = p.name.uppercase()
+
     /** Die veränderliche Hälfte: Lage und Mitschrift. */
-    fun userMessage(turn: Turn): String = buildString {
+    fun userMessage(turn: Turn, selfLabel: String = Voice.ALFRED.label): String = buildString {
         val s = turn.situation
         val hidden = !s.speakerVerified && ownVoiceHidden(s.mic, turn.history + turn.trigger)
         append("<lage>\n")
@@ -217,7 +223,7 @@ Nutze dieses Wissen, wenn es zur Frage passt. Erwähne es nicht von dir aus.
             append("</heute_gemerkt>\n")
         }
         append("<mitschrift>\n")
-        append(ConversationBuffer.render(turn.history.map { forModel(it, hidden) }, forModel(turn.trigger, hidden)))
+        append(ConversationBuffer.render(turn.history.map { forModel(it, hidden) }, forModel(turn.trigger, hidden), selfLabel))
         append("\n</mitschrift>")
     }
 

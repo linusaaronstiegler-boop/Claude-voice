@@ -61,18 +61,24 @@ class PipelineTest {
     }
 
     @Test fun `eigene Antwort steht im Verlauf und Nachfrage loest ohne Fragewort aus`() = runTest {
+        // Für sich genommen sieht der Vorfilter in der Nachfrage keinen Anlass (COLD): Ans Modell bringt sie
+        // allein, dass der Assistent eben geantwortet hat. "und seit wann" taugt dafür nicht mehr, das stuft der
+        // Vorfilter wegen des Frageworts inzwischen selbst als möglichen Anlass ein.
+        val followUp = "und in Fuß"
+        assertEquals(Heuristics.Heat.COLD, Heuristics.heat(followUp, "Alfred"))
         val rig = Rig(this, FakeClaude(reply = { zugspitze }))
         rig.say("Wie hoch ist die Zugspitze?")
         runCurrent()
         advanceTimeBy(5_000)
-        rig.say("und seit wann")
+        rig.say(followUp)
         runCurrent()
 
         assertEquals(2, rig.claude.respondCalls.size)
         val second = rig.claude.respondCalls[1]
         assertTrue(second, second.contains("ALFRED: Zweitausendneunhundertzweiundsechzig Meter."))
         assertTrue(second, second.contains("Du hast zuletzt gesprochen: vor 5 s"))
-        assertTrue(second, second.contains(">> [jetzt] ?: und seit wann"))
+        assertTrue(second, second.contains(">> [jetzt] ?: $followUp"))
+        assertEquals("die Nachfrage braucht keine Vorprüfung", 0, rig.claude.quickCalls.size)
     }
 
     @Test fun `SKIP spricht nichts und nennt den Grund`() = runTest {
@@ -103,7 +109,7 @@ class PipelineTest {
         assertEquals("übersprungen: kein Anlass", rig.state.value.lastDecision)
 
         rig.claude.quickReply = { _, _ -> "JA" }
-        rig.say("mir fällt einfach nicht ein wie dieser höchste Berg bei Garmisch heißt")
+        rig.say("der höchste Berg bei Garmisch na der Dings ich komm gleich drauf")
         runCurrent()
         assertEquals(1, rig.claude.respondCalls.size)
     }
