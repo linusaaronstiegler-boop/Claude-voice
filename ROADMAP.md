@@ -25,7 +25,12 @@
 - [ ] Vorfilter (`Heuristics`) mit großer Beispieltabelle härten.
 - [ ] Ersteinrichtung mit Hinweis auf Einwilligung der Anwesenden und Akku-Einstellungen.
 
+## Design (erst, wenn alle Funktionen auf dem Gerät einwandfrei laufen)
+- [ ] Dark Mode
+- [ ] „Liquid Glass“-Optik (durchscheinende, weiche Flächen)
+
 ## Später
+- Zielgerät läuft mit Android 16: dort testen, danach `compileSdk`/`targetSdk` von 35 auf 36 anheben.
 - Release-Build mit R8 verkleinern (Debug-APK ist rund 105 MB groß).
 - Sprecher-Erkennung auf dem Gerät per Stimm-Embedding statt Lautstärke und Tonhöhe.
 - Weckwort-Fehlauslöser senken (ähnlich klingende Wörter), eigene Schwelle in den Einstellungen.
