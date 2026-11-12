@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -228,5 +229,11 @@ class FormatsTest {
         }
         // Der dunkle Grund ist ein tiefes Blauschwarz, kein reines Schwarz.
         assertTrue(DarkGlass.backdropBottom.blue > DarkGlass.backdropBottom.red && DarkGlass.backdropBottom.luminance() > 0f)
+    }
+
+    @Test fun `der Hinweis zum Mikrofon nennt bei beiden den Haken`() {
+        assertTrue(micHint(bluetoothMic = true).contains("wie am Telefon"))
+        assertTrue(micHint(bluetoothMic = false).contains("Merken und Stummschalten"))
+        assertNotEquals(micHint(true), micHint(false))
     }
 }

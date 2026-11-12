@@ -58,3 +58,16 @@ fun mutedText(mutedUntilMs: Long, nowMs: Long): String? {
     val minutes = (leftMs + 59_999) / 60_000 // aufrunden: "noch 1 Min." statt "noch 0 Min."
     return "Schweigt auf Wunsch noch $minutes Min. Beim Namen genannt, antwortet er wieder."
 }
+
+/**
+ * Ein Satz unter der Mikrofon-Wahl, der sagt, was man mit ihr bekommt und was sie kostet.
+ * Beide Mikrofone haben einen Haken, den man vorher kennen sollte, statt ihn später zu erraten.
+ */
+fun micHint(bluetoothMic: Boolean): String =
+    if (bluetoothMic) {
+        "Erkennt deine Stimme am besten. Solange zugehört wird, klingt Musik wie am Telefon, andere Apps " +
+            "bekommen kein Mikrofon, und die Kopfhörer-Taste trennt die Verbindung."
+    } else {
+        "Hört den ganzen Raum, Musik bleibt unverändert. Deine Stimme ist nicht von anderen zu " +
+            "unterscheiden: Merken und Stummschalten per Sprache gehen so nicht."
+    }

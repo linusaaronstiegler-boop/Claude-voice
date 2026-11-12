@@ -416,6 +416,12 @@ private fun ChoiceCard(choices: ListenChoices, actions: MainActions, modifier: M
             SegmentedChoice(MODE_OPTIONS, choices.mode, actions.onModeChange)
             SmallLabel("Mikrofon", Modifier.padding(start = 8.dp, top = 8.dp))
             SegmentedChoice(MIC_OPTIONS, choices.bluetoothMic, actions.onMicChange)
+            Text(
+                micHint(choices.bluetoothMic),
+                style = MaterialTheme.typography.bodySmall,
+                color = Glass.colors.inkSoft,
+                modifier = Modifier.padding(horizontal = 8.dp).testTag("mic_hint"),
+            )
             SmallLabel("Reichweite", Modifier.padding(start = 8.dp, top = 8.dp))
             SegmentedChoice(REACH_OPTIONS, choices.reach, actions.onReachChange)
         }

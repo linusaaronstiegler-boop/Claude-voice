@@ -44,6 +44,21 @@ Fünf Durchsichten: Nebenläufigkeit, Android-Dienst, Latenz, Textverarbeitung, 
   übergangen; laut gerechnete Aufgabe und unsichere Vermutung des Trägers, wenn er allein ist; allein
   wählt das Modell „kurz“, wo „mittel“ erwartet war.
 
+**Anweisungen gemessen (echtes Modell über `tools/eval_cli.py`, ohne Nachdenkzeit; nicht der Aufruf der App)**
+185 Fälle in vier Darstellungen (korrekt, verrauscht, ohne, handy), 8 strittige nicht gewertet, je Fall
+ein Aufruf: 708 gewertete Entscheidungen je Fassung.
+
+| Fassung | richtig | Fehlauslöser | verpasst | ohne Kopfzeile |
+|---|---|---|---|---|
+| vorher (A4) | 666 von 708 (94,1 %) | 22 | 20 | 25 von 740 |
+| neu (A5, im Repo) | 675 von 708 (95,3 %) | 17 | 16 | 6 von 740 |
+
+Nach Darstellung (F1, neu): korrekt 0,98, verrauscht 0,96, ohne 0,93, handy 0,95. 18 Entscheidungen
+besser, 9 schlechter; einzelne Fälle kippen von Lauf zu Lauf. In allen vier Darstellungen falsch bleiben
+`mix-02` (Fremdgespräch, das thematisch an die letzte Antwort anschließt) und `vor-09` (allein laut
+gerechnete Aufgabe wird nicht als Frage erkannt).
+Antworten ohne Kopfzeile waren in allen 31 Fällen echte Antworten, kein lautes Nachdenken.
+
 **Entschieden**
 - Mikrofon-Standard bleibt das Kopfhörer-Mikro (Wunsch des Besitzers, beste Stimmerkennung). Seine
   Nebenwirkungen (Musik in Telefonqualität, andere Apps ohne Mikrofon, Taste legt auf) gehören als
