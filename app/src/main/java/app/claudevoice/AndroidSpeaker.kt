@@ -3,11 +3,11 @@ package app.claudevoice
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import app.claudevoice.core.ElevenTts
 import app.claudevoice.core.Speaker
+import app.claudevoice.core.SpeechSynth
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -17,15 +17,14 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Android spielt sie in der Reihenfolge ab.
  */
 class AndroidSpeaker(
-    private val tts: ElevenTts,
-    private val voiceId: String,
+    private val synth: SpeechSynth,
     voiceCallRoute: Boolean,
 ) : Speaker {
 
     private val track: AudioTrack = AudioTrack.Builder()
         .setAudioAttributes(
             AudioAttributes.Builder()
-                // Läuft das AirPods-Mikro (Telefonie-Modus), muss auch die Ausgabe über diesen Kanal,
+                // Läuft das Kopfhörer-Mikro (Telefonie-Modus), muss auch die Ausgabe über diesen Kanal,
                 // sonst landet sie auf dem Handy-Lautsprecher.
                 .setUsage(if (voiceCallRoute) AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
@@ -33,17 +32,15 @@ class AndroidSpeaker(
         )
         .setAudioFormat(
             AudioFormat.Builder()
-                .setSampleRate(ElevenTts.SAMPLE_RATE)
+                .setSampleRate(synth.sampleRate)
                 .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                 .build()
         )
         .setBufferSizeInBytes(
             maxOf(
-                AudioTrack.getMinBufferSize(
-                    ElevenTts.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT
-                ),
-                ElevenTts.SAMPLE_RATE, // ca. eine halbe Sekunde Puffer
+                AudioTrack.getMinBufferSize(synth.sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT),
+                synth.sampleRate, // ca. eine halbe Sekunde Puffer
             )
         )
         .setTransferMode(AudioTrack.MODE_STREAM)
@@ -51,33 +48,34 @@ class AndroidSpeaker(
 
     @Volatile private var framesWritten = 0L
 
-    override suspend fun speak(text: String) {
-        withContext(Dispatchers.IO) {
-            runInterruptible {
-                tts.open(text, voiceId).use { response ->
-                    val input = response.body!!.byteStream()
-                    val buffer = ByteArray(4800)
-                    var filled = 0
-                    track.play()
-                    while (true) {
-                        val n = input.read(buffer, filled, buffer.size - filled)
-                        if (n < 0) break
-                        filled += n
-                        // Ein Sample besteht aus 2 Bytes; ein einzelnes übriges Byte wartet auf seinen Partner.
-                        val even = filled and 1.inv()
-                        if (even > 0) {
-                            val written = track.write(buffer, 0, even)
-                            if (written < 0) break
-                            framesWritten += written / 2
-                            if (filled > even) buffer[0] = buffer[even]
-                            filled -= even
-                        }
-                    }
+    override suspend fun speak(sentences: ReceiveChannel<String>, onFirstAudio: () -> Unit) {
+        var first = true
+        var odd = -1 // einzelnes Byte, dessen Partner erst im nächsten Stück kommt (ein Sample = 2 Bytes)
+        val pair = ByteArray(2)
+        synth.synthesize(sentences) { pcm, length ->
+            if (first) {
+                first = false
+                track.play()
+                onFirstAudio()
+            }
+            withContext(Dispatchers.IO) {
+                var from = 0
+                if (odd >= 0 && length > 0) {
+                    pair[0] = odd.toByte(); pair[1] = pcm[0]
+                    if (track.write(pair, 0, 2) > 0) framesWritten += 1
+                    odd = -1
+                    from = 1
                 }
+                val even = (length - from) and 1.inv()
+                if (even > 0) {
+                    val written = track.write(pcm, from, even)
+                    if (written > 0) framesWritten += written / 2
+                }
+                if (from + even < length) odd = pcm[length - 1].toInt() and 0xFF
             }
         }
-        // Erst zurückkehren, wenn der Satz auch wirklich zu Ende gespielt ist.
-        withTimeoutOrNull(15_000) {
+        // Erst zurückkehren, wenn der letzte Satz auch wirklich zu Ende gespielt ist.
+        withTimeoutOrNull(20_000) {
             while ((track.playbackHeadPosition.toLong() and 0xFFFFFFFFL) < framesWritten) delay(20)
         }
     }

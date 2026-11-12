@@ -1,6 +1,10 @@
 package app.claudevoice.core
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -15,12 +19,29 @@ import java.io.IOException
 class ElevenTts(
     private val apiKey: String,
     private val http: OkHttpClient,
+    private val voiceId: String,
     private val baseUrl: String = "https://api.elevenlabs.io",
-) {
+) : SpeechSynth {
     private val json = ObjectMapper()
 
-    /** Der Aufrufer muss die Response schließen. */
-    fun open(text: String, voiceId: String): Response {
+    override val sampleRate: Int = SAMPLE_RATE
+
+    override suspend fun synthesize(sentences: ReceiveChannel<String>, onPcm: suspend (ByteArray, Int) -> Unit) {
+        val buffer = ByteArray(4800)
+        for (sentence in sentences) {
+            val response = withContext(Dispatchers.IO) { runInterruptible { open(sentence) } }
+            response.use {
+                val input = it.body!!.byteStream()
+                while (true) {
+                    val n = withContext(Dispatchers.IO) { runInterruptible { input.read(buffer) } }
+                    if (n < 0) break
+                    if (n > 0) onPcm(buffer, n)
+                }
+            }
+        }
+    }
+
+    private fun open(text: String): Response {
         val body = json.writeValueAsString(
             json.createObjectNode().put("text", text).put("model_id", MODEL)
         ).toRequestBody("application/json".toMediaType())

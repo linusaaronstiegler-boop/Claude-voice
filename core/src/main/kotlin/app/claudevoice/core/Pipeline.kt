@@ -42,7 +42,8 @@ class Pipeline(
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     data class Config(
-        val assistantName: String = "Alfred",
+        /** Alle Namen, auf die der Assistent hört. */
+        val names: List<String> = listOf("Alfred"),
         val mic: MicMode = MicMode.AIRPODS,
         val reach: Reach = Reach.GESPRAECH,
         /** true, wenn die Sprachausgabe ins Mikrofon zurückschallt (kein Kopfhörer): dann wird beim Sprechen nicht mitgeschrieben. */
@@ -73,7 +74,7 @@ class Pipeline(
     /** Signal "Modell hat SKIP gesagt, Rest nicht nötig". Ohne Stacktrace, weil es kein Fehler ist. */
     private class Skipped : RuntimeException(null, null, false, false)
 
-    private val name = config.assistantName
+    private val names = config.names
     private val meter = VoiceMeter()
     private val classifier = VoiceClassifier(config.mic, config.voiceProfile)
     private val speakers = SpeakerMap()
@@ -87,7 +88,8 @@ class Pipeline(
 
     @Volatile private var speaking = false
     @Volatile private var current: Job? = null
-    @Volatile private var lastSpokeAtMs = 0L
+    /** Wann der Assistent zuletzt gesprochen hat; null = in dieser Sitzung noch nicht. */
+    @Volatile private var lastSpokeAtMs: Long? = null
     @Volatile private var mutedUntilMs = 0L
     @Volatile private var scene: String? = null
     /** Zeitpunkt der letzten Äußerung, mit der ein Mensch im Gespräch selbst zu antworten begann. */
@@ -128,8 +130,8 @@ class Pipeline(
             // Redet der Träger selbst länger weiter, schweigt der Assistent ebenfalls, statt ihn zu übertönen.
             val w = Heuristics.words(text)
             val own = classifier.classify(meter.peekSummary(), record = false) == Voice.ICH
-            if (Heuristics.isStopCommand(text, name) || (own && Heuristics.isBareStop(text)) ||
-                (own && w.size >= BARGE_IN_WORDS && !Heuristics.mentionsName(text, name) && !isEcho(w))
+            if (Heuristics.isStopCommand(text, names) || (own && Heuristics.isBareStop(text)) ||
+                (own && w.size >= BARGE_IN_WORDS && !Heuristics.mentionsAny(text, names) && !isEcho(w))
             ) {
                 stopSpeaking()
                 return
@@ -151,11 +153,11 @@ class Pipeline(
         val now = clock()
         // Eigenes Echo: Schallt die Sprachausgabe ins Mikro zurück, steht der Antworttext plötzlich
         // in der Mitschrift. Was dem eben Gesprochenen stark ähnelt, wird verworfen.
-        if ((speaking || now - lastSpokeAtMs < 3_000) && isEcho(Heuristics.words(t))) {
+        if ((speaking || spokeWithin(now, 3_000)) && isEcho(Heuristics.words(t))) {
             takeSpeculation()?.job?.cancel()
             return
         }
-        val named = Heuristics.mentionsName(t, name)
+        val named = Heuristics.mentionsAny(t, names)
         val voice = voiceOf(features, speakerId, t, named, learn = true)
         val line = buffer.add(t, voice, now, speakers.label(speakerId)) ?: return
         if (segment != null) rememberSegment(segment, line.id)
@@ -163,7 +165,7 @@ class Pipeline(
 
         if (Heuristics.isRealContent(t)) humanSpokeAtMs = now
         val spec = takeSpeculation()
-        if (Heuristics.isStopCommand(t, name) || (speaking && voice == Voice.ICH && Heuristics.isBareStop(t))) {
+        if (Heuristics.isStopCommand(t, names) || (speaking && voice == Voice.ICH && Heuristics.isBareStop(t))) {
             spec?.job?.cancel()
             stopSpeaking()
             return
@@ -172,7 +174,7 @@ class Pipeline(
 
         // Wer ihn beim Namen ruft, hebt eine Stummschaltung auf ("Alfred, du darfst wieder").
         if (named && mutedUntilMs != 0L) unmute()
-        val heat = Heuristics.heat(t, name)
+        val heat = Heuristics.heat(t, names)
         val followUp = isFollowUp(now, voice, t)
         val wanted = heat != Heuristics.Heat.COLD || followUp
         val permitted = named || (now >= mutedUntilMs && allowed(voice))
@@ -236,7 +238,7 @@ class Pipeline(
         if (learn) {
             // Selbstkalibrierung: Wer den Satz mit dem Namen des Assistenten beginnt, ist fast sicher der Träger.
             // Mit dessen Pegel und Stimmlage wird das Profil der eigenen Stimme nachgeführt.
-            val addressed = named && Heuristics.words(text).take(3).any { Heuristics.mentionsName(it, name) }
+            val addressed = named && Heuristics.words(text).take(3).any { Heuristics.mentionsAny(it, names) }
             val plausible = classifier.profile == null || voice == Voice.ICH
             if (addressed && plausible && f != null) {
                 classifier.learnOwn(f)
@@ -261,8 +263,9 @@ class Pipeline(
     }
 
     private fun isFollowUp(now: Long, voice: Voice, text: String): Boolean =
-        lastSpokeAtMs > 0 && now - lastSpokeAtMs < FOLLOW_UP_MS &&
-            (voice == Voice.ICH || voice == Voice.UNKLAR) && Heuristics.words(text).size >= 2
+        spokeWithin(now, FOLLOW_UP_MS) && (voice == Voice.ICH || voice == Voice.UNKLAR) && Heuristics.words(text).size >= 2
+
+    private fun spokeWithin(now: Long, ms: Long): Boolean = lastSpokeAtMs?.let { now - it < ms } ?: false
 
     // ------------------------------------------------------------------------------------------
     // Vorgriff
@@ -272,9 +275,9 @@ class Pipeline(
         val key = normalize(text)
         speculation?.let { if (it.key != key) { it.job.cancel(); speculation = null } }
         if (turnProbability == null || turnProbability < SPECULATE_AT || speculation != null || speaking) return
-        if (key.isEmpty() || Heuristics.heat(text, name) != Heuristics.Heat.HOT) return
+        if (key.isEmpty() || Heuristics.heat(text, names) != Heuristics.Heat.HOT) return
         val now = clock()
-        val named = Heuristics.mentionsName(text, name)
+        val named = Heuristics.mentionsAny(text, names)
         val voice = voiceOf(meter.peekSummary(), null, text, named, learn = false)
         if (!(named || (now >= mutedUntilMs && allowed(voice)))) return
         val line = Line(id = -1, atMs = now, voice = voice, text = text.trim())
@@ -291,7 +294,7 @@ class Pipeline(
 
     private fun turnFor(line: Line): Turn {
         val history = buffer.snapshot(clock()).filter { it.id != line.id }
-        val spokeAgo = lastSpokeAtMs.takeIf { it > 0 }?.let { ((line.atMs - it) / 1000).coerceAtLeast(0) }
+        val spokeAgo = lastSpokeAtMs?.let { ((line.atMs - it) / 1000).coerceAtLeast(0) }
         return Turn(
             history, line,
             Situation(env.localTime(), config.mic, env.musicPlaying(), spokeAgo, scene, sessionNotes.toList()),

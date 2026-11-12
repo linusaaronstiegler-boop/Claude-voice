@@ -62,11 +62,16 @@ object Heuristics {
         return false
     }
 
-    fun heat(text: String, name: String): Heat {
+    /** Fällt einer der Namen, auf die der Assistent hört ("Jarvis", "Alfred")? */
+    fun mentionsAny(text: String, names: List<String>): Boolean = names.any { mentionsName(text, it) }
+
+    fun heat(text: String, name: String): Heat = heat(text, listOf(name))
+
+    fun heat(text: String, names: List<String>): Heat {
         val t = text.trim().lowercase()
         val w = words(t)
         if (w.isEmpty()) return Heat.COLD
-        if (mentionsName(t, name)) return Heat.HOT
+        if (mentionsAny(t, names)) return Heat.HOT
         if (t.contains('?')) return Heat.HOT
         if (w.size >= 2 && w.first() in INTERROGATIVES) return Heat.HOT
         if (MARKERS.any { it.containsMatchIn(t) }) return Heat.HOT
@@ -77,9 +82,11 @@ object Heuristics {
     }
 
     /** "Alfred, stopp" und Verwandte: wird sofort lokal ausgeführt, ohne Umweg über das Modell. */
-    fun isStopCommand(text: String, name: String): Boolean {
+    fun isStopCommand(text: String, name: String): Boolean = isStopCommand(text, listOf(name))
+
+    fun isStopCommand(text: String, names: List<String>): Boolean {
         val t = text.lowercase()
-        return words(t).size <= 6 && mentionsName(t, name) && STOP_WORDS.any { Regex("\\b${Regex.escape(it)}\\b").containsMatchIn(t) }
+        return words(t).size <= 7 && mentionsAny(t, names) && STOP_WORDS.any { Regex("\\b${Regex.escape(it)}\\b").containsMatchIn(t) }
     }
 
     private val BARE_STOPS = setOf("stopp", "stop", "ruhe", "halt", "still", "reicht", "danke", "quiet")

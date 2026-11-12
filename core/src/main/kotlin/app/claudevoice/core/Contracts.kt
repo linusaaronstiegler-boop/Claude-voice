@@ -53,6 +53,18 @@ interface SpeechSynth {
     suspend fun synthesize(sentences: ReceiveChannel<String>, onPcm: suspend (ByteArray, Int) -> Unit)
 }
 
+/**
+ * Erkennt ein Weckwort ("Hey Jarvis") lokal im Audiostrom, ohne Netz.
+ * Damit kann die App in Bereitschaft lauschen, ohne etwas in die Cloud zu schicken.
+ */
+interface WakeWordDetector : AutoCloseable {
+    /** 16 kHz mono PCM (16 Bit little endian) einspeisen. Liefert true genau dann, wenn das Weckwort soeben erkannt wurde. */
+    fun feed(pcm: ByteArray, length: Int): Boolean
+
+    /** Internen Zustand leeren, z. B. nach einer Erkennung oder einer Pause. */
+    fun reset()
+}
+
 /** Spricht Sätze hörbar aus (Android: AudioTrack, Audiofokus). */
 interface Speaker {
     /**

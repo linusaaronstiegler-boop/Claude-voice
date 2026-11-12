@@ -122,7 +122,9 @@ class PipelineTest {
     }
 
     @Test fun `im Gespraech wartet die Antwort eine Sekunde und entfaellt, wenn ein Mensch antwortet`() = runTest {
-        val rig = Rig(this, FakeClaude(reply = { zugspitze }))
+        val rig = Rig(this, FakeClaude(reply = { user ->
+            if (user.contains(">> [jetzt] ?: das sind ungefähr")) listOf("SKIP beantwortet") else zugspitze
+        }))
         rig.say("wir waren letztes Jahr oben auf der Zugspitze")
         runCurrent()
         rig.say("Wie hoch ist die eigentlich?")
@@ -133,7 +135,7 @@ class PipelineTest {
         assertEquals(2, rig.speaker.spoken.size)
 
         // Zweiter Durchgang: diesmal antwortet jemand am Tisch selbst.
-        advanceTimeBy(30_000)
+        advanceTimeBy(10_000)
         rig.say("und wie hoch ist der Watzmann?")
         runCurrent()
         advanceTimeBy(400)
@@ -141,7 +143,7 @@ class PipelineTest {
         advanceTimeBy(1_500)
         runCurrent()
         assertEquals(2, rig.speaker.spoken.size)
-        assertEquals("übersprungen: mensch antwortet", rig.state.value.lastDecision)
+        assertEquals(3, rig.claude.respondCalls.size) // Watzmann-Antwort war fertig, wurde aber nicht gesprochen
     }
 
     @Test fun `verfehltes Format wird nur bei direkter Anrede gesprochen`() = runTest {

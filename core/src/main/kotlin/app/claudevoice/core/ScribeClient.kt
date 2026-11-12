@@ -22,14 +22,9 @@ import java.util.concurrent.TimeUnit
 class ScribeClient(
     private val apiKey: String,
     private val http: OkHttpClient,
-    private val listener: Listener,
+    private val listener: Transcriber.Listener,
     private val baseUrl: String = "wss://api.elevenlabs.io",
-) {
-    interface Listener {
-        fun onPartial(text: String)
-        fun onCommitted(text: String)
-        fun onConnection(connected: Boolean, error: String?)
-    }
+) : Transcriber {
 
     private val json = ObjectMapper()
     private val scheduler = Executors.newSingleThreadScheduledExecutor()
@@ -38,7 +33,7 @@ class ScribeClient(
     @Volatile private var closed = false
     private var attempt = 0
 
-    fun connect() {
+    override fun connect() {
         if (closed) return
         val request = Request.Builder()
             .url("$baseUrl/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&audio_format=pcm_16000&commit_strategy=vad")
@@ -62,7 +57,7 @@ class ScribeClient(
     }
 
     /** Ein Stück Mikrofon-Audio senden. Solange keine Sitzung steht, wird es verworfen. */
-    fun sendAudio(pcm: ByteArray, length: Int) {
+    override fun sendAudio(pcm: ByteArray, length: Int) {
         if (!ready) return
         val node = json.createObjectNode()
             .put("message_type", "input_audio_chunk")
@@ -72,7 +67,7 @@ class ScribeClient(
         socket?.send(json.writeValueAsString(node))
     }
 
-    fun close() {
+    override fun close() {
         closed = true
         ready = false
         socket?.close(1000, null)
@@ -86,10 +81,10 @@ class ScribeClient(
             type == "session_started" -> {
                 ready = true
                 attempt = 0
-                listener.onConnection(true, null)
+                listener.onConnection(true, null, fresh = true)
             }
-            type == "partial_transcript" -> listener.onPartial(msg.path("text").asText(""))
-            type == "committed_transcript" -> listener.onCommitted(msg.path("text").asText(""))
+            type == "partial_transcript" -> listener.onPartial(msg.path("text").asText(""), null)
+            type == "committed_transcript" -> listener.onCommitted(msg.path("text").asText(""), null, null)
             type.contains("error", ignoreCase = true) ->
                 listener.onConnection(ready, "Transkription meldet: ${msg.path("error").asText(type)}")
         }

@@ -37,10 +37,10 @@ class NetworkTest {
             }
         }))
         val events = LinkedBlockingQueue<String>()
-        val client = ScribeClient("key-123", http, object : ScribeClient.Listener {
-            override fun onPartial(text: String) { events += "partial:$text" }
-            override fun onCommitted(text: String) { events += "committed:$text" }
-            override fun onConnection(connected: Boolean, error: String?) { events += "conn:$connected:$error" }
+        val client = ScribeClient("key-123", http, object : Transcriber.Listener {
+            override fun onPartial(text: String, turnProbability: Double?) { events += "partial:$text" }
+            override fun onCommitted(text: String, speaker: String?, segment: Int?) { events += "committed:$text" }
+            override fun onConnection(connected: Boolean, error: String?, fresh: Boolean) { events += "conn:$connected:$error" }
         }, baseUrl = server.url("/").toString().removeSuffix("/"))
 
         client.connect()
@@ -64,10 +64,10 @@ class NetworkTest {
     @Test fun `Scribe-Client meldet abgelehnten Key`() {
         server.enqueue(MockResponse().setResponseCode(401))
         val events = LinkedBlockingQueue<String>()
-        val client = ScribeClient("falsch", http, object : ScribeClient.Listener {
-            override fun onPartial(text: String) {}
-            override fun onCommitted(text: String) {}
-            override fun onConnection(connected: Boolean, error: String?) { events += "$connected:$error" }
+        val client = ScribeClient("falsch", http, object : Transcriber.Listener {
+            override fun onPartial(text: String, turnProbability: Double?) {}
+            override fun onCommitted(text: String, speaker: String?, segment: Int?) {}
+            override fun onConnection(connected: Boolean, error: String?, fresh: Boolean) { events += "$connected:$error" }
         }, baseUrl = server.url("/").toString().removeSuffix("/"))
         client.connect()
         assertEquals("false:ElevenLabs-Key wurde abgelehnt (401)", events.poll(5, TimeUnit.SECONDS))
@@ -76,9 +76,15 @@ class NetworkTest {
 
     @Test fun `Sprachausgabe fragt PCM-Strom mit Stimme und Modell an`() {
         server.enqueue(MockResponse().setBody(Buffer().write(byteArrayOf(10, 20, 30, 40))))
-        val tts = ElevenTts("key-123", http, server.url("/").toString().removeSuffix("/"))
-        val bytes = tts.open("Hallo Welt.", "voice42").use { it.body!!.bytes() }
-        assertTrue(bytes.contentEquals(byteArrayOf(10, 20, 30, 40)))
+        val tts = ElevenTts("key-123", http, "voice42", server.url("/").toString().removeSuffix("/"))
+        val out = java.io.ByteArrayOutputStream()
+        kotlinx.coroutines.runBlocking {
+            val sentences = kotlinx.coroutines.channels.Channel<String>(1)
+            sentences.send("Hallo Welt.")
+            sentences.close()
+            tts.synthesize(sentences) { pcm, n -> out.write(pcm, 0, n) }
+        }
+        assertTrue(out.toByteArray().contentEquals(byteArrayOf(10, 20, 30, 40)))
 
         val request = server.takeRequest()
         assertEquals("/v1/text-to-speech/voice42/stream?output_format=pcm_24000", request.path)

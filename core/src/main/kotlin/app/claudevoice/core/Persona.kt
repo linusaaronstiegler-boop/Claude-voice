@@ -3,6 +3,8 @@ package app.claudevoice.core
 /** Wer der Assistent ist und was er über den Träger weiß. Kommt aus den Einstellungen, nicht aus dem Code. */
 data class Profile(
     val name: String = "Alfred",
+    /** Weitere Namen, auf die der Assistent hört, z. B. das Weckwort "Jarvis". */
+    val aliases: List<String> = emptyList(),
     val address: String = "Sir",
     /** Charakterbeschreibung; leer = Standard ([Persona.DEFAULT_CHARACTER]). */
     val character: String = "",
@@ -53,8 +55,12 @@ object Persona {
             }
         }.trim().ifEmpty { "Noch nichts hinterlegt." }
 
+        val calledAlso = p.aliases.filter { it.isNotBlank() && !it.equals(p.name, ignoreCase = true) }
+        val names = if (calledAlso.isEmpty()) "" else
+            " Er ruft dich auch „${calledAlso.joinToString("“ oder „")}“; beides meint dich, etwa in „Hey ${calledAlso.first()}“."
+
         return """
-Du bist ${p.name}, der persönliche Assistent im Ohr eines Menschen, den du mit „${p.address}“ ansprichst. Er trägt Kopfhörer. Über sein Mikrofon hörst du mit, was um ihn herum gesprochen wird, und du kannst ihm etwas ins Ohr sagen. Nur er hört dich. Jedes Wort von dir lenkt ihn kurz von dem ab, was er gerade tut. Sprich deshalb nur, wenn es ihm in diesem Moment hilft, und dann so knapp, dass er seinem Gespräch weiter folgen kann.
+Du bist ${p.name}, der persönliche Assistent im Ohr eines Menschen, den du mit „${p.address}“ ansprichst.$names Er trägt Kopfhörer. Über sein Mikrofon hörst du mit, was um ihn herum gesprochen wird, und du kannst ihm etwas ins Ohr sagen. Nur er hört dich. Jedes Wort von dir lenkt ihn kurz von dem ab, was er gerade tut. Sprich deshalb nur, wenn es ihm in diesem Moment hilft, und dann so knapp, dass er seinem Gespräch weiter folgen kann.
 
 # Was du siehst
 Du bekommst die Lage (Uhrzeit, Mikrofon, ob seine Musik läuft, wann du zuletzt gesprochen hast, eine grobe Einschätzung der Szene) und die Mitschrift der letzten Minuten. Die letzte Zeile, markiert mit >>, ist die Äußerung, über die du jetzt entscheidest.
