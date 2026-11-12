@@ -8,6 +8,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.os.IBinder
 import android.os.PowerManager
 import app.claudevoice.core.AnthropicClaude
@@ -43,6 +45,7 @@ class ListenService : Service() {
     private var speaker: AndroidSpeaker? = null
     private var pipeline: Pipeline? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var mediaSession: MediaSession? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -97,6 +100,31 @@ class ListenService : Service() {
                 }
             }
         }).also { it.connect() }
+
+        listenForHeadsetButton()
+    }
+
+    /**
+     * Kopfhörer-Taste (AirPods-Druck auf den Stiel) stoppt die laufende Antwort.
+     * Android schickt Medientasten an die aktive MediaSession, also melden wir eine an.
+     * Einschränkung: Im Telefonie-Modus (AirPods-Mikro aktiv) behandelt Android die Taste
+     * als Anruf-Taste und reicht sie nicht weiter; dann bleibt der Knopf in der App.
+     */
+    private fun listenForHeadsetButton() {
+        mediaSession = MediaSession(this, "ClaudeVoice").apply {
+            setCallback(object : MediaSession.Callback() {
+                override fun onPlay() { pipeline?.stopSpeaking() }
+                override fun onPause() { pipeline?.stopSpeaking() }
+                override fun onStop() { pipeline?.stopSpeaking() }
+            })
+            setPlaybackState(
+                PlaybackState.Builder()
+                    .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_STOP)
+                    .setState(PlaybackState.STATE_PLAYING, 0, 1f)
+                    .build()
+            )
+            isActive = true
+        }
     }
 
     override fun onDestroy() {
@@ -104,6 +132,7 @@ class ListenService : Service() {
         scribe?.close()
         pipeline?.stop()
         speaker?.release()
+        mediaSession?.release()
         scope.cancel()
         wakeLock?.let { if (it.isHeld) it.release() }
         AppState.ui.update { it.copy(running = false, speaking = false, partial = "", status = "Bereit") }
