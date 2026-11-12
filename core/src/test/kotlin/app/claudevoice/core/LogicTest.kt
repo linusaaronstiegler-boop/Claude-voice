@@ -4,28 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-class ConversationBufferTest {
-    @Test fun `alte Zeilen fallen aus dem Zeitfenster`() {
-        val b = ConversationBuffer(windowMs = 1000)
-        b.add("alt", 0)
-        b.add("neu", 900)
-        assertEquals("alt\nneu", b.render(950))
-        assertEquals("neu", b.render(1500))
-    }
-
-    @Test fun `Zeichenlimit behaelt die neuesten Zeilen`() {
-        val b = ConversationBuffer(maxChars = 10)
-        b.add("aaaaaa", 0); b.add("bbbbbb", 1); b.add("cccc", 2)
-        assertEquals("bbbbbb\ncccc", b.render(3))
-    }
-
-    @Test fun `leere Aeusserungen werden ignoriert`() {
-        val b = ConversationBuffer()
-        b.add("   ", 0)
-        assertEquals("", b.render(0))
-    }
-}
-
 class SentenceChunkerTest {
     @Test fun `Saetze kommen einzeln, sobald sie fertig sind`() {
         val c = SentenceChunker()

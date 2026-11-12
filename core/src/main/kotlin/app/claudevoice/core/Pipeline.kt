@@ -68,7 +68,7 @@ class Pipeline(
         val t = text.trim()
         // Während die App selbst spricht, wird nicht mitgeschrieben: sonst hört sie sich selbst zu.
         if (t.isEmpty() || speaking) return
-        buffer.add(t, clock())
+        buffer.add(t, Voice.UNKLAR, clock())
         state.update { it.copy(partial = "", transcript = (it.transcript + t).takeLast(40)) }
         trigger.trySend(t)
     }
@@ -82,7 +82,7 @@ class Pipeline(
     private suspend fun handle(utterance: String) {
         try {
             val now = clock()
-            val context = buffer.render(now)
+            val context = buffer.snapshot(now).joinToString("\n") { it.text }
             val question = withContext(io) { runInterruptible { gate.decide(context, utterance, now) } } ?: return
 
             state.update { it.copy(question = question, answer = "", speaking = true, error = null) }
