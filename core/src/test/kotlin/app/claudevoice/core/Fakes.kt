@@ -52,12 +52,19 @@ class FakeSpeaker(private val gate: CompletableDeferred<Unit>? = null) : Speaker
     override fun prepare() { prepares++ }
 }
 
-class FakeEnv(var music: Boolean = false) : Pipeline.Env {
+class FakeEnv(
+    var music: Boolean = false,
+    /** Mit dieser Ausnahme scheitert jedes Speichern einer Notiz (Speicher voll, Datei gesperrt). */
+    private val saveFails: Exception? = null,
+) : Pipeline.Env {
     val notes = mutableListOf<String>()
     val profiles = mutableListOf<VoiceProfile>()
     override fun localTime() = "Donnerstag, 12. November 2026, 21:14"
     override fun musicPlaying() = music
-    override fun saveNote(text: String) { notes += text }
+    override fun saveNote(text: String) {
+        saveFails?.let { throw it }
+        notes += text
+    }
     override fun saveVoiceProfile(profile: VoiceProfile) { profiles += profile }
 }
 
@@ -116,6 +123,34 @@ class RecordingSpeaker(
 }
 
 /**
+ * Lautsprecher-Attrappe mit echter Dauer: Jeder Satz braucht [perSentenceMs], und nach einem Abbruch räumt
+ * sie noch [windDownMs] lang auf. So verhält sich der echte Lautsprecher (Ausgabe anhalten, Audiofokus
+ * abgeben), und genau in dieser Spanne liegen die Lücken, die sich mit einer Attrappe ohne Dauer nie zeigen.
+ */
+class TimedSpeaker(private val perSentenceMs: Long, private val windDownMs: Long = 0) : Speaker {
+    val spoken = java.util.concurrent.CopyOnWriteArrayList<String>()
+
+    override suspend fun speak(sentences: ReceiveChannel<String>, release: Deferred<Boolean>?, onFirstAudio: () -> Unit) {
+        if (release != null && !release.await()) return
+        var first = true
+        try {
+            for (s in sentences) {
+                if (first) { onFirstAudio(); first = false }
+                spoken += s
+                kotlinx.coroutines.delay(perSentenceMs)
+            }
+        } finally {
+            // NonCancellable: Das Aufräumen läuft auch dann zu Ende, wenn der Auftrag gerade abgebrochen wurde.
+            if (!first && windDownMs > 0) kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                kotlinx.coroutines.delay(windDownMs)
+            }
+        }
+    }
+
+    override fun stop() {}
+}
+
+/**
  * Verdrahtung wie im Dienst auf dem Handy: die Pipeline auf Dispatchers.Default, Modell-Aufrufe auf
  * Dispatchers.IO, also echte Threads. Nur so lässt sich prüfen, was passiert, während ein Aufruf
  * wirklich noch unterwegs ist. Die Uhr stellt der Test von Hand ([clock]).
@@ -125,12 +160,14 @@ class ThreadRig(
     config: Pipeline.Config = Pipeline.Config(),
     val speaker: RecordingSpeaker = RecordingSpeaker(),
     val clock: java.util.concurrent.atomic.AtomicLong = java.util.concurrent.atomic.AtomicLong(0),
+    /** Ein anderer Lautsprecher als der mitschreibende, etwa einer mit echter Dauer ([TimedSpeaker]). */
+    out: Speaker? = null,
+    val env: FakeEnv = FakeEnv(),
 ) {
     val state = kotlinx.coroutines.flow.MutableStateFlow(UiState())
-    val env = FakeEnv()
     val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
     val pipeline = Pipeline(
-        Brain(claude, Profile()), speaker, state, scope, kotlinx.coroutines.Dispatchers.IO, config, env,
+        Brain(claude, Profile()), out ?: speaker, state, scope, kotlinx.coroutines.Dispatchers.IO, config, env,
     ) { clock.get() }.also { it.start() }
 
     /** Der Träger spricht: laute, tiefe Stimme am Kopfhörer-Mikro, dann die fertige Äußerung. */

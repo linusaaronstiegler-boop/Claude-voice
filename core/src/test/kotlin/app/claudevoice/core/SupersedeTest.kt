@@ -1,13 +1,21 @@
 package app.claudevoice.core
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,6 +24,7 @@ import org.junit.Test
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Eine zweite Äußerung trifft ein, während die Antwort auf die erste noch nicht zu hören ist.
@@ -117,6 +126,213 @@ class SupersedeTest {
             )
         } finally {
             rig.close()
+        }
+    }
+
+    // --- Stopp, während der gestoppte Auftrag noch aufräumt (echte Threads) ------------------------
+    // Der echte Lautsprecher braucht nach einem Abbruch einen Augenblick (Ausgabe anhalten, Audiofokus abgeben).
+    // In dieser Spanne ist der alte Auftrag noch nicht fertig, und genau dort lagen zwei Lücken.
+
+    /** Antwortet ohne Verzug: auf die Zugspitze mit drei Sätzen, zur Frage nach dem Film schweigt es, sonst ein Satz. */
+    private class QuickClaude : ClaudeApi {
+        val calls = CopyOnWriteArrayList<String>()
+        val returned = CopyOnWriteArrayList<String>()
+
+        override fun respond(system: String, user: String, cancel: CancelToken, onText: (String) -> Unit) {
+            val trigger = user.lineSequence().first { it.startsWith(">> [jetzt]") }
+            calls += trigger
+            when {
+                trigger.contains("Film") -> onText("SKIP sozial\n")
+                trigger.contains("Zugspitze") -> { onText("SAY kurz\n"); onText("Antwort A. Und ein zweiter Satz. Und ein dritter Satz.") }
+                else -> { onText("SAY kurz\n"); onText("Antwort B.") }
+            }
+            returned += trigger
+        }
+
+        override fun quick(system: String, user: String, maxTokens: Long): String = "JA"
+    }
+
+    @Test fun `was gleich nach einem Stopp gesagt wird, geht nicht verloren`() {
+        // Der Lautsprecher räumt nach dem Stopp noch 40 ms auf. In dieser Zeit fragt ein Freund etwas. Früher
+        // stellte sich die Frage hinter dem gestoppten Auftrag an, und der holt niemanden mehr nach: Über sie
+        // urteilte nie jemand. Jetzt ist der Platz mit dem Stopp frei.
+        val claude = QuickClaude()
+        val out = TimedSpeaker(perSentenceMs = 300, windDownMs = 40)
+        val rig = ThreadRig(claude, profile, out = out)
+        try {
+            rig.wearerSays("Alfred, wie hoch ist die Zugspitze?")
+            assertTrue(waitFor(3_000) { out.spoken.isNotEmpty() })
+            rig.pipeline.stopSpeaking() // Knopf in der App oder Kopfhörer-Taste
+            rig.clock.set(1_000)
+            rig.says(200.0, 1300.0, 600, "Wann fängt der Film an?")
+            assertTrue(
+                "über die Frage nach dem Stopp urteilt niemand: Aufrufe=${claude.calls} zuletzt=${rig.state.value.lastDecision}",
+                waitFor(1_500) { claude.calls.size == 2 },
+            )
+            assertTrue(waitFor(1_500) { rig.state.value.lastDecision == "übersprungen: sozial" })
+            assertEquals("nach dem Stopp ist nichts mehr zu hören", listOf("Antwort A."), out.spoken.toList())
+        } finally {
+            rig.close()
+        }
+    }
+
+    /**
+     * Ein Lautsprecher, dessen Wiedergabe so lange dauert, bis sie abgebrochen wird, und der danach erst
+     * aufgeräumt hat, wenn der Test es sagt ([windDown]).
+     */
+    private class HeldSpeaker : Speaker {
+        val spoken = ArrayList<String>()
+        val windDown = CompletableDeferred<Unit>()
+        private val playing = CompletableDeferred<Unit>()
+
+        override suspend fun speak(sentences: ReceiveChannel<String>, release: Deferred<Boolean>?, onFirstAudio: () -> Unit) {
+            if (release != null && !release.await()) return
+            var first = true
+            try {
+                for (s in sentences) {
+                    if (first) { onFirstAudio(); first = false }
+                    spoken += s
+                    playing.await()
+                }
+            } finally {
+                if (!first) withContext(NonCancellable) { windDown.await() }
+            }
+        }
+
+        override fun stop() {}
+    }
+
+    @Test fun `zweites Stopp, waehrend der gestoppte Auftrag noch aufraeumt, laesst die Frage dazwischen gar nicht erst anlaufen`() {
+        // Der gestoppte Auftrag räumt noch auf. In dieser Zeit kommt eine neue Frage, deren Antwort sofort
+        // bereitliegt, und gleich darauf ein zweites Stopp. Der neue Auftrag darf gar nicht erst anlaufen (LAZY in
+        // Pipeline.start). Liefe er los und würde gleich wieder abgebrochen, bliebe ein Augenblick, in dem er schon
+        // spricht.
+        //
+        // Mit echten Threads zeigt sich das nur zufällig (der Abbruch kommt dem Anlaufen fast immer zuvor). Darum
+        // läuft hier alles auf dem Thread des Tests, und jede Coroutine läuft in dem Moment los, in dem sie
+        // gestartet oder fortgesetzt wird. Das ist der ungünstigste Fall, und er ist jedes Mal derselbe.
+        val direct = object : CoroutineDispatcher() {
+            override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
+        }
+        val claude = QuickClaude()
+        val out = HeldSpeaker()
+        val state = MutableStateFlow(UiState())
+        val scope = CoroutineScope(SupervisorJob() + direct)
+        val clock = java.util.concurrent.atomic.AtomicLong(0)
+        val pipeline = Pipeline(Brain(claude, Profile()), out, state, scope, direct, Pipeline.Config(), FakeEnv()) { clock.get() }
+            .also { it.start() }
+        try {
+            pipeline.onCommitted("Alfred, wie hoch ist die Zugspitze?", null, null)
+            assertEquals(listOf("Antwort A."), out.spoken)
+            assertTrue(state.value.speaking)
+
+            pipeline.stopSpeaking() // der Lautsprecher räumt ab jetzt auf
+            clock.set(1_000)
+            pipeline.onCommitted("Alfred, wie hoch ist der Watzmann?", null, null)
+            assertEquals("die Antwort B liegt bereit", 2, claude.returned.size)
+            pipeline.stopSpeaking() // das zweite Stopp gilt auch für die Frage dazwischen
+            out.windDown.complete(Unit) // jetzt ist der alte Auftrag fertig, und die Schleife kommt zum neuen
+
+            assertEquals("Aufrufe=${claude.calls}", listOf("Antwort A."), out.spoken)
+            assertFalse(state.value.speaking)
+            assertEquals("der neue Auftrag lief nicht an, also auch kein neuer Aufruf", 2, claude.calls.size)
+
+            // Danach geht es normal weiter: Die nächste Frage wird beantwortet.
+            clock.set(2_000)
+            pipeline.onCommitted("Alfred, und wie hoch ist der Watzmann wirklich?", null, null)
+            assertEquals(listOf("Antwort A.", "Antwort B."), out.spoken)
+        } finally {
+            pipeline.stop()
+            scope.cancel()
+        }
+    }
+
+    /**
+     * Ein Dispatcher, der nichts von selbst ausführt: Was ansteht, läuft erst, wenn der Test es sagt, und zwar
+     * das zuletzt Eingereihte zuerst. Damit lässt sich eine Reihenfolge nachstellen, die mit echten Threads nur
+     * unter Last vorkommt: Der abgelöste Auftrag kommt noch einmal dran, bevor die Schleife ihn abbricht.
+     */
+    private class ManualDispatcher : CoroutineDispatcher() {
+        private val queue = java.util.concurrent.ConcurrentLinkedDeque<Runnable>()
+
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            queue.addLast(block)
+        }
+
+        fun runNewestFirst() {
+            while (true) (queue.pollLast() ?: return).run()
+        }
+
+        fun runUntil(ms: Long, condition: () -> Boolean): Boolean {
+            val end = System.nanoTime() + ms * 1_000_000
+            while (System.nanoTime() < end) {
+                runNewestFirst()
+                if (condition()) return true
+                Thread.sleep(2)
+            }
+            return condition()
+        }
+    }
+
+    @Test fun `trifft die alte Antwort ein, bevor der abgeloeste Auftrag abgebrochen ist, bleibt sie ungesprochen`() {
+        // Der Träger verbessert sich, die neue Äußerung ist angenommen. Abgebrochen wird der alte Auftrag erst von
+        // der Schleife, einen Augenblick später. Trifft seine Antwort genau in diesem Augenblick ein, wurde früher
+        // die alte Frage beantwortet (so gesehen unter Last: zu hören war die Zugspitze, der Watzmann kam "zu spät").
+        val inFlight = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val delivered = CountDownLatch(1)
+        val claude = object : ClaudeApi {
+            override fun respond(system: String, user: String, cancel: CancelToken, onText: (String) -> Unit) {
+                if (user.lineSequence().first { it.startsWith(">> [jetzt]") }.contains("Zugspitze")) {
+                    inFlight.countDown()
+                    release.await()
+                    onText("SAY kurz\n")
+                    onText(zugspitzeLong)
+                    delivered.countDown()
+                } else {
+                    onText("SAY kurz\n")
+                    onText("Der Watzmann ist zweitausendsiebenhundertdreizehn Meter hoch.")
+                }
+            }
+
+            override fun quick(system: String, user: String, maxTokens: Long): String = "NEIN"
+        }
+        val manual = ManualDispatcher()
+        val speaker = RecordingSpeaker()
+        val state = MutableStateFlow(UiState())
+        val scope = CoroutineScope(SupervisorJob() + manual)
+        val clock = java.util.concurrent.atomic.AtomicLong(0)
+        val pipeline = Pipeline(
+            Brain(claude, Profile()), speaker, state, scope, kotlinx.coroutines.Dispatchers.IO, profile, FakeEnv(),
+        ) { clock.get() }.also { it.start() }
+        // Beide Äußerungen mit der Stimme des Trägers: Er ist allein, die Antwort wartet keine Höflichkeitspause ab.
+        fun wearerSays(text: String) {
+            pipeline.onAudio(silence(300), 9600)
+            tone(115.0, 8000.0, 600).let { pipeline.onAudio(it, it.size) }
+            pipeline.onCommitted(text, null, null)
+        }
+        try {
+            manual.runNewestFirst() // die Schleife wartet auf die erste Äußerung
+            wearerSays("Wie hoch ist die Zugspitze?")
+            manual.runNewestFirst() // der Auftrag dafür läuft und wartet auf das Modell
+            assertTrue("Aufruf A läuft", inFlight.await(5, TimeUnit.SECONDS))
+
+            clock.set(800)
+            wearerSays("Nein, wie hoch ist der Watzmann?") // angenommen; die Schleife weiß es noch nicht
+            release.countDown() // genau jetzt trifft die alte Antwort ein
+            assertTrue(delivered.await(5, TimeUnit.SECONDS))
+            Thread.sleep(50) // der Aufruf ist zu Ende gelesen, alles liegt für den alten Auftrag bereit
+
+            // Der alte Auftrag kommt vor der Schleife dran (zuletzt eingereiht, zuerst ausgeführt).
+            manual.runUntil(3_000) { speaker.spoken.isNotEmpty() && !state.value.speaking && state.value.question?.contains("Watzmann") == true }
+            assertEquals(
+                "zuletzt=${state.value.lastDecision} Frage=${state.value.question}",
+                listOf("Der Watzmann ist zweitausendsiebenhundertdreizehn Meter hoch."), speaker.spoken.toList(),
+            )
+            assertEquals("Nein, wie hoch ist der Watzmann?", state.value.question)
+        } finally {
+            pipeline.stop()
+            scope.cancel()
         }
     }
 
@@ -319,6 +535,62 @@ class SupersedeTest {
         val seen = rig.claude.respondCalls.last()
         assertTrue(seen, seen.contains("ICH: Alfred, wie hoch ist die Zugspitze?"))
         assertTrue(seen, seen.contains(">> [jetzt] ICH: Nein, wie hoch ist der Watzmann?"))
+    }
+
+    @Test fun `Korrektur im Wortlaut der Anleitung fuehrt zur Antwort auf die neue Frage`() = runTest {
+        // So steht es in der Anleitung: Wer sich verbessert, bevor die Antwort zu hören ist ("nein, ich meine den
+        // Watzmann"), bekommt die Antwort auf die neue Frage. Für den Vorfilter ist der Satz kein Anlass (COLD):
+        // Früher sah ihn kein Modell, und beantwortet wurde die alte Frage. Die längere Fassung hielt er für eine
+        // beiläufige Aussage: Sie stand zurück und wurde nach der alten Antwort als Nachfrage vorgelegt, zu hören
+        // waren dann beide Antworten.
+        val corrections = listOf(
+            "Nein, ich meine den Watzmann." to Heuristics.Heat.COLD,
+            "Ach nee, ich mein den Watzmann." to Heuristics.Heat.MAYBE,
+            "Sorry, ich meinte natürlich den Watzmann." to null,
+        )
+        for (first in listOf("Wie hoch ist die Zugspitze?", "Alfred, wie hoch ist die Zugspitze?")) {
+            for ((correction, heat) in corrections) {
+                if (heat != null) assertEquals("Einstufung von \"$correction\"", heat, Heuristics.heat(correction, "Alfred"))
+                val rig = Rig(this, mountains(), profile)
+                rig.own()
+                rig.say(first)
+                rig.own()
+                rig.say(correction)
+                runCurrent()
+                advanceTimeBy(4_000)
+                runCurrent()
+
+                assertEquals("$first / $correction", listOf(watzmann), rig.speaker.spoken.toList())
+                // Die alte Frage steht in der Mitschrift des neuen Aufrufs: Das Modell weiß, worauf sich die Korrektur bezieht.
+                val seen = rig.claude.respondCalls.last()
+                assertTrue(seen, seen.contains("ICH: $first"))
+                assertTrue(seen, seen.contains(">> [jetzt] ICH: $correction"))
+                assertEquals("eine Korrektur braucht keine Vorprüfung", 0, rig.claude.quickCalls.size)
+            }
+        }
+    }
+
+    @Test fun `was nur wie eine Korrektur beginnt oder von jemand anderem kommt, loest die Frage nicht ab`() = runTest {
+        // "Nein, danke." sagt er dem Kellner. Löste das die wartende Frage ab, wäre seine Antwort weg.
+        for (other in listOf("Nein, danke.", "Nein, den Watzmann.", "Ich mein ja.")) {
+            assertFalse(other, Heuristics.isCorrection(other))
+            val rig = Rig(this, mountains(), profile)
+            rig.own()
+            rig.say("Wie hoch ist die Zugspitze?")
+            rig.own()
+            rig.say(other)
+            runCurrent()
+            assertEquals(other, listOf(zugspitze), rig.speaker.spoken.toList())
+        }
+        // Der Tischnachbar verbessert den Träger: Das ist ein Beitrag zum Gespräch, keine Korrektur der Frage.
+        val rig = Rig(this, mountains(), profile)
+        rig.own()
+        rig.say("Alfred, wie hoch ist die Zugspitze?")
+        rig.near()
+        rig.say("Nein, ich meine den Watzmann.")
+        runCurrent()
+        assertEquals(listOf(zugspitze), rig.speaker.spoken.toList())
+        assertEquals(1, rig.claude.respondCalls.size)
     }
 
     @Test fun `Frage aus der Runde ersetzt eine unbenannte wartende Frage`() = runTest {

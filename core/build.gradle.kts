@@ -91,6 +91,15 @@ extra["wakewordRequired"] = false
 apply(from = rootProject.file("gradle/wakeword-models.gradle.kts"))
 tasks.test { dependsOn("downloadWakeWordModels") }
 
+// Scheitert ein Test, nennt Gradle sonst nur seinen Namen und die Zeile. So steht auch in der Konsole
+// (und damit im Protokoll der CI), was erwartet war und was stattdessen kam.
+tasks.test {
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
+
 // --- Rauchtest ------------------------------------------------------------------------------
 // Spielt die ganze Kette gegen die echten Dienste durch (ohne Handy) und misst die Latenzen:
 //   ELEVENLABS_API_KEY=... ANTHROPIC_API_KEY=... ./gradlew :core:smoke

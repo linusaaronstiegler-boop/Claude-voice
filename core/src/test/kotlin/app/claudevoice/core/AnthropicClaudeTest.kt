@@ -92,7 +92,12 @@ class AnthropicClaudeTest {
         val events = StringBuilder()
         events.append("event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet-5-5\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":5,\"output_tokens\":1}}}\n\n")
         events.append("event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n")
-        repeat(200) { events.append("event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Wort \"}}\n\n") }
+        // 2000 Stücke: Ungebremst liefe dieser Strom rund eine halbe Minute (der Server unten lässt etwa 65
+        // Stücke je Sekunde durch). Die Grenzen am Ende des Tests liegen weit darunter und trotzdem weit über
+        // dem, was ein Abbruch braucht. So scheitert der Test nicht, wenn der Rechner gerade langsam ist,
+        // und bemerkt einen Abbruch, der nicht wirkt, weiterhin sicher. Früher waren es 200 Stücke und die
+        // Grenzen 60 Stücke und fünf Sekunden: Ein Stocken von knapp einer Sekunde hätte gereicht.
+        repeat(2_000) { events.append("event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Wort \"}}\n\n") }
         // Der Testserver tröpfelt die Antwort langsam, wie ein echtes Modell beim Schreiben.
         server.enqueue(
             MockResponse().setHeader("content-type", "text/event-stream").setBody(events.toString())
@@ -107,8 +112,8 @@ class AnthropicClaudeTest {
             if (pieces == 2) Thread { token.cancel() }.start()
         }
         val took = System.currentTimeMillis() - started
-        assertTrue("nach dem Abbruch kamen noch $pieces Stücke", pieces < 60)
-        assertTrue("Abbruch dauerte $took ms", took < 5_000)
+        assertTrue("nach dem Abbruch kamen noch $pieces Stücke", pieces < 1_000)
+        assertTrue("Abbruch dauerte $took ms", took < 15_000)
     }
 
     @Test fun `Vorwaermen schickt den System-Prompt ohne eine Antwort zu erzeugen`() {

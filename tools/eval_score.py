@@ -12,12 +12,21 @@ Ablauf, aus dem Hauptordner des Repos:
 
 Jede Antwort wird nach denselben Regeln gelesen wie in der App (core/.../ReplyParser.kt):
 Die erste Zeile entscheidet. "SKIP <grund>" heißt, das Modell schweigt. "SAY <länge>" heißt, es spricht,
-und ab der zweiten Zeile folgt der Sprechtext. Fehlt die Kopfzeile, gilt der ganze Text als gesprochen.
+und ab der zweiten Zeile folgt der Sprechtext. Fehlt die Kopfzeile, gilt der ganze Text als gesprochen:
+Die App spricht ihn, ohne direkte Anrede höchstens so lang wie "kurz". Nur wenn seine erste Zeile nach
+einem Kommentar zur Entscheidung aussieht statt nach einer Antwort (sie nennt SKIP oder SAY, besteht nur
+aus einem SKIP-Grund oder ist eine kurze Ankündigung mit Doppelpunkt), spricht die App ihn allein nach
+direkter Anrede; solche Antworten stehen unter PROTOKOLL eigens aufgeführt.
 Zeilen, die mit "MEMO:" oder "MUTE:" beginnen, sind Anweisungen an die App und werden nicht gesprochen.
 Wie die App liest das Skript dabei großzügig: Eine verzierte oder verspätete Kopfzeile ("**SAY kurz**",
 erst eine Begründung, dann "SKIP medien") und eine abweichend geschriebene Sonderzeile ("- Memo: ...",
-"... Sir. MUTE: 10") gelten trotzdem. Unter PROTOKOLL steht, wie oft das Modell so abgewichen ist und
-wo trotzdem noch Steuertext im Sprechtext stehen geblieben ist.
+"... Sir. MUTE: 10") gelten trotzdem. Steht hinter einer verspäteten SAY-Kopfzeile nichts Sprechbares
+mehr, war der Text davor die Antwort und gilt als gesprochen. Beginnt die erste Zeile mit SKIP und einem
+ganzen Satz ("SKIP-Entscheidung entfällt, ich antworte."), entscheidet eine spätere Kopfzeile in genauer
+Schreibweise; kommt keine, bleibt es beim Schweigen. Eine Kopfzeile mitten im Sprechtext (ein zweites
+"SAY kurz") wird nicht gesprochen, ebenso wenig die kurze Ankündigung mit Doppelpunkt direkt davor.
+Unter PROTOKOLL steht, wie oft das Modell so abgewichen ist und wo trotzdem noch Steuertext im Sprechtext
+stehen geblieben ist.
 
 Gezählt wird, ob das Modell spricht, wenn es sprechen soll:
     Präzision = von allen Malen, die es sprach: wie oft war das richtig?   (niedrig = es stört)
@@ -43,6 +52,10 @@ from collections import Counter
 # Obergrenzen in Wörtern je Länge, wie in der App (Pipeline.WORD_CAPS). Was darüber liegt, schneidet die App ab.
 WORD_CAPS = {"kurz": 22, "mittel": 50, "lang": 120}
 DEFAULT_CAP = "mittel"  # gilt in der App, wenn hinter SAY keine bekannte Länge steht
+# Ganz ohne Kopfzeile gilt in der App "kurz", außer nach direkter Anrede (dann "mittel"). Ob angesprochen
+# wurde, weiß dieses Skript nicht; gemessen wird deshalb am strengeren der beiden Deckel.
+OFF_PROTOCOL_CAP = "kurz"
+NO_LENGTH, NO_HEADER = "(keine)", "(ohne Kopfzeile)"
 MODE_ORDER = ["korrekt", "verrauscht", "ohne", "handy"]
 
 # Die folgenden Werte stehen genauso im ReplyParser der App. Wer dort etwas ändert, ändert es auch hier;
@@ -61,6 +74,17 @@ MAX_GAP = 2
 MUTE_DEFAULT_MINUTES = 30
 MUTE_MAX_MINUTES = 600
 NO, MAYBE, YES = range(3)
+# Antwort ohne Kopfzeile: Antwort oder Kommentar zur Entscheidung? Dieselben Werte wie im Objekt Headerless
+# in ReplyParser.kt; dort steht auch, aus welchen gemessenen Antworten die drei Regeln abgeleitet sind.
+PROTOCOL_WORDS = ("SKIP", "SAY")
+SKIP_REASONS = frozenset((
+    "hintergrund", "medien", "sozial", "beantwortet", "unterricht", "bruchstück", "keine-frage", "unklar",
+    "wiederholung", "organisatorisch", "rhetorisch",
+))
+MAX_ANNOUNCEMENT = 40
+COMMENTARY_LOOK = 200
+MAX_REASON_WORDS = 2                   # hinter SKIP steht höchstens ein Grund ("keine frage"); mehr ist ein Satz
+MAX_HELD_LINE = MAX_ANNOUNCEMENT + 6   # so lang darf eine Zeile im Sprechtext sein, die noch zurückgehalten wird
 # Nur für den Bericht: ein Schlüsselwort, das im Sprechtext stehen geblieben ist. Bewusst weiter gefasst als
 # die Leseregeln, denn hier soll auffallen, was die App NICHT als Anweisung erkannt hat: das Wort in
 # Großbuchstaben ("Sehr wohl, Sir. MUTE"), oder in beliebiger Schreibweise mit Doppelpunkt oder Zahl kurz
@@ -176,7 +200,7 @@ def parse_reply(raw):
     result = _read(_units(raw))
     for key in ("first_line", "reason", "speech_raw"):
         result[key] = _whole(result[key])
-    for key in ("memos", "loose_directives"):
+    for key in ("memos", "loose_directives", "dropped_headers"):
         result[key] = [_whole(x) for x in result[key]]
     return result
 
@@ -194,11 +218,14 @@ def _read(raw):
         "text_after_skip": False,
         "loose_header": False,   # Kopfzeile erkannt, obwohl sie nicht genau dem Format entsprach
         "loose_directives": [],  # Sonderzeilen, die nicht genau "MEMO: ..." oder "MUTE: ..." am Zeilenanfang waren
+        "commentary": False,     # ohne Kopfzeile, und die erste Zeile sieht nach einem Kommentar zur Entscheidung aus
+        "dropped_headers": [],   # Kopfzeilen mitten im Sprechtext samt Ankündigung davor: Die App spricht sie nicht
+        "answer_before_header": False,  # der Sprechtext stand VOR einer verspäteten SAY-Kopfzeile, dahinter nichts mehr
     }
     lines = raw.split("\n")
     first = None  # erste Zeile mit Inhalt, die keine Kopfzeile war
     parked = 0    # so viele Zeichen warten schon darauf, ob die Kopfzeile noch kommt
-    body = None
+    fallback = None  # (Grund, Zeile, Nummer): erste Zeile mit SKIP und einem ganzen Satz dahinter
     for n, line in enumerate(lines):
         late = first is not None
         following = lines[n + 1:]
@@ -207,39 +234,176 @@ def _read(raw):
             length, rest = say
             result.update(spoke=True, kind="say", length=length, first_line=line.strip())
             result["loose_header"] = late or line.strip() != "SAY " + length
-            if late:
-                # Text vor der Kopfzeile wird nicht gesprochen. Zeilen darin, die für sich eine Sonderzeile
-                # sind, führt die App aber aus (sonst hieße es "Notiert", und nichts wäre gespeichert).
-                for earlier in lines[first:n]:
-                    if _is_directive_line(earlier):
-                        _directive(earlier, True, result)
+            before = lines[first:n] if late else []
+            # Text vor der Kopfzeile wird nicht gesprochen. Zeilen darin, die für sich eine Sonderzeile
+            # sind, führt die App aber aus (sonst hieße es "Notiert", und nichts wäre gespeichert).
+            for earlier in before:
+                if _is_directive_line(earlier):
+                    _directive(earlier, True, result)
             body = "\n".join([rest] + following) if _rest_is_speech(rest, following) else "\n".join(following)
-            break
+            speech = _body(body, result)
+            if late and fallback is None and not any(_alnum(ch) for ch in speech):
+                # Hinter der verspäteten Kopfzeile kam nichts Sprechbares mehr: Dann war der Text davor keine
+                # Begründung, sondern die Antwort, und die App spricht ihn mit der Länge aus der Kopfzeile. Die
+                # schon ausgeführten Sonderzeilen bleiben weg. (Das leere Stück am Ende steht für den
+                # Zeilenumbruch vor der Kopfzeile, so wie ihn die App aufgehoben hat.)
+                kept = [x for x in before if not _is_directive_line(x)]
+                answer = _body("\n".join(kept + [""]), result)
+                result["answer_before_header"] = any(_alnum(ch) for ch in answer)
+                speech += answer
+            result["speech_raw"] = speech
+            return result
         core = _core(line)
         if _is_skip(core, late):
             head = line.strip()
-            result.update(kind="skip", reason=_core(core[4:]).lower(), first_line=head)
-            result["loose_header"] = late or not (head == "SKIP" or head.startswith("SKIP "))
-            result["text_after_skip"] = any(x.strip() for x in following)  # die App liest ab hier nicht weiter
-            return result
+            reason = _core(core[4:]).lower()
+            # Verspätet zählt SKIP nur in genauer Schreibweise und gilt dann immer. In der ersten Zeile gilt es
+            # sofort, wenn dahinter höchstens ein Grund steht.
+            if late or _word_count(reason) <= MAX_REASON_WORDS:
+                result.update(kind="skip", reason=reason, first_line=head)
+                result["loose_header"] = late or not (head == "SKIP" or head.startswith("SKIP "))
+                result["text_after_skip"] = any(x.strip() for x in following)  # die App liest ab hier nicht weiter
+                return result
+            # Ein ganzer Satz hinter SKIP: Das kann ein Kommentar sein, auf den die Kopfzeile erst folgt. Die App
+            # liest weiter; kommt keine Kopfzeile in genauer Schreibweise mehr, bleibt es beim Schweigen.
+            fallback = (reason, head, n)
         if core and first is None:
             first = n  # ab hier wird aufgehoben, bis feststeht, ob die Kopfzeile noch kommt
         if first is not None:
             parked += len(line) + 1
             if parked > MAX_PARKED:
                 break  # so lang ist keine Begründung: Es kommt keine Kopfzeile mehr
-    if body is None:
-        if first is None:
-            return result  # gar kein Inhalt: Die App schweigt.
-        # Keine Kopfzeile, bis zum Schluss oder bis zur Obergrenze: Alles ab der ersten Zeile mit Inhalt ist Sprechtext.
-        result.update(spoke=True, kind="off_protocol", first_line=lines[first].strip())
-        body = "\n".join(lines[first:])
-    _body(body, result)
+    if first is None:
+        return result  # gar kein Inhalt: Die App schweigt.
+    if fallback is not None:
+        reason, head, at = fallback
+        result.update(kind="skip", reason=reason, first_line=head, loose_header=True)
+        result["text_after_skip"] = any(x.strip() for x in lines[at + 1:])
+        return result
+    # Keine Kopfzeile, bis zum Schluss oder bis zur Obergrenze: Alles ab der ersten Zeile mit Inhalt ist Sprechtext.
+    result.update(spoke=True, kind="off_protocol", first_line=lines[first].strip(), commentary=_is_commentary(lines[first]))
+    result["speech_raw"] = _body("\n".join(lines[first:]), result)
     return result
 
 
+def _is_commentary(line):
+    """Sieht die erste Zeile einer Antwort ohne Kopfzeile nach einem Kommentar zur Entscheidung aus?
+
+    Dieselben drei Regeln wie Headerless.isCommentary in der App: Die Zeile nennt SKIP oder SAY in
+    Großbuchstaben als ganzes Wort, sie besteht nur aus einem SKIP-Grund, oder sie ist eine kurze Ankündigung,
+    die mit einem Doppelpunkt endet.
+    """
+    if len(line) > COMMENTARY_LOOK:
+        # Eine so lange Zeile ist weder ein bloßes Stichwort noch eine kurze Ankündigung. Nach einem Protokollwort
+        # wird nur in ihrem Anfang gesucht: Mehr kennt die App nicht, wenn sie mitten in der Zeile entscheiden muss.
+        return _names_protocol_word(line[:COMMENTARY_LOOK])
+    if _names_protocol_word(line):
+        return True
+    if _is_reason(_core(line)):
+        return True
+    return _is_label(line)
+
+
+def _is_reason(core):
+    """Ist core genau einer der SKIP-Gründe? Groß- und Kleinschreibung und die Zeichen zwischen zwei Wörtern sind egal."""
+    if len(core) > MAX_ANNOUNCEMENT:
+        return False
+    key, gap = [], False
+    for ch in core:
+        if _alnum(ch):
+            if gap:
+                key.append("-")
+            gap = False
+            key.append(chr(ord(ch) + 32) if "A" <= ch <= "Z" else "ü" if ch == "Ü" else ch)
+        else:
+            gap = True
+    return "".join(key) in SKIP_REASONS
+
+
+def _is_label(line):
+    """Ist die Zeile eine kurze Ankündigung, die mit einem Doppelpunkt endet ("Korrektur für die Aussprache:")?"""
+    a, b = 0, len(line)
+    while a < b and not _alnum(line[a]) and line[a] != ":":
+        a += 1
+    while b > a and not _alnum(line[b - 1]) and line[b - 1] != ":":
+        b -= 1
+    label = line[a:b]
+    return 2 <= len(label) <= MAX_ANNOUNCEMENT and label.endswith(":")
+
+
+def _word_count(s):
+    """Wie viele Wörter (Folgen aus Buchstaben und Ziffern) stehen in s?"""
+    n, in_word = 0, False
+    for ch in s:
+        alnum = _alnum(ch)
+        if alnum and not in_word:
+            n += 1
+        in_word = alnum
+    return n
+
+
+def _header_shape(s, complete):
+    """Die genaue Schreibweise einer Kopfzeile, wie ReplyParser.headerShape in der App.
+
+    Bis zu MAX_LEAD Zeichen Verzierung, dann SAY in Großbuchstaben und nichts oder eine bekannte Länge, oder
+    SKIP in Großbuchstaben als ganzes Wort und nichts oder ein bekannter Grund. complete: s ist die ganze
+    Zeile; sonst läuft sie noch, und gefragt ist, ob aus dem Anfang noch eine Kopfzeile werden kann.
+    """
+    i = 0
+    while i < len(s) and not _alnum(s[i]):
+        i += 1
+    if i > MAX_LEAD:
+        return False
+    n = len(s) - i
+    if n == 0:
+        return not complete
+    if _same(s, i, "SAY", min(n, 3), fold=False):
+        if n < 3:
+            return not complete
+        j = i + 3
+        if j < len(s) and _alnum(s[j]):
+            return False  # "SAYONARA"
+        while j < len(s) and not _alnum(s[j]):
+            j += 1
+        if j == len(s):
+            return True  # nur "SAY"
+        k = j
+        while k < len(s) and _alnum(s[k]):
+            k += 1
+        if complete or k < len(s):
+            fits = any(len(x) == k - j and _same(s, j, x, len(x), fold=True) for x in LENGTHS)
+        else:
+            fits = any(k - j <= len(x) and _same(s, j, x, k - j, fold=True) for x in LENGTHS)
+        return fits and not any(_alnum(ch) for ch in s[k:])
+    if _same(s, i, "SKIP", min(n, 4), fold=False):
+        if n < 4:
+            return not complete
+        if n > 4 and _alnum(s[i + 4]):
+            return False  # "SKIPPER"
+        rest = s[i + 4:]
+        if complete:
+            return not any(_alnum(ch) for ch in rest) or _is_reason(_core(rest))
+        return len(s) <= MAX_HELD_LINE and _word_count(rest) <= MAX_REASON_WORDS
+    return False
+
+
+def _names_protocol_word(s):
+    """Steht in s SKIP oder SAY in Großbuchstaben als ganzes Wort? "SAYONARA" und "Skip-Bo" zählen nicht."""
+    for word in PROTOCOL_WORDS:
+        at = s.find(word)
+        while at >= 0:
+            end = at + len(word)
+            if (at == 0 or not _alnum(s[at - 1])) and (end == len(s) or not _alnum(s[end])):
+                return True
+            at = s.find(word, at + 1)
+    return False
+
+
 def _body(text, result):
-    """Sprechtext und Sonderzeilen trennen, Zeichen für Zeichen wie ReplyParser.speech in der App."""
+    """Sprechtext und Sonderzeilen trennen, Zeichen für Zeichen wie ReplyParser.speech in der App.
+
+    Liefert den Sprechtext; die Sonderzeilen landen in result.
+    """
     speech = []
     held = ""                    # möglicher Anfang einer Sonderzeile oder die Sonderzeile selbst
     held_from_line_start = False
@@ -248,10 +412,19 @@ def _body(text, result):
     last_solid = "\n"            # letzter Buchstabe, letzte Ziffer oder letztes Satzzeichen der laufenden Zeile; "\n" = noch keines
     in_directive = False
     mid_line = False
+    voiced = False               # es ist schon etwas Sprechbares hinausgegangen
+    # Die Vorstufe (ReplyParser.body): eine Kopfzeile mitten in der Antwort und die Ankündigung direkt davor.
+    line = ""                    # die laufende Zeile, solange offen ist, ob sie Kopfzeile oder Ankündigung wird
+    announcement = ""            # eine fertige Ankündigung samt den Leerzeilen dahinter
+    flowing = False              # über die laufende Zeile ist entschieden: gewöhnlicher Sprechtext
+    after_blank = False          # die Zeile davor war leer
+    blank_line = True            # die laufende Zeile besteht bisher nur aus Leerraum
 
     def speak(piece):
-        nonlocal last, last_solid
+        nonlocal last, last_solid, voiced
         for ch in piece:
+            if _alnum(ch):
+                voiced = True
             if ch == "\n":
                 last_solid = "\n"
             elif _alnum(ch) or ch in SENTENCE_MARKS:
@@ -276,23 +449,14 @@ def _body(text, result):
         held = ""
         return not bare
 
-    for c in text:
-        if in_directive:
-            if c == "\n":
-                _directive(held, mid_line, result)
-                held = ""
-                if mid_line:
-                    speak("\n")
-                line_start = True
-                in_directive = False
-            else:
-                held += c
-            continue
+    def speech_char(c):
+        """Ein Zeichen des Sprechtexts, über dessen Zeile schon entschieden ist (ReplyParser.speech)."""
+        nonlocal held, held_from_line_start, line_start, in_directive, mid_line
         if c == "\n":
             if end_of_speech_line():
                 speak("\n")
             line_start = True
-            continue
+            return
         if held:
             held += c
             verdict = _probe(held, held_from_line_start)
@@ -308,11 +472,106 @@ def _body(text, result):
         else:
             speak(c)
         line_start = False
+
+    def dropped(*pieces):
+        """Nur für den Bericht: Diese Zeilen standen im Sprechtext und werden von der App nicht gesprochen."""
+        result["dropped_headers"].extend(x.strip() for piece in pieces for x in piece.split("\n") if x.strip())
+
+    def next_line(blank):
+        nonlocal flowing, after_blank, blank_line
+        flowing = False
+        after_blank = blank
+        blank_line = True
+
+    def may_be_announcement(s):
+        return (after_blank and voiced and not announcement and len(s) <= MAX_HELD_LINE
+                and not any(ch in SENTENCE_MARKS for ch in s))
+
+    def is_announcement(s):
+        return may_be_announcement(s) and _is_label(s) and not _is_directive_line(s)
+
+    def flow():
+        """Was zurückgehalten wurde, ist gewöhnlicher Sprechtext; eine wartende Ankündigung geht voran."""
+        nonlocal line, announcement, flowing
+        waiting = announcement + line
+        announcement = ""
+        line = ""
+        flowing = True
+        for ch in waiting:
+            step(ch)
+
+    def end_of_held_line():
+        nonlocal line, announcement, blank_line
+        if blank_line and announcement:
+            announcement += line + "\n"  # Leerzeilen hinter einer Ankündigung warten mit ihr
+            line = ""
+        elif blank_line:
+            flow()
+            step("\n")
+        elif _header_shape(line, True):
+            dropped(announcement, line)  # Kopfzeile mitten in der Antwort: Sie fällt weg, mit der Ankündigung davor
+            line = ""
+            announcement = ""
+            blank_line = True
+        elif is_announcement(line):
+            announcement += line + "\n"
+            line = ""
+            blank_line = True
+        else:
+            flow()
+            step("\n")
+
+    def body_char(c):
+        """Die Vorstufe: Eine Zeile wartet nur, solange sie noch Kopfzeile oder Ankündigung werden kann."""
+        nonlocal line, blank_line
+        if flowing:
+            blank = blank_line
+            if c != "\n" and c not in BLANK:
+                blank_line = False
+            speech_char(c)
+            if c == "\n":
+                next_line(blank)
+            return
+        if c == "\n":
+            end_of_held_line()
+            return
+        line += c
+        if c not in BLANK:
+            blank_line = False
+        if not _header_shape(line, False) and not may_be_announcement(line):
+            flow()
+
+    def step(c):
+        nonlocal held, line_start, in_directive
+        if in_directive:
+            if c == "\n":
+                _directive(held, mid_line, result)
+                held = ""
+                if mid_line:
+                    speak("\n")
+                line_start = True
+                in_directive = False
+                next_line(False)
+            else:
+                held += c
+            return
+        body_char(c)
+
+    for c in text:
+        step(c)
+    # Am Ende: Eine Kopfzeile ganz am Schluss fällt weg, samt ihrer Ankündigung. Alles andere ist Sprechtext.
+    while not in_directive and not flowing and (line or announcement):
+        if _header_shape(line, True):
+            dropped(announcement, line)
+            line = ""
+            announcement = ""
+        else:
+            flow()
     if in_directive:
         _directive(held, mid_line, result)
     else:
         end_of_speech_line()
-    result["speech_raw"] = "".join(speech)
+    return "".join(speech)
 
 
 def _probe(s, at_line_start):
@@ -549,9 +808,11 @@ def _number(word):
 
 
 def speaks_header(speech):
-    """Nur für den Bericht: Steht im Sprechtext eine Zeile, die selbst eine Kopfzeile ist ("SAY kurz", dann "SKIP medien")?
+    """Nur für den Bericht: Steht im Sprechtext noch eine Zeile, die wie eine Kopfzeile beginnt ("SKIP weil ...")?
 
-    Die App liest nach der ersten Kopfzeile keine zweite mehr, sie würde die Zeile vorlesen.
+    Eine Kopfzeile in genauer Schreibweise spricht die App nicht mehr ("SAY kurz", "SKIP medien"); die steht
+    dann auch nicht im Sprechtext, sondern unter dropped_headers. Was hier noch anschlägt, weicht davon ab
+    (ein Satz hinter SKIP, ein Zusatz hinter der Länge) und würde vorgelesen.
     """
     return any(_is_skip(_core(line), True) or _say_header(line, True) is not None for line in speech.split("\n"))
 
@@ -626,9 +887,12 @@ def read_run(run_dir, expected, only_modes=None):
                 "text_after_skip": reply["text_after_skip"],
                 "loose_header": reply["loose_header"],
                 "loose_directives": reply["loose_directives"],
+                "commentary": reply["commentary"],
+                "answer_before_header": reply["answer_before_header"],
                 # Steht trotz allem noch MEMO oder MUTE im Sprechtext, wurde vielleicht eine Anweisung vorgelesen.
                 "directive_leak": bool(reply["spoke"] and DIRECTIVE_LEAK.search(speech)),
                 "header_in_speech": bool(reply["spoke"] and speaks_header(speech)),
+                "dropped_headers": reply["dropped_headers"],
             }
             row["outcome"] = (
                 ("TP" if row["spoke"] else "FN") if row["expected_answer"] else ("FP" if row["spoke"] else "TN")
@@ -685,22 +949,25 @@ def evaluate(run, run_dir, expected, only_modes=None):
             digits.append({**brief(r), "found": found, "speech": r["speech"]})
 
     # Wortzahl gegen den Deckel der Länge, die das Modell selbst angesagt hat (so rechnet auch die App).
+    # Ohne Kopfzeile hat es keine angesagt: Dann gilt in der App "kurz", nach direkter Anrede "mittel".
+    def cap_of(label):
+        return WORD_CAPS[OFF_PROTOCOL_CAP] if label == NO_HEADER else WORD_CAPS.get(label, WORD_CAPS[DEFAULT_CAP])
+
     by_declared, over_cap = {}, []
     for r in spoken:
-        label = r["declared_length"] if r["declared_length"] in WORD_CAPS else "(keine)"
-        cap = WORD_CAPS.get(r["declared_length"], WORD_CAPS[DEFAULT_CAP])
+        label = NO_HEADER if r["kind"] == "off_protocol" else r["declared_length"] if r["declared_length"] in WORD_CAPS else NO_LENGTH
         by_declared.setdefault(label, []).append(r["words"])
-        if r["words"] > cap:
-            over_cap.append({**brief(r), "declared_length": label, "words": r["words"], "cap": cap})
+        if r["words"] > cap_of(label):
+            over_cap.append({**brief(r), "declared_length": label, "words": r["words"], "cap": cap_of(label)})
     word_stats = {
         label: {
             "n": len(counts),
             "median": statistics.median(counts),
             "max": max(counts),
-            "cap": WORD_CAPS.get(label, WORD_CAPS[DEFAULT_CAP]),
+            "cap": cap_of(label),
             "over_cap": sum(1 for o in over_cap if o["declared_length"] == label),
         }
-        for label, counts in sorted(by_declared.items(), key=lambda kv: (list(WORD_CAPS) + ["(keine)"]).index(kv[0]))
+        for label, counts in sorted(by_declared.items(), key=lambda kv: (list(WORD_CAPS) + [NO_LENGTH, NO_HEADER]).index(kv[0]))
     }
 
     return {
@@ -735,6 +1002,8 @@ def evaluate(run, run_dir, expected, only_modes=None):
         "ambiguous": [brief(r, "expected_answer", "spoke") for r in rows if r["ambiguous"]],
         "protocol": {
             "off_protocol": [brief(r) for r in rows if r["kind"] == "off_protocol"],
+            "commentary": [brief(r, "speech") for r in rows if r["commentary"]],
+            "answer_before_header": [brief(r, "speech") for r in rows if r["answer_before_header"]],
             "empty_output": [brief(r) for r in rows if r["kind"] == "empty"],
             "say_without_text": [brief(r) for r in rows if r["kind"] == "say" and not r["speech"]],
             "unknown_length": [brief(r) for r in rows if r["kind"] == "say" and r["declared_length"] not in WORD_CAPS],
@@ -743,6 +1012,7 @@ def evaluate(run, run_dir, expected, only_modes=None):
             "loose_directive": [brief(r, "loose_directives") for r in rows if r["loose_directives"]],
             "directive_leak": [brief(r, "speech") for r in rows if r["directive_leak"]],
             "header_in_speech": [brief(r, "speech") for r in rows if r["header_in_speech"]],
+            "header_dropped": [brief(r, "dropped_headers") for r in rows if r["dropped_headers"]],
             "skip_reasons": dict(Counter(r["reason"] or "(ohne)" for r in rows if r["kind"] == "skip").most_common()),
             "memo_lines": sum(len(r["memos"]) for r in rows),
             "mute_lines": sum(len(r["mutes"]) for r in rows),
@@ -827,9 +1097,11 @@ def print_report(rep):
     for item in rep["digits"]:
         print(f"  {where(item)} {' '.join(item['found'])}  |  {clip(item['speech'])}")
 
-    print("\nWORTZAHL  gegen die Deckel der App (" + ", ".join(f"{k} {v}" for k, v in WORD_CAPS.items()) + ")")
+    print("\nWORTZAHL  gegen die Deckel der App (" + ", ".join(f"{k} {v}" for k, v in WORD_CAPS.items()) +
+          f"; ohne Kopfzeile gilt ohne direkte Anrede {OFF_PROTOCOL_CAP}, gemessen wird daran)")
+    width = max([8] + [len(label) for label in w["by_declared_length"]])
     for label, s in w["by_declared_length"].items():
-        print(f"  {label:<8} {s['n']:>4} Antworten, Median {s['median']:g} Wörter, längste {s['max']}, "
+        print(f"  {label:<{width}} {s['n']:>4} Antworten, Median {s['median']:g} Wörter, längste {s['max']}, "
               f"über dem Deckel ({s['cap']}): {s['over_cap']}")
     for item in w["over_cap"]:
         print(f"  {where(item)} {item['declared_length']}: {item['words']} Wörter, Deckel {item['cap']}")
@@ -842,7 +1114,11 @@ def print_report(rep):
     p = rep["protocol"]
     print("\nPROTOKOLL")
     notes = [
-        ("off_protocol", "ohne Kopfzeile geantwortet (die App spricht das nur, wenn er sie direkt angesprochen hat)"),
+        ("off_protocol", "ohne Kopfzeile geantwortet (die App spricht das trotzdem: ohne direkte Anrede höchstens so lang wie kurz, "
+                         "nach Anrede wie mittel)"),
+        ("commentary", "davon dem Anfang nach ein Kommentar zur Entscheidung statt einer Antwort (zählt oben als gesprochen; "
+                       "die App spricht das nur nach direkter Anrede)"),
+        ("answer_before_header", "Antwort VOR einer verspäteten SAY-Kopfzeile, dahinter nichts mehr (die App spricht den Text davor)"),
         ("empty_output", "leere Antwort (zählt als Schweigen)"),
         ("say_without_text", "SAY ohne Sprechtext (zählt als gesprochen, zu hören wäre nichts)"),
         ("unknown_length", "SAY mit unbekannter Länge (die App rechnet dann mit mittel)"),
@@ -850,7 +1126,9 @@ def print_report(rep):
         ("loose_header", "Kopfzeile nicht genau im Format (verziert, verspätet oder mit Text dahinter; die App liest sie trotzdem)"),
         ("loose_directive", "MEMO/MUTE nicht genau im Format (die App führt sie trotzdem aus)"),
         ("directive_leak", "MEMO oder MUTE im Sprechtext (nachlesen: War es eine Anweisung, wurde sie vorgelesen statt ausgeführt)"),
-        ("header_in_speech", "SKIP- oder SAY-Zeile mitten im Sprechtext (wäre vorgelesen worden)"),
+        ("header_dropped", "Kopfzeile mitten im Sprechtext, in genauer Schreibweise (die App spricht sie nicht, auch nicht "
+                           "die Ankündigung direkt davor)"),
+        ("header_in_speech", "Zeile mitten im Sprechtext, die wie eine Kopfzeile beginnt (wird vorgelesen)"),
     ]
     quiet = True
     for key, label in notes:
@@ -923,6 +1201,7 @@ def selftest(eval_dir):
             mine = {
                 "spoke": got["spoke"],
                 "off_protocol": got["kind"] == "off_protocol",
+                "commentary": got["commentary"],
                 "reason": got["reason"],
                 "length": got["length"],
                 "speech": got["speech_raw"],
@@ -958,7 +1237,8 @@ def selftest(eval_dir):
         check(not oracle["digits"] and not oracle["words"]["over_cap"], "Orakel: Ziffern oder Überlänge gemeldet")
         check(len(oracle["ambiguous"]) == (len(expected) - len(clear)) * len(modes), "mehrdeutige Fälle nicht getrennt geführt")
         check(not oracle["counts"]["missing"] and not oracle["counts"]["unknown"], "Orakel: fehlende oder unbekannte Dateien gemeldet")
-        check(not any(oracle["protocol"][k] for k in ("loose_header", "loose_directive", "directive_leak", "header_in_speech")),
+        check(not any(oracle["protocol"][k]
+                      for k in ("loose_header", "loose_directive", "directive_leak", "header_in_speech", "header_dropped")),
               "Orakel: Abweichung vom Format gemeldet, wo keine ist")
 
         # Abweichler: richtige Entscheidungen, aber jedes Mal knapp neben dem Format. Die Zahlen müssen dieselben
@@ -975,7 +1255,10 @@ def selftest(eval_dir):
         check(sloppy["protocol"]["memo_lines"] == spoken and sloppy["protocol"]["mute_lines"] == spoken,
               "abweichende Sonderzeile nicht ausgeführt")
         check(len(sloppy["protocol"]["directive_leak"]) == spoken, "Schlüsselwort im Sprechtext nicht gemeldet")
-        check(len(sloppy["protocol"]["header_in_speech"]) == spoken, "Kopfzeile mitten im Sprechtext nicht gemeldet")
+        # Das "SKIP medien" am Schluss stand früher im Sprechtext (die App las es vor). Jetzt spricht sie es nicht
+        # mehr; gemeldet wird es weiterhin, nur unter dem neuen Zähler.
+        check(len(sloppy["protocol"]["header_dropped"]) == spoken, "Kopfzeile mitten im Sprechtext nicht gemeldet")
+        check(not sloppy["protocol"]["header_in_speech"], "Kopfzeile in genauer Schreibweise steht noch im Sprechtext")
         check(not sloppy["protocol"]["off_protocol"], "Abweichler: Begründung vor der Kopfzeile als Sprechtext gewertet")
 
         # Immer schweigen: kein falsches Sprechen, aber jede erwartete Antwort verpasst.
@@ -1024,6 +1307,56 @@ def selftest(eval_dir):
     early = parse_reply("MEMO: Zahnarzt am Dienstag\nÜberlegung mit MEMO: mittendrin.\nSAY kurz\nNotiert, Sir.")
     check(early["memos"] == ["Zahnarzt am Dienstag"] and early["loose_directives"] == ["MEMO: Zahnarzt am Dienstag"]
           and early["loose_header"], "Sonderzeile vor der Kopfzeile nicht ausgeführt oder nicht als Abweichung gemeldet")
+    # Die Antwort zuerst, die Kopfzeile als letzte Zeile (so gemessen): Der Text davor ist der Sprechtext.
+    trailing = parse_reply("Yes. Venus is the hottest planet.\n\nSAY kurz")
+    check(trailing["kind"] == "say" and trailing["length"] == "kurz" and trailing["answer_before_header"]
+          and trailing["speech_raw"].strip() == "Yes. Venus is the hottest planet.",
+          "Antwort vor einer verspäteten Kopfzeile nicht als Sprechtext gelesen")
+    check(not parse_reply("Er fragt selbst.\nSAY kurz\nZweitausend Meter.")["answer_before_header"],
+          "Begründung vor einer Kopfzeile mit Antwort dahinter als Sprechtext gewertet")
+    # Text um eine Kopfzeile herum, beide so gemessen (bef-01 und mus-03): Zu hören ist nur die Antwort.
+    comment = parse_reply("SKIP-Entscheidung entfällt, ich antworte.\n\nSAY kurz\nEtwa fünfhunderttausend.")
+    check(comment["kind"] == "say" and comment["length"] == "kurz" and comment["speech_raw"] == "Etwa fünfhunderttausend."
+          and comment["loose_header"] and not comment["answer_before_header"],
+          "Kommentar mit SKIP vor der Kopfzeile: die Antwort dahinter nicht als Sprechtext gelesen")
+    alone = parse_reply("SKIP-Entscheidung entfällt, ich antworte.\nUnd noch ein Satz.")
+    check(alone["kind"] == "skip" and not alone["spoke"] and alone["reason"] == "entscheidung entfällt, ich antworte"
+          and alone["text_after_skip"], "Satz mit SKIP am Anfang ohne Kopfzeile dahinter nicht als Schweigen gelesen")
+    twice = parse_reply("SAY kurz\nNull97 Kilometer.\n\nKorrektur für die Aussprache:\n\nSAY kurz\nNeun sieben Kilometer.")
+    check(twice["speech_raw"] == "Null97 Kilometer.\n\nNeun sieben Kilometer."
+          and twice["dropped_headers"] == ["Korrektur für die Aussprache:", "SAY kurz"] and not speaks_header(twice["speech_raw"]),
+          "zweite Kopfzeile mitten in der Antwort oder die Ankündigung davor steht noch im Sprechtext")
+    kept = parse_reply("SAY mittel\nDrei Dinge.\n\nDie Zutaten:\nEier, Mehl und Milch.")
+    check(kept["speech_raw"] == "Drei Dinge.\n\nDie Zutaten:\nEier, Mehl und Milch." and not kept["dropped_headers"],
+          "Ankündigung ohne Kopfzeile dahinter ging verloren")
+    # Antwort ohne Kopfzeile: Antwort oder Kommentar zur Entscheidung? Die zwei Zeilen, die das echte Modell
+    # vor eine Kopfzeile gesetzt hat, seine SKIP-Gründe ohne das SKIP, und echte Antworten als Gegenprobe.
+    # (Die erste Zeile stand im Original ohne Artikel da. So beginnt sie mit SKIP und ist schon deshalb eine
+    # Kopfzeile; bis zu dieser Prüfung kommt ein Protokollwort nur, wenn es nicht am Zeilenanfang steht.)
+    for reply, commentary in [
+        ("Die SKIP-Entscheidung entfällt, ich antworte.", True), ("Korrektur für die Aussprache:\n\nEinundzwanzig Kilometer.", True),
+        ("hintergrund", True), ("**Sozial**\n", True), ("Keine Frage.", True), ("BRUCHSTÜCK", True), ("Entscheidung: SAY kurz", True),
+        ("Wellington. Auckland ist nur die größte Stadt.", False), ("Etwa achtundsechzig Komma sechs Zentimeter.", False),
+        ("For three years. Say \"I have been working there for three years.\"", False), ("SAYONARA heißt auf Wiedersehen.", False),
+        ("Sozial ist das nicht.", False), ("Das ist nicht an mich gerichtet.", False),
+        ("Erste Zeile.\nSAY hello heißt sag hallo.", False),
+    ]:
+        got = parse_reply(reply)
+        check(got["kind"] == "off_protocol" and got["commentary"] == commentary,
+              f"Antwort ohne Kopfzeile falsch eingeschätzt (Kommentar erwartet: {commentary}): {reply!r}")
+    with tempfile.TemporaryDirectory() as tmp:
+        for mode in modes:
+            os.makedirs(os.path.join(tmp, "kommentar", mode))
+            for case_id in expected:
+                with open(os.path.join(tmp, "kommentar", mode, case_id + ".txt"), "w", encoding="utf-8") as f:
+                    f.write("Die SKIP-Entscheidung entfällt, ich antworte." if mode == modes[0] else "Zweitausend Meter.\n\nSAY kurz")
+        odd = evaluate("kommentar", os.path.join(tmp, "kommentar"), expected)
+        check(len(odd["protocol"]["commentary"]) == len(expected), "Kommentar ohne Kopfzeile nicht unter PROTOKOLL gemeldet")
+        check(len(odd["protocol"]["answer_before_header"]) == len(expected) * (len(modes) - 1),
+              "Antwort vor verspäteter Kopfzeile nicht unter PROTOKOLL gemeldet")
+        check(not odd["protocol"]["say_without_text"], "Antwort vor verspäteter Kopfzeile als SAY ohne Sprechtext gemeldet")
+        check(odd["words"]["by_declared_length"].get(NO_HEADER, {}).get("cap") == WORD_CAPS[OFF_PROTOCOL_CAP],
+              "Antworten ohne Kopfzeile nicht am Deckel von kurz gemessen")
 
     # 4. Wörter zählen wie die App.
     check(words("Das sind zweitausend-neunhundert Meter, Sir. Geht's?") == ["das", "sind", "zweitausend", "neunhundert", "meter", "sir", "geht's"], "Wortzählung weicht ab")

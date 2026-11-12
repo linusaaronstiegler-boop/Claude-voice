@@ -139,9 +139,14 @@ class AndroidSpeakerTest {
         return scope.launch { speaker.speak(channel) { firstAudio.incrementAndGet() } }
     }
 
-    /** Lässt Haupt-Thread und Hintergrund laufen, bis [done] gilt (höchstens zehn Sekunden). */
+    /**
+     * Lässt Haupt-Thread und Hintergrund laufen, bis [done] gilt.
+     * Die Frist (30 Sekunden) ist nur ein Netz gegen einen Test, der sonst ewig hinge. Im guten Fall kostet
+     * sie nichts. Der erste Test dieser Klasse lädt Abspieler und Kopfhörer-Taste zum ersten Mal; auf einem
+     * ausgelasteten Rechner dauerte er schon über zwölf Sekunden, die früheren zehn waren dafür zu knapp.
+     */
     private fun waitFor(done: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 10_000
+        val deadline = System.currentTimeMillis() + 30_000
         while (!done() && System.currentTimeMillis() < deadline) {
             looper.idle()
             Thread.sleep(5)

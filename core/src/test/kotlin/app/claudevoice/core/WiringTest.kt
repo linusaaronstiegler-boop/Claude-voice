@@ -113,6 +113,47 @@ class WiringTest {
         }
     }
 
+    @Test fun `Rueckfrage des Traegers mit den Woertern der Antwort ist kein Echo`() = runTest {
+        // Die Gegenprobe zum Test darüber. Der Träger fragt mit seiner eigenen, lauten Stimme zurück und
+        // wiederholt dabei zwei von drei Wörtern der Antwort. Was aus dem Kopfhörer ins Mikro zurückschallt,
+        // kommt nie so laut an wie er selbst: Seine Stimme ist kein Echo. Früher verschwand die Rückfrage spurlos,
+        // und seit beide Fassungen der Antwort zählen, auch dann, wenn das Modell Ziffern geschrieben hatte.
+        val withProfile = Pipeline.Config(voiceProfile = VoiceProfile(-18.0, 115.0, 5))
+        for (written in listOf("Das sind 3 km.", "Das sind drei Kilometer.")) {
+            val rig = Rig(this, FakeClaude(), config = withProfile)
+            rig.claude.reply = { user ->
+                if (user.lines().last { it.startsWith(">>") }.contains("Wie weit")) listOf("SAY kurz\n", written) else listOf("SAY kurz\n", "Ja, Luftlinie.")
+            }
+            rig.own()
+            rig.say("Wie weit ist das?")
+            runCurrent()
+            assertEquals(listOf("Das sind drei Kilometer."), rig.speaker.spoken)
+
+            advanceTimeBy(1_500)
+            rig.own()
+            rig.say("Wirklich drei Kilometer?")
+            runCurrent()
+            assertEquals(written, listOf("ICH: Wie weit ist das?", "ICH: Wirklich drei Kilometer?"), rig.state.value.transcript)
+            assertEquals(written, listOf("Das sind drei Kilometer.", "Ja, Luftlinie."), rig.speaker.spoken)
+
+            // Dieselben Wörter ohne messbare Stimme bleiben ein Echo.
+            advanceTimeBy(1_000)
+            rig.say("ja Luftlinie also")
+            runCurrent()
+            assertEquals(written, 2, rig.state.value.transcript.size)
+        }
+        // Ohne Kopfhörer (echoRisk) trennt die Lautstärke nicht: Dort bleibt es bei der Prüfung am Wortlaut.
+        val open = Rig(this, FakeClaude(reply = { listOf("SAY kurz\n", "Das sind drei Kilometer.") }), config = withProfile.copy(echoRisk = true))
+        open.own()
+        open.say("Wie weit ist das?")
+        runCurrent()
+        advanceTimeBy(1_500)
+        open.own()
+        open.say("das sind drei Kilometer")
+        runCurrent()
+        assertEquals(listOf("ICH: Wie weit ist das?"), open.state.value.transcript)
+    }
+
     @Test fun `bricht der Aufruf hinter dem Deckel ab, bleibt die Antwort stehen`() = runTest {
         // Hinter dem Längendeckel wird nur noch auf eine Sonderzeile gewartet. Reißt die Verbindung dort ab,
         // fehlt nichts, was zu sprechen wäre: kein Fehler in der Anzeige, und der Satz wird nicht abgeschnitten.

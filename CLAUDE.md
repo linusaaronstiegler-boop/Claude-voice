@@ -37,4 +37,5 @@ Bereitschaftsmodus mit lokalem Weckwort „Hey Jarvis“.
 - APK: `./gradlew :app:assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`
 - Rauchtest (echte Schlüssel): `ELEVENLABS_API_KEY=… ANTHROPIC_API_KEY=… ./gradlew :core:smoke`
 - Auswertung: `./gradlew :core:evalDump`, `:core:evalLive -Prun=<name>`, `python3 tools/eval_score.py <ordner>`
-- CI (`.github/workflows/build.yml`) baut bei jedem Push und hängt die APK als Artefakt an.
+- CI (`.github/workflows/build.yml`) führt bei jedem Push die Tests oben aus, baut die APK und hängt sie als
+  Artefakt an; scheitert der Lauf, hängen die Testberichte als Artefakt `testberichte` daran.

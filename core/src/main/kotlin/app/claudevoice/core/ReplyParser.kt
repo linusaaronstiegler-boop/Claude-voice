@@ -9,8 +9,10 @@ sealed interface Decision {
     /**
      * Sprechen. [length] ist die vom Modell gewählte Länge ("kurz", "mittel", "lang") oder leer, wenn
      * keine der drei dastand. [offProtocol] = das Modell hat die Kopfzeile vergessen und direkt losgeredet.
+     * [commentary] kann nur dann wahr sein: Der Text ohne Kopfzeile sieht nicht nach einer Antwort aus,
+     * sondern nach einem Kommentar zur Entscheidung oder zum Protokoll ([Headerless.isCommentary]).
      */
-    data class Say(val length: String, val offProtocol: Boolean = false) : Decision
+    data class Say(val length: String, val offProtocol: Boolean = false, val commentary: Boolean = false) : Decision
 }
 
 /** Anweisungen an die App, die nicht vorgelesen werden. */
@@ -44,6 +46,12 @@ sealed interface Directive {
  *  - Zeichen vor und hinter den Wörtern, die weder Buchstabe noch Ziffer sind, zählen nicht
  *    ("**SAY kurz**", "> SKIP medien", "SAY: kurz", "SAY <kurz>").
  *  - SKIP gilt in der ersten Zeile schon als Wortanfang und in jeder Schreibweise. Irrtum: Schweigen.
+ *    Sofort entschieden ist damit aber nur, wenn hinter SKIP höchstens ein Grund steht (bis zu zwei Wörter;
+ *    so sahen 711 von 712 gemessenen SKIP-Zeilen aus). Steht dort ein ganzer Satz, kann er ein Kommentar
+ *    sein, auf den die eigentliche Kopfzeile erst folgt ("SKIP-Entscheidung entfällt, ich antworte." und
+ *    zwei Zeilen später "SAY kurz", so gemessen). Dann wird weitergelesen: Kommt eine Kopfzeile in genauer
+ *    Schreibweise, gilt sie. Kommt keine, bleibt es beim Schweigen, mit dem Satz als Grund. Vorgelesen
+ *    wird eine Zeile, die mit SKIP beginnt, in keinem Fall.
  *  - SAY braucht ein Wortende dahinter ("SAYONARA" ist keine Kopfzeile) und dann kurz, mittel oder
  *    lang. Fehlt die Länge, gilt nur das großgeschriebene SAY als Kopfzeile, sonst verlöre eine
  *    englische Antwort wie "Say hello to her." ihr erstes Wort.
@@ -60,13 +68,39 @@ sealed interface Directive {
  *    oder SAY in Großbuchstaben als ganzes Wort, hinter SAY eine bekannte Länge oder nichts. Zeilen vor
  *    einer verspäteten SAY-Kopfzeile, die für sich eine Sonderzeile sind ("MEMO: Zahnarzt am Dienstag"),
  *    werden trotzdem ausgeführt: Sonst sagte der Assistent "Notiert", und nichts wäre gespeichert.
+ *  - Eine Ausnahme davon: Kommt hinter der verspäteten SAY-Kopfzeile bis zum Ende des Stroms nichts
+ *    Sprechbares mehr, dann war der Text davor keine Begründung, sondern die Antwort. Das Modell hat sie
+ *    zuerst geschrieben und die Kopfzeile nachgetragen ("Yes. Venus ... than Mercury.\n\nSAY kurz", so
+ *    gemessen). Er wird dann gesprochen, mit der Länge aus der Kopfzeile. Irrtum: Bricht eine Antwort genau
+ *    hinter ihrer verspäteten Kopfzeile ab, ist die Begründung zu hören. Ohne die Ausnahme ginge dafür jede
+ *    Antwort dieser Form verloren, und zu hören wäre gar nichts ("SAY kurz" und dann Stille).
  *  - Solange keine Kopfzeile da war, wird nichts gesprochen. Erst am Ende des Stroms steht fest, dass
- *    keine mehr kommt; dann gilt alles als Antwort ohne Kopfzeile ([Decision.Say.offProtocol]), und die
- *    Pipeline spricht sie nur, wenn der Assistent direkt angesprochen war. Irrtum: Eine Antwort ohne
+ *    keine mehr kommt; dann gilt alles als Antwort ohne Kopfzeile ([Decision.Say.offProtocol]). Die
+ *    Pipeline spricht sie, ohne direkte Anrede höchstens so lang wie "kurz". Nur wenn ihr Anfang nach
+ *    einem Kommentar zur Entscheidung aussieht statt nach einer Antwort ([Headerless.isCommentary]),
+ *    bleibt es dabei, dass sie ohne direkte Anrede nicht zu hören ist. Irrtum: Eine Antwort ohne
  *    Kopfzeile ist später zu hören als eine mit. Das ist der Preis dafür, dass keine Begründung samt
  *    "SKIP medien" vorgelesen wird. Damit das Warten ein Ende hat, gilt nach [MAX_PARKED] Zeichen ohne
  *    Kopfzeile: Es kommt keine mehr, ab hier fließt der Text. Gezählt wird auch mitten in einer Zeile,
- *    denn ein Absatz ohne Zeilenumbruch kann beliebig lang werden.
+ *    denn ein Absatz ohne Zeilenumbruch kann beliebig lang werden. Steht ganz am Ende eines so langen
+ *    Textes doch noch eine Kopfzeile, gilt für sie, was für jede Kopfzeile mitten in der Antwort gilt
+ *    (nächster Absatz): Sie wird nicht gesprochen, entscheidet aber auch nichts mehr.
+ *
+ * Kopfzeile mitten in der Antwort, siehe [body]:
+ *  - Gemessen ist eine Antwort, die sich selbst verbessert: Kopfzeile, ein Satz, eine Leerzeile, "Korrektur
+ *    für die Aussprache:", eine Leerzeile, noch einmal "SAY kurz" und der Satz in besserer Fassung. Früher
+ *    war alles davon zu hören, auch "SAY kurz".
+ *  - Eine Zeile im Sprechtext, die für sich eine Kopfzeile in genauer Schreibweise ist, wird nicht
+ *    gesprochen: SAY in Großbuchstaben, dahinter eine bekannte Länge oder nichts; SKIP in Großbuchstaben
+ *    als ganzes Wort, dahinter nichts oder einer der bekannten Gründe. Sie entscheidet nichts mehr, denn
+ *    was schon zu hören war, lässt sich nicht zurücknehmen. Irrtum: Eine Antwortzeile, die genau so
+ *    aussieht ("SAY", "SKIP medien"), ginge verloren; so schreibt niemand einen Satz.
+ *  - Mit ihr fällt die kurze Ankündigung weg, die direkt vor ihr einen neuen Absatz begonnen hat und mit
+ *    einem Doppelpunkt endet ("Korrektur für die Aussprache:"). Dafür wartet eine solche Zeile, bis die
+ *    nächste Zeile mit Inhalt zeigt, was sie ankündigt. Gewartet wird nur am Anfang eines Absatzes hinter
+ *    schon gesprochenem Text und nur bis zum ersten Satzzeichen oder [MAX_HELD_LINE] Zeichen. Die
+ *    Sprachausgabe beginnt ohnehin erst am Satzende, zu hören ist davon also keine Verzögerung. Irrtum:
+ *    Folgt keine Kopfzeile, wird die Ankündigung gesprochen wie jede andere Zeile ("Die Zutaten:").
  *
  * Sonderzeilen, siehe [probe]:
  *  - Am Zeilenanfang großzügig: Einrückung, Aufzählungs- und Hervorhebungszeichen davor und direkt
@@ -115,6 +149,31 @@ class ReplyParser(
     private var notSay = false
     /** Wo in [held] die Kopfzeile zu Ende war, solange noch offen ist, was ihr Rest bedeutet; -1 = die Zeile läuft noch. */
     private var restEnd = -1
+    /**
+     * Der Text, der vor einer verspäteten SAY-Kopfzeile stand; null, wenn es keine verspätete Kopfzeile gab.
+     * Er wird aufgehoben, bis am Ende des Stroms feststeht, ob hinter der Kopfzeile noch die Antwort kam
+     * (dann war er eine Begründung) oder nichts mehr (dann war er selbst die Antwort, siehe [finish]).
+     */
+    private var before: String? = null
+    /** Seit der Kopfzeile ist schon etwas Sprechbares hinausgegangen: mindestens ein Buchstabe oder eine Ziffer. */
+    private var voiced = false
+    /**
+     * Der Grund aus einer ersten Zeile, die mit SKIP begann, aber ein ganzer Satz war; null, wenn es keine gab.
+     * Kommt danach keine Kopfzeile in genauer Schreibweise mehr, wird mit diesem Grund geschwiegen.
+     */
+    private var skipFallback: String? = null
+
+    // Der Sprechtext läuft zeilenweise durch eine Vorstufe ([body]), bevor er Zeichen für Zeichen gelesen wird:
+    /** Die Zeichen der laufenden Zeile, solange offen ist, ob sie eine Kopfzeile oder eine Ankündigung wird. */
+    private val line = StringBuilder()
+    /** Eine fertige Ankündigung samt den Leerzeilen dahinter; sie wartet auf die nächste Zeile mit Inhalt. */
+    private val announcement = StringBuilder()
+    /** Über die laufende Zeile ist entschieden: gewöhnlicher Sprechtext, der ohne Aufenthalt weiterfließt. */
+    private var flowing = false
+    /** Die Zeile davor war leer: Mit der laufenden beginnt ein neuer Absatz. */
+    private var afterBlank = false
+    /** Die laufende Zeile besteht bisher nur aus Leerraum. */
+    private var blankLine = true
 
     /** Von der laufenden Sprechtext-Zeile ist noch kein Zeichen verarbeitet. */
     private var lineStart = true
@@ -154,13 +213,38 @@ class ReplyParser(
                 },
             )
         }
+        endOfBody()
+        // Verspätete Kopfzeile, und hinter ihr kam nichts Sprechbares mehr: Dann war der Text davor die
+        // Antwort (siehe Klassenkommentar). Er geht jetzt denselben Weg wie jeder Sprechtext, also auch mit
+        // den Regeln für eine Sonderzeile mitten in der Zeile ("Notiert, Sir. MEMO: ..."). Zeilen, die als
+        // Ganzes eine Sonderzeile waren, sind schon ausgeführt ([directivesBeforeHeader]) und bleiben weg:
+        // Sonst stünde dieselbe Notiz zweimal im Gedächtnis.
+        val answer = before
+        if (answer != null && !voiced) {
+            startBody()
+            feed(answer.split('\n').filterNot(::isDirectiveLine).joinToString("\n"))
+            endOfBody()
+        }
+        state = State.DONE
+    }
+
+    /** Am Ende des Stroms: Was vom Sprechtext oder von einer Sonderzeile noch zurückgehalten ist, wird entschieden. */
+    private fun endOfBody() {
+        // Zuerst die Vorstufe: Eine Kopfzeile ganz am Schluss fällt weg, samt ihrer Ankündigung. Alles andere,
+        // was dort noch wartet, ist Sprechtext. (Eine Schleife, weil hinter einer freigegebenen Ankündigung die
+        // letzte Zeile neu beurteilt wird und dabei noch einmal warten kann.)
+        while (state == State.BODY && !flowing && (line.isNotEmpty() || announcement.isNotEmpty())) {
+            if (isHeaderLine(line)) {
+                line.setLength(0)
+                announcement.setLength(0)
+            } else flow()
+        }
         when (state) {
             State.BODY -> endOfSpeechLine()
             State.DIRECTIVE -> directive(held.toString())
             else -> {}
         }
         held.setLength(0)
-        state = State.DONE
     }
 
     private fun step(c: Char) {
@@ -171,10 +255,10 @@ class ReplyParser(
                 // Die Obergrenze gilt auch mitten in der Zeile: Ein langer Absatz ohne Zeilenumbruch soll
                 // nicht bis zum Ende des Stroms warten. Eine Zeile, die noch eine Kopfzeile werden kann,
                 // wird aber zu Ende gelesen.
-                if (notSay && parked.length + held.length > MAX_PARKED && !mayBeSkip()) offProtocol(parked.toString() + held)
+                if (notSay && parked.length + held.length > MAX_PARKED && !mayBeSkip()) noHeader(parked.toString() + held)
             }
             State.HEADER_REST -> headerRest(c)
-            State.BODY -> speech(c)
+            State.BODY -> body(c)
             State.DIRECTIVE -> if (c == '\n') {
                 directive(held.toString())
                 held.setLength(0)
@@ -182,6 +266,7 @@ class ReplyParser(
                 if (directiveMidLine) speak("\n")
                 lineStart = true
                 state = State.BODY
+                nextLine(blank = false)
             } else held.append(c)
             State.DONE -> {}
         }
@@ -223,7 +308,12 @@ class ReplyParser(
         }
         decide(Decision.Say(length ?: ""))
         // Erst die Entscheidung, dann die Sonderzeilen: Die Pipeline nimmt Anweisungen nur an, wenn gesprochen wird.
-        if (late) directivesBeforeHeader()
+        if (late) {
+            directivesBeforeHeader()
+            // Ob der Text davor Begründung war oder die Antwort selbst, zeigt erst das Ende des Stroms. Begann
+            // er mit SKIP, war er ein Kommentar zur Entscheidung und ist auf keinen Fall die Antwort.
+            before = if (skipFallback == null) parked.toString() else null
+        }
         held.setLength(0)
         restEnd = -1
         state = State.HEADER_REST
@@ -281,22 +371,27 @@ class ReplyParser(
         val core = line.trim { !it.isLetterOrDigit() }
         val skip = if (late) same(core, 0, "SKIP", 4, foldCase = false) && !(core.length > 4 && core[4].isLetterOrDigit())
         else same(core, 0, "SKIP", 4, foldCase = true)
+        val reason = if (skip) core.drop(4).trim { !it.isLetterOrDigit() }.lowercase() else ""
         when {
-            skip -> {
-                decide(Decision.Skip(core.drop(4).trim { !it.isLetterOrDigit() }.lowercase()))
+            // Verspätet zählt SKIP nur in genauer Schreibweise und gilt dann immer. In der ersten Zeile gilt es
+            // sofort, wenn dahinter höchstens ein Grund steht.
+            skip && (late || words(reason) <= MAX_REASON_WORDS) -> {
+                decide(Decision.Skip(reason))
                 state = State.DONE
                 return
             }
             // Leerzeile oder bloße Verzierung ("```") vor dem ersten Inhalt: weiter auf die Kopfzeile warten.
             core.isEmpty() && !late -> {}
             else -> {
+                // Erste Zeile mit SKIP und einem ganzen Satz dahinter: vorgemerkt, falls keine Kopfzeile mehr kommt.
+                if (skip) skipFallback = reason
                 parked.append(line)
                 if (!endOfStream) parked.append('\n')
                 if (core.isNotEmpty()) late = true
             }
         }
         if (late && (endOfStream || parked.length > MAX_PARKED)) {
-            offProtocol(parked.toString())
+            noHeader(parked.toString())
         } else if (endOfStream) {
             decide(Decision.Skip(""))
             state = State.DONE
@@ -305,11 +400,24 @@ class ReplyParser(
 
     /**
      * Bis zum Schluss kam keine Kopfzeile, oder es steht schon mehr Text da, als je eine Begründung lang
-     * wäre: Das Modell hat direkt geantwortet, [text] ist der Anfang seiner Antwort. Ob sie gesprochen
-     * wird, entscheidet die Pipeline (nur, wenn der Träger den Assistenten direkt angesprochen hat).
+     * wäre: Das Modell hat direkt geantwortet, [text] ist der Anfang seiner Antwort. Die Pipeline spricht
+     * sie. Sieht ihr Anfang aber nach einem Kommentar zur Entscheidung aus, meldet das die Entscheidung
+     * mit, und die Pipeline lässt sie dann nur nach einer direkten Anrede durch.
      */
+    /**
+     * Es kommt keine Kopfzeile mehr (Ende des Stroms oder Obergrenze). Begann der Text mit SKIP und einem
+     * ganzen Satz, bleibt es beim Schweigen; sonst ist er eine Antwort ohne Kopfzeile.
+     */
+    private fun noHeader(text: String) {
+        val reason = skipFallback
+        if (reason == null) return offProtocol(text)
+        decide(Decision.Skip(reason))
+        held.setLength(0)
+        state = State.DONE
+    }
+
     private fun offProtocol(text: String) {
-        decide(Decision.Say("", offProtocol = true))
+        decide(Decision.Say("", offProtocol = true, commentary = Headerless.isCommentary(text)))
         startBody()
         feed(text)
     }
@@ -353,7 +461,148 @@ class ReplyParser(
         lineStart = true
         last = '\n'
         lastSolid = '\n'
+        line.setLength(0)
+        announcement.setLength(0)
+        flowing = false
+        afterBlank = false
+        blankLine = true
         state = State.BODY
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // Kopfzeile mitten in der Antwort
+
+    /**
+     * Die Vorstufe des Sprechtexts (siehe Klassenkommentar, "Kopfzeile mitten in der Antwort").
+     *
+     * Fast jede Zeile ist nach ihrem ersten Zeichen entschieden und fließt dann Zeichen für Zeichen weiter
+     * nach [speech]. Zurückgehalten wird eine Zeile nur, solange sie noch eine Kopfzeile in genauer
+     * Schreibweise werden kann ("S", "SA", "SAY", "SAY k" ...) oder, am Anfang eines Absatzes, eine kurze
+     * Ankündigung. Am Zeilenende steht fest, was sie war.
+     */
+    private fun body(c: Char) {
+        if (flowing) {
+            val blank = blankLine
+            if (c != '\n' && !isBlank(c)) blankLine = false
+            speech(c)
+            if (c == '\n') nextLine(blank)
+            return
+        }
+        if (c == '\n') return endOfHeldLine()
+        line.append(c)
+        if (!isBlank(c)) blankLine = false
+        if (!mayBeHeaderLine(line) && !mayBeAnnouncement(line)) flow()
+    }
+
+    /** Das Zeilenende ist da, und über die Zeile war noch nicht entschieden. */
+    private fun endOfHeldLine() {
+        when {
+            // Leerzeilen hinter einer Ankündigung warten mit ihr; sonst sind sie gewöhnlicher Sprechtext.
+            blankLine && announcement.isNotEmpty() -> {
+                announcement.append(line).append('\n')
+                line.setLength(0)
+            }
+            blankLine -> {
+                flow()
+                step('\n')
+            }
+            // Eine Kopfzeile mitten in der Antwort: Sie fällt weg, und mit ihr die Ankündigung direkt davor.
+            isHeaderLine(line) -> {
+                line.setLength(0)
+                announcement.setLength(0)
+                blankLine = true
+            }
+            isAnnouncement(line) -> {
+                announcement.append(line).append('\n')
+                line.setLength(0)
+                blankLine = true
+            }
+            else -> {
+                flow()
+                step('\n')
+            }
+        }
+    }
+
+    /**
+     * Was bisher zurückgehalten wurde, ist gewöhnlicher Sprechtext: Es geht jetzt denselben Weg wie jedes
+     * andere Zeichen. Eine wartende Ankündigung geht voran; die Zeilen dahinter werden dabei neu beurteilt.
+     */
+    private fun flow() {
+        val text = announcement.toString() + line
+        announcement.setLength(0)
+        line.setLength(0)
+        flowing = true
+        for (ch in text) step(ch)
+    }
+
+    /** Eine Zeile des Sprechtexts ist zu Ende; [blank] = sie enthielt nur Leerraum. */
+    private fun nextLine(blank: Boolean) {
+        flowing = false
+        afterBlank = blank
+        blankLine = true
+    }
+
+    private fun mayBeHeaderLine(s: CharSequence) = headerShape(s, complete = false)
+
+    /** Ist die ganze Zeile [s] eine Kopfzeile in genauer Schreibweise? */
+    private fun isHeaderLine(s: CharSequence) = headerShape(s, complete = true)
+
+    /**
+     * Die genaue Schreibweise einer Kopfzeile: bis zu [MAX_LEAD] Zeichen Verzierung, dann SAY in
+     * Großbuchstaben und nichts oder eine bekannte Länge, oder SKIP in Großbuchstaben als ganzes Wort und
+     * nichts oder ein bekannter Grund. Dahinter darf nur noch Verzierung stehen.
+     *
+     * @param complete true = [s] ist die ganze Zeile. false = sie läuft noch; gefragt ist dann, ob aus dem
+     *                 Anfang noch eine Kopfzeile werden kann.
+     */
+    private fun headerShape(s: CharSequence, complete: Boolean): Boolean {
+        var i = 0
+        while (i < s.length && !s[i].isLetterOrDigit()) i++
+        if (i > MAX_LEAD) return false
+        val n = s.length - i
+        if (n == 0) return !complete
+        if (same(s, i, "SAY", minOf(n, 3), foldCase = false)) {
+            if (n < 3) return !complete
+            var j = i + 3
+            if (j < s.length && s[j].isLetterOrDigit()) return false           // "SAYONARA"
+            while (j < s.length && !s[j].isLetterOrDigit()) j++
+            if (j == s.length) return true                                     // nur "SAY"
+            var k = j
+            while (k < s.length && s[k].isLetterOrDigit()) k++
+            val wordDone = complete || k < s.length
+            val fits = LENGTHS.any {
+                if (wordDone) it.length == k - j && same(s, j, it, it.length, foldCase = true)
+                else k - j <= it.length && same(s, j, it, k - j, foldCase = true)
+            }
+            return fits && (k until s.length).none { s[it].isLetterOrDigit() }
+        }
+        if (same(s, i, "SKIP", minOf(n, 4), foldCase = false)) {
+            if (n < 4) return !complete
+            if (n > 4 && s[i + 4].isLetterOrDigit()) return false              // "SKIPPER"
+            val rest = s.subSequence(i + 4, s.length)
+            // Solange die Zeile läuft, genügt, dass der Grund noch kurz ist; am Ende muss er bekannt sein.
+            return if (complete) rest.none { it.isLetterOrDigit() } || Headerless.isReason(rest.trim { !it.isLetterOrDigit() }.toString())
+            else s.length <= MAX_HELD_LINE && words(rest) <= MAX_REASON_WORDS
+        }
+        return false
+    }
+
+    /** Hier könnte eine Ankündigung stehen: am Anfang eines Absatzes, hinter schon gesprochenem Text, und es wartet noch keine. */
+    private fun announcementPossible() = afterBlank && voiced && announcement.isEmpty()
+
+    private fun mayBeAnnouncement(s: CharSequence) =
+        announcementPossible() && s.length <= MAX_HELD_LINE && s.none { it in SENTENCE_MARKS }
+
+    /**
+     * Ist die ganze Zeile [s] eine kurze Ankündigung, die mit einem Doppelpunkt endet? Dieselbe Regel wie
+     * für die erste Zeile einer Antwort ohne Kopfzeile ([Headerless.isCommentary], Regel 3). Eine Sonderzeile
+     * ("MUTE:") ist keine Ankündigung.
+     */
+    private fun isAnnouncement(s: CharSequence): Boolean {
+        if (!mayBeAnnouncement(s)) return false
+        val label = s.trim { !it.isLetterOrDigit() && it != ':' }
+        return label.length in 2..Headerless.MAX_ANNOUNCEMENT && label.endsWith(':') && !isDirectiveLine(s.toString())
     }
 
     // ------------------------------------------------------------------------------------------
@@ -414,6 +663,7 @@ class ReplyParser(
 
     private fun speak(text: String) {
         for (c in text) {
+            if (c.isLetterOrDigit()) voiced = true
             if (c == '\n') lastSolid = '\n' else if (c.isLetterOrDigit() || c in SENTENCE_MARKS) lastSolid = c
         }
         last = text[text.length - 1]
@@ -515,6 +765,12 @@ class ReplyParser(
          */
         const val MAX_PARKED = 500
 
+        /** Hinter SKIP steht höchstens ein Grund: ein Wort, oder zwei wie in "keine frage". Mehr ist ein Satz. */
+        const val MAX_REASON_WORDS = 2
+
+        /** So lang darf eine Zeile im Sprechtext sein, die noch als Ankündigung oder Kopfzeile zurückgehalten wird. */
+        const val MAX_HELD_LINE = Headerless.MAX_ANNOUNCEMENT + 6
+
         const val MAX_LEAD = 6
         /** So viele Hervorhebungszeichen dürfen mitten in der Zeile vor dem Schlüsselwort und überall direkt hinter ihm stehen. */
         const val MAX_EMPHASIS = 4
@@ -538,7 +794,129 @@ class ReplyParser(
         }
 
         fun upper(c: Char) = if (c in 'a'..'z') c - 32 else c
+
+        /** Wie viele Wörter (Folgen aus Buchstaben und Ziffern) stehen in [s]? */
+        fun words(s: CharSequence): Int {
+            var n = 0
+            var inWord = false
+            for (c in s) {
+                val alnum = c.isLetterOrDigit()
+                if (alnum && !inWord) n++
+                inWord = alnum
+            }
+            return n
+        }
     }
+}
+
+/**
+ * Eine Antwort ohne Kopfzeile: Ist das wirklich eine Antwort, oder redet das Modell ÜBER seine Entscheidung?
+ *
+ * Früher wurde jede Antwort ohne Kopfzeile verworfen, wenn der Assistent nicht direkt angesprochen war. Die
+ * Sorge dahinter: Das Modell könnte statt einer Antwort seine Entscheidung kommentieren, und der Kommentar
+ * landete im Ohr. Gemessen hat sich die Sorge nicht bestätigt, die Regel aber als teuer erwiesen. In 1480
+ * Antworten des echten Modells (185 Fälle, vier Fassungen der Mitschrift, zwei Fassungen der Anweisungen)
+ * fehlte 31-mal die Kopfzeile, und alle 31 waren echte Antworten; 29 davon waren erwünscht.
+ *
+ * Diese Prüfung ist deshalb aus denselben 1480 Antworten abgeleitet und nicht aus ausgedachten Sätzen. Sie
+ * fragt, wie das Modell schreibt, wenn es über Entscheidung oder Protokoll spricht. Dafür gibt es dort
+ * genau zwei Quellen:
+ *  - Die Gründe hinter SKIP. In 711 von 712 Fällen ist das ein einzelnes Stichwort: die neun aus dem
+ *    Prompt, dazu "organisatorisch" und "rhetorisch", die das Modell selbst erfunden hat. Einen
+ *    ausformulierten Satz schreibt es dort nie.
+ *  - Zeilen, die es vor eine Kopfzeile setzt. Davon gibt es drei. Eine ist eine Antwort (siehe die
+ *    verspätete Kopfzeile im [ReplyParser]). Die anderen beiden sind Kommentare:
+ *    "SKIP-Entscheidung entfällt, ich antworte." und "Korrektur für die Aussprache:".
+ *
+ * Daraus die drei Regeln. Jede schaut nur auf die erste Zeile mit Inhalt, denn dort stünde die Kopfzeile,
+ * und eine Antwort beginnt laut Prompt mit der Antwort selbst:
+ *  1. Die Zeile nennt ein Protokollwort: SKIP oder SAY in Großbuchstaben als ganzes Wort.
+ *  2. Die Zeile besteht nur aus einem SKIP-Grund ("hintergrund", "Keine Frage."): die Kopfzeile ohne SKIP.
+ *  3. Die Zeile ist eine kurze Ankündigung, die mit einem Doppelpunkt endet: Sie sagt nichts, sie kündigt an.
+ *
+ * Gegenprobe an denselben Daten: Keine der 31 echten Antworten ohne Kopfzeile wird getroffen, und auch
+ * keiner der übrigen 737 Sprechtexte, die mit Kopfzeile kamen (hätte das Modell sie dort vergessen).
+ *
+ * Wichtig für das Verständnis: Die Regeln 1 und 3 sind aus den beiden Kommentarzeilen abgeleitet, greifen
+ * aber nicht in den zwei Antworten, in denen diese Zeilen gemessen wurden. Dort stand eine Kopfzeile, und
+ * hierher kommt nur, was ganz ohne Kopfzeile blieb. Die eine Antwort begann mit SKIP, in der anderen war die
+ * Kopfzeile längst gelesen, als die Ankündigung kam. Für diese beiden Fälle sorgt der [ReplyParser] selbst
+ * (SKIP mit einem ganzen Satz in der ersten Zeile; Kopfzeile mitten in der Antwort). Diese Prüfung fängt
+ * dieselben Zeilen für den Fall ab, dass das Modell die Kopfzeile dahinter einmal ganz vergisst.
+ *
+ * Was die Prüfung NICHT kann: einen frei formulierten Satz über die Entscheidung erkennen ("Das ist nicht
+ * an mich gerichtet."). So etwas kam in keiner gemessenen Antwort vor, es gibt also nichts, woraus sich
+ * eine Regel ableiten ließe, und geratene Wortlisten träfen echte Antworten. Schreibt das Modell doch
+ * einmal so, ist der Satz zu hören, gekürzt auf die Länge von "kurz".
+ *
+ * Irrtum nach der anderen Seite: Eine echte Antwort, deren erste Zeile eine der drei Regeln erfüllt
+ * ("SAY heißt sagen."), gilt als Kommentar. Sie wird dann behandelt wie früher jede Antwort ohne Kopfzeile:
+ * ohne direkte Anrede nicht gesprochen. Dieselben Regeln stehen in `tools/eval_score.py`.
+ */
+internal object Headerless {
+    private val PROTOCOL_WORDS = listOf("SKIP", "SAY")
+
+    /** So schreibt das Modell seine Gründe hinter SKIP; "keine-frage" steht hier für jede Trennung der zwei Wörter. */
+    private val REASONS = setOf(
+        "hintergrund", "medien", "sozial", "beantwortet", "unterricht", "bruchstück", "keine-frage", "unklar",
+        "wiederholung", "organisatorisch", "rhetorisch",
+    )
+
+    /** Länger ist keine Ankündigung mehr, sondern ein Satz ("Korrektur für die Aussprache:" hat 29 Zeichen). */
+    const val MAX_ANNOUNCEMENT = 40
+
+    /**
+     * So weit wird in der ersten Zeile nach einem Protokollwort gesucht. Die Grenze hat einen technischen
+     * Grund: Muss der [ReplyParser] mitten in einer sehr langen ersten Zeile entscheiden, kennt er nur ihren
+     * Anfang. Mit der Grenze kommt er dann zum selben Ergebnis wie das Auswertungs-Skript, das die ganze
+     * Antwort vor sich hat.
+     */
+    private const val LOOK = 200
+
+    /** Sieht [text], eine Antwort ohne Kopfzeile, nach einem Kommentar zur Entscheidung oder zum Protokoll aus? */
+    fun isCommentary(text: String): Boolean {
+        val line = text.split('\n').firstOrNull { l -> l.any { it.isLetterOrDigit() } } ?: return false
+        // Eine so lange Zeile ist weder ein bloßes Stichwort noch eine kurze Ankündigung.
+        if (line.length > LOOK) return namesProtocolWord(line.substring(0, LOOK))
+        if (namesProtocolWord(line)) return true
+        // Verzierung am Rand zählt nicht: "**hintergrund**", "(sozial)".
+        if (isReason(line.trim { !it.isLetterOrDigit() })) return true
+        val label = line.trim { !it.isLetterOrDigit() && it != ':' }
+        return label.length in 2..MAX_ANNOUNCEMENT && label.endsWith(':')
+    }
+
+    /** Steht in [s] SKIP oder SAY in Großbuchstaben als ganzes Wort? "SAYONARA" und "Skip-Bo" zählen nicht. */
+    private fun namesProtocolWord(s: String): Boolean {
+        for (word in PROTOCOL_WORDS) {
+            var at = s.indexOf(word)
+            while (at >= 0) {
+                val end = at + word.length
+                val startsWord = at == 0 || !s[at - 1].isLetterOrDigit()
+                val endsWord = end == s.length || !s[end].isLetterOrDigit()
+                if (startsWord && endsWord) return true
+                at = s.indexOf(word, at + 1)
+            }
+        }
+        return false
+    }
+
+    /** Ist [core] genau einer der Gründe? Groß- und Kleinschreibung und die Zeichen zwischen zwei Wörtern sind egal. */
+    fun isReason(core: String): Boolean {
+        if (core.length > MAX_ANNOUNCEMENT) return false
+        val key = StringBuilder()
+        var gap = false
+        for (c in core) {
+            if (c.isLetterOrDigit()) {
+                if (gap) key.append('-')
+                gap = false
+                key.append(lower(c))
+            } else gap = true
+        }
+        return key.toString() in REASONS
+    }
+
+    /** Nur A bis Z und Ü: Mehr kommt in den Gründen nicht vor, und so rechnen jedes Gerät und das Skript gleich. */
+    private fun lower(c: Char): Char = if (c in 'A'..'Z') c + 32 else if (c == 'Ü') 'ü' else c
 }
 
 /**

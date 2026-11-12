@@ -11,6 +11,14 @@
       Tabelle gehärtet; Zahlen-Aussprache als Sicherung im Code; alle Testfall-Sätze gegengeprüft;
       ScribeClient und ElevenTts gegen die Dokumentation geprüft
 - [x] Design – Dark Mode und durchscheinende Flächen („Liquid Glass“), Wahl Hell/Dunkel/System
+- [x] Schlussrunde – Antworten ohne Kopfzeile werden gesprochen, Anschlussfrage vor der ersten Antwort,
+      Korrektur „Nein, ich meine …“, Angriffsrunde mit 19 Funden (Stimm-Schranke enger, Ruhe, Stopp,
+      Warteplatz), wackliger CI-Test an der Ursache behoben
+
+## In Arbeit
+- [ ] Gegenprüfung der Reparaturen aus der Angriffsrunde; Anschlussfrage auch hinter normal langen Antworten.
+- [ ] Sprachausgabe mit der Stimme des Geräts, damit die App ohne ElevenLabs-Schlüssel läuft.
+- [ ] Gelerntes Stimmprofil in den Einstellungen vergessen können.
 
 ## Als Nächstes (in dieser Reihenfolge)
 Alles hier braucht den Besitzer: Schlüssel oder das Gerät.
@@ -41,6 +49,17 @@ Alles hier braucht den Besitzer: Schlüssel oder das Gerät.
       ist „Alfred, merk dir …“ oder die Bitte direkt nach dem Weckwort. Bewusst so gelassen: Derselbe
       Satz gilt im Gespräch meist einem Menschen.
 - [ ] Ein Kabel in einen Lautsprecher lässt sich von Kabel-Kopfhörern nicht unterscheiden.
+- [ ] Standardstimme ersetzen: Die eingebaute Voice-ID ist eine „Default voice“ von ElevenLabs, die es nur
+      für ältere Konten und nur bis 31.12.2026 gibt. Voice-ID zur Pflichtangabe machen oder klar melden.
+- [ ] Verständliche Meldung, wenn der Anthropic-Schlüssel keinem Workspace zugeordnet ist (Antwort 400).
+- [ ] Ein abgelehnter oder leerer Anthropic-Schlüssel sollte das Zuhören beenden; heute läuft die
+      Transkription weiter und kostet, während jede Antwort scheitert.
+- [ ] Schalter für die Schlüsselbegriffe der Transkription (bei ElevenLabs Aufpreis je Stunde).
+- [ ] Verbrauchsanzeige: Die App liest die Zähler der Aufrufe nicht aus; ob der Zwischenspeicher für die
+      Anweisungen greift, ist deshalb unbestätigt.
+- [ ] Am Handy-Mikro ergeben zwei schnelle Fragen höchstens die zweite Antwort (der Träger ist dort von den
+      anderen nicht zu unterscheiden).
+- [ ] Die Wachhalte-Sperre gilt nur vier Stunden; eine längere Sitzung mit dunklem Bildschirm kann stocken.
 
 ## Später
 - Zielgerät läuft mit Android 16: dort testen, danach `compileSdk`/`targetSdk` von 35 auf 36 anheben.
@@ -49,3 +68,5 @@ Alles hier braucht den Besitzer: Schlüssel oder das Gerät.
 - Weckwort-Fehlauslöser senken (ähnlich klingende Wörter), eigene Schwelle in den Einstellungen.
 - Kosten: Vorgriff und Zurückhalten erzeugen Aufrufe und Sprachzeichen, die nie zu hören sind. Auf dem
   Gerät messen, ob sich das im Alltag lohnt, und sonst einen Sparmodus anbieten.
+- Sprachausgabe über Soniox (gleicher Schlüssel wie die Mitschrift, gleiches Tonformat) als dritte Wahl.
+- Soniox in der EU-Region (eigene Adresse, regionsgebundener Schlüssel).

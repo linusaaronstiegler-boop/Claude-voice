@@ -323,13 +323,17 @@ class SonioxClientTest {
         val peer = Peer()
         server.enqueue(upgrade(peer))
         val rec = Recorder()
-        val client = client(rec, keepaliveMs = 600)
+        // Alle 1,5 s sieht der Client nach, ob seit dem letzten Mal Audio hinausging. Der Abstand lässt Luft
+        // für einen ausgelasteten Rechner: Erst wenn dieser Test selbst anderthalb Sekunden lang kein Stück
+        // schickt, ginge zu Recht ein Lebenszeichen hinaus. Mit den früheren 600 ms genügte dafür ein
+        // Stocken von gut einer halben Sekunde.
+        val client = client(rec, keepaliveMs = 1_500)
         client.connect()
         assertEquals("conn:true:null:true", rec.next())
         assertEquals("stt-rt-v6", mapper.readTree(peer.texts.poll(10, TimeUnit.SECONDS))["model"].asText())
 
-        // Solange Audio fließt (hier 1,5 s lang alle 20 ms ein Stück), braucht es kein Lebenszeichen.
-        val until = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(1_500)
+        // Solange Audio fließt (hier 2,5 s lang alle 20 ms ein Stück), braucht es kein Lebenszeichen.
+        val until = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(2_500)
         while (System.nanoTime() < until) {
             client.sendAudio(ByteArray(640), 640)
             Thread.sleep(20)

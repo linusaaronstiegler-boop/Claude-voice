@@ -34,9 +34,17 @@ class PipelineTest {
         fun say(text: String) = pipeline.onCommitted(text, null, null)
 
         /** Spielt vor der nächsten Äußerung eine laute, tiefe Stimme ein: so klingt der Träger am Kopfhörer-Mikro. */
-        fun own() {
+        fun own() = voice(115.0, 8000.0)
+
+        /** Mittlere Lautstärke (rund -34 dBFS), andere Stimmlage: jemand am Tisch. */
+        fun near() = voice(200.0, 1300.0)
+
+        /** Sehr leise (rund -51 dBFS): Fernseher oder Nachbartisch. */
+        fun far() = voice(180.0, 200.0)
+
+        private fun voice(hz: Double, amplitude: Double) {
             pipeline.onAudio(silence(300), 9600)
-            val t = tone(115.0, 8000.0, 600)
+            val t = tone(hz, amplitude, 600)
             pipeline.onAudio(t, t.size)
         }
     }
@@ -154,12 +162,15 @@ class PipelineTest {
     }
 
     @Test fun `nach dem Weckwort gilt die naechste Aeusserung als Anrede, auch wenn der Name verhoert wurde`() = runTest {
-        val rig = Rig(this, FakeClaude(reply = { listOf("Die Zugspitze ist knapp dreitausend Meter hoch.") }), config = Pipeline.Config(names = listOf("Alfred", "Jarvis")))
+        // Eine Antwort ohne Kopfzeile, die nur nach direkter Anrede zu hören ist: Ihr Anfang sieht nach einem
+        // Kommentar zur Entscheidung aus (der Grund hinter SKIP, ohne das SKIP). Eine gewöhnliche Antwort ohne
+        // Kopfzeile taugt für diese Probe nicht mehr, sie wird inzwischen auch ohne Anrede gesprochen.
+        val rig = Rig(this, FakeClaude(reply = { listOf("unklar\nDie Zugspitze ist knapp dreitausend Meter hoch.") }), config = Pipeline.Config(names = listOf("Alfred", "Jarvis")))
         rig.pipeline.onWakeWord()
         rig.say("hey Travis wie hoch ist die Zugspitze")
         runCurrent()
-        // Ohne Kopfzeile wird nur bei direkter Anrede gesprochen: das Weckwort zählt als Anrede.
-        assertEquals(1, rig.speaker.spoken.size)
+        // Das Weckwort zählt als Anrede: Es wird gesprochen.
+        assertEquals(2, rig.speaker.spoken.size)
         assertTrue(rig.claude.respondCalls[0].contains("Weckwort: Er hat dich unmittelbar"))
 
         rig.say("und wie hoch ist der Watzmann")
@@ -200,16 +211,29 @@ class PipelineTest {
         assertEquals(3, rig.claude.respondCalls.size) // Watzmann-Antwort war fertig, wurde aber nicht gesprochen
     }
 
-    @Test fun `verfehltes Format wird nur bei direkter Anrede gesprochen`() = runTest {
-        val rig = Rig(this, FakeClaude(reply = { listOf("Die Zugspitze ist knapp dreitausend Meter hoch.") }))
+    // Hieß bis zur Messung mit dem echten Modell "verfehltes Format wird nur bei direkter Anrede gesprochen" und
+    // erwartete für die Frage ohne Anrede "übersprungen: format". Gemessen waren alle 31 Antworten ohne
+    // Kopfzeile echte Antworten; verworfen wird ohne Anrede nur noch, was nach einem Kommentar aussieht.
+    @Test fun `verfehltes Format wird auch ohne Anrede gesprochen, ein Kommentar zur Entscheidung nur nach Anrede`() = runTest {
+        val answer = "Die Zugspitze ist knapp dreitausend Meter hoch."
+        val rig = Rig(this, FakeClaude(reply = { listOf(answer) }))
         rig.say("Wie hoch ist die Zugspitze?")
         runCurrent()
-        assertTrue(rig.speaker.spoken.isEmpty())
+        assertEquals(listOf(answer), rig.speaker.spoken)
+        assertEquals("antwortet", rig.state.value.lastDecision)
+
+        // Der Grund hinter SKIP, aber ohne das SKIP: keine Antwort, sondern ein Kommentar zur Entscheidung.
+        rig.claude.reply = { listOf("hintergrund") }
+        advanceTimeBy(30_000)
+        rig.say("Wie hoch ist der Watzmann?")
+        runCurrent()
+        assertEquals(listOf(answer), rig.speaker.spoken)
         assertEquals("übersprungen: format", rig.state.value.lastDecision)
 
-        rig.say("Alfred, wie hoch ist die Zugspitze?")
+        // Nach direkter Anrede wird wie bisher alles gesprochen, was ohne Kopfzeile kommt.
+        rig.say("Alfred, wie hoch ist der Watzmann?")
         runCurrent()
-        assertEquals(listOf("Die Zugspitze ist knapp dreitausend Meter hoch."), rig.speaker.spoken)
+        assertEquals(listOf(answer, "hintergrund"), rig.speaker.spoken)
     }
 
     @Test fun `merken und stummschalten, Anrede hebt die Stummschaltung auf`() = runTest {
@@ -260,6 +284,92 @@ class PipelineTest {
         assertTrue(rig.state.value.lastDecision!!.startsWith("abgelehnt"))
         assertTrue(rig.claude.respondCalls.last().contains("Sprecher der letzten Äußerung: nicht gesichert"))
         assertTrue(rig.env.profiles.isEmpty()) // und sie wird auch nicht als Stimme des Trägers gelernt
+    }
+
+    // Der Test darüber kommt ohne jedes Audio aus ("keine Messung"). Die folgenden drei spielen eine wirkliche
+    // fremde Stimme ein, so wie sie am Kopfhörer-Mikro ankommt, und zwar ohne gespeichertes Stimmprofil: nach
+    // der Installation, nach dem Löschen der App-Daten, oder bevor der Träger den Assistenten je beim Namen
+    // genannt hat. Dort lag die Lücke.
+
+    private val lockNote = listOf("SAY kurz\n", "Notiert.\n", "MEMO: Der Code vom Fahrradschloss ist null null null null\n", "MUTE: 60")
+
+    @Test fun `fremde Stimme vom Tisch kann nichts merken und nicht stummschalten, mit und ohne Stimmprofil`() = runTest {
+        for (config in listOf(Pipeline.Config(), Pipeline.Config(voiceProfile = VoiceProfile(-18.0, 115.0, 5)))) {
+            val rig = Rig(this, FakeClaude(reply = { lockNote }), config = config)
+            rig.own()
+            rig.say("so jetzt aber mal los hier") // der Träger hat in dieser Sitzung schon gesprochen
+            runCurrent()
+            advanceTimeBy(3_000)
+            rig.near()
+            rig.say("Alfred, merk dir der Code vom Fahrradschloss ist null null null null")
+            runCurrent()
+
+            val seen = "Profil=${config.voiceProfile != null} Mitschrift=${rig.state.value.transcript} gelernt=${rig.env.profiles}"
+            assertEquals(seen, emptyList<String>(), rig.env.notes)
+            assertEquals(seen, 0L, rig.state.value.mutedUntilMs)
+            assertTrue(seen, rig.state.value.lastDecision!!.startsWith("abgelehnt"))
+            assertTrue(seen, rig.claude.respondCalls.last().contains("Sprecher der letzten Äußerung: nicht gesichert"))
+            assertTrue("als Träger gelernt: $seen", rig.env.profiles.isEmpty())
+        }
+    }
+
+    @Test fun `ohne Stimmprofil sperrt der erste Ruf des Tischnachbarn den Traeger nicht aus`() = runTest {
+        // Früher wurde die Stimme des Freundes mit seinem ersten "Alfred" als Profil des Trägers gespeichert.
+        // Der Träger selbst klang danach "fremd" und wurde bei jedem Versuch abgelehnt, auf Dauer.
+        val rig = Rig(this)
+        rig.claude.reply = { user ->
+            if (user.lines().last { it.startsWith(">>") }.contains("merk dir")) listOf("SAY kurz\n", "Notiert.\n", "MEMO: Zahnarzt am Dienstag\n")
+            else listOf("SAY kurz\n", "Halb zehn.")
+        }
+        rig.own()
+        rig.say("so jetzt aber mal los hier")
+        runCurrent()
+        advanceTimeBy(3_000)
+        rig.near()
+        rig.say("Alfred, wie spät ist es eigentlich?")
+        runCurrent()
+        assertTrue("der Freund wurde als Träger gelernt: ${rig.env.profiles}", rig.env.profiles.isEmpty())
+        advanceTimeBy(30_000)
+        rig.own()
+        rig.say("Alfred, merk dir Zahnarzt am Dienstag")
+        runCurrent()
+
+        assertEquals(
+            "Mitschrift=${rig.state.value.transcript} gelernt=${rig.env.profiles} zuletzt=${rig.state.value.lastDecision}",
+            listOf("Zahnarzt am Dienstag"), rig.env.notes,
+        )
+        // Gelernt ist jetzt die Stimme des Trägers: laut und tief.
+        assertEquals(115.0, rig.env.profiles.last().pitchHz!!, 3.0)
+        assertTrue(rig.env.profiles.last().levelDb > -25.0)
+    }
+
+    @Test fun `ohne Stimmprofil ist die erste Stimme der Sitzung nicht schon deshalb der Traeger`() = runTest {
+        // Ohne Profil ist der Bezugspunkt die lauteste Stimme der Sitzung, und die erste Stimme ist immer die
+        // lauteste. Früher durfte sie damit merken und stummschalten: auch der Fernseher, auch ohne Anrede.
+        for (voice in listOf<(Rig) -> Unit>({ it.far() }, { it.near() })) {
+            for (text in listOf("merk dir bitte die Nummer vom Tresor 4711", "Alfred, merk dir bitte die Nummer vom Tresor 4711")) {
+                val rig = Rig(this, FakeClaude(reply = { listOf("SAY kurz\n", "Notiert.\n", "MEMO: Tresor 4711\n", "MUTE: 600\n") }, quickReply = { _, _ -> "JA" }))
+                voice(rig)
+                rig.say(text)
+                runCurrent()
+                advanceTimeBy(1_500)
+                runCurrent()
+
+                val seen = "Mitschrift=${rig.state.value.transcript} zuletzt=${rig.state.value.lastDecision}"
+                assertEquals(seen, emptyList<String>(), rig.env.notes)
+                assertEquals(seen, 0L, rig.state.value.mutedUntilMs)
+                assertTrue(seen, rig.env.profiles.isEmpty())
+            }
+        }
+        // Die Gegenprobe: Der Träger selbst kommt am Kopfhörer-Mikro so laut an, wie es keine andere Stimme tut.
+        // Das genügt auch ohne Profil und ohne Anrede als Nachweis, wie bisher.
+        val rig = Rig(this, FakeClaude(reply = { listOf("SAY kurz\n", "Notiert.\n", "MEMO: Tresor 4711\n") }, quickReply = { _, _ -> "JA" }))
+        rig.own()
+        rig.say("merk dir bitte die Nummer vom Tresor 4711")
+        runCurrent()
+        advanceTimeBy(1_500)
+        runCurrent()
+        assertEquals(listOf("Tresor 4711"), rig.env.notes)
     }
 
     @Test fun `Vorgriff startet vor dem Satzende und wird bei gleichem Text uebernommen`() = runTest {

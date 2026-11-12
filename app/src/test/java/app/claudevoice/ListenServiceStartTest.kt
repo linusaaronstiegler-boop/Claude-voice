@@ -41,6 +41,7 @@ class ListenServiceStartTest {
     private val media = AndroidSpeaker.attributes(voiceCallRoute = false)
     private lateinit var prefs: Prefs
     private val services = ArrayList<ServiceController<ListenService>>()
+    private var hold: SetupHold? = null
 
     @Before fun setUp() {
         prefs = FakeAndroidKeyStore.freshPrefs(context)
@@ -53,6 +54,11 @@ class ListenServiceStartTest {
 
     @After fun tearDown() {
         services.forEach { runCatching { it.destroy() } }
+        // Nichts zurücklassen: Ein noch angehaltener Hintergrund-Schritt darf jetzt zu Ende laufen, und erst
+        // wenn in keinem Dienst mehr etwas läuft, beginnt der nächste Test. Sonst öffnete ein Nachzügler die
+        // Einstellungen dieses Tests, während der nächste schon seine eigenen anlegt.
+        hold?.release()
+        waitFor { services.none { it.get().busy } }
         FakeAndroidKeyStore.install()
     }
 
@@ -65,13 +71,36 @@ class ListenServiceStartTest {
     private fun service(): ServiceController<ListenService> =
         Robolectric.buildService(ListenService::class.java).create().also { services += it }
 
-    /** Lässt Hintergrund-Arbeit und Haupt-Thread laufen, bis [done] gilt (höchstens zehn Sekunden). */
+    /**
+     * Lässt Hintergrund-Arbeit und Haupt-Thread laufen, bis [done] gilt.
+     * Die Frist (30 Sekunden) ist nur ein Netz gegen einen Test, der sonst ewig hinge. Im guten Fall kostet
+     * sie nichts; sie ist darum so großzügig, dass auch ein ausgelasteter Rechner nicht an ihr scheitert.
+     */
     private fun waitFor(done: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 10_000
+        val deadline = System.currentTimeMillis() + 30_000
         while (!done() && System.currentTimeMillis() < deadline) {
             shadowOf(Looper.getMainLooper()).idle()
             Thread.sleep(10)
         }
+    }
+
+    /**
+     * Startet einen Dienst und hält seinen Aufbau im ersten Hintergrund-Schritt fest (siehe [SetupHold]).
+     * Wenn diese Funktion zurückkehrt, steckt der Aufbau nachweislich mittendrin, und zwar so lange, bis
+     * der Test ihn mit `hold.release()` weiterschickt.
+     */
+    private fun startHeld(): ServiceController<ListenService> {
+        val controller = service()
+        val armed = SetupHold.arm().also { hold = it }
+        controller.startCommand(0, 1)
+        armed.awaitReached()
+        return controller
+    }
+
+    /** Wartet, bis im Dienst nichts mehr läuft: Der Hintergrund-Schritt ist fertig und sein Ergebnis verarbeitet. */
+    private fun awaitQuiet(controller: ServiceController<ListenService>) {
+        waitFor { !controller.get().busy }
+        assertFalse("im Dienst läuft immer noch etwas", controller.get().busy)
     }
 
     /** Startet einen Dienst und wartet, bis er sich selbst beendet hat. Gibt die Meldung zurück. */
@@ -185,22 +214,24 @@ class ListenServiceStartTest {
 
     @Test fun `der Start kehrt sofort zurueck und zeigt Benachrichtigung und Status`() {
         routeTo(device(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER))
-        val controller = service()
-        controller.startCommand(0, 1)
-        // Noch bevor irgendetwas Langsames (Einstellungen, Modelle, Dateien) fertig ist:
+        val controller = startHeld()
+        // Noch bevor irgendetwas Langsames (Einstellungen, Modelle, Dateien) fertig ist. Dass es wirklich
+        // noch nicht fertig ist, stellt die Sperre sicher; früher war das nur meistens so.
         assertTrue(AppState.ui.value.running)
         assertEquals("Startet …", AppState.ui.value.status)
+        assertEquals("solange der Aufbau läuft, gibt es nichts zu melden", null, AppState.ui.value.error)
         assertNotNull(shadowOf(controller.get()).lastForegroundNotification)
     }
 
     @Test fun `ein zweiter Start-Befehl waehrend des Aufbaus baut nicht doppelt auf`() {
         routeTo(device(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER))
-        val controller = service()
-        controller.startCommand(0, 1)
+        val controller = startHeld()
         val startedAt = AppState.ui.value.startedAtMs
+        // Nur damit ein zweiter Beginn an seiner späteren Uhrzeit zu erkennen wäre (die Uhr zählt in Millisekunden).
         Thread.sleep(5)
-        controller.startCommand(0, 2) // z. B. ein doppelter Tipp auf Start
+        controller.startCommand(0, 2) // z. B. ein doppelter Tipp auf Start, während der erste Aufbau noch läuft
         assertEquals("der zweite Befehl hat neu begonnen", startedAt, AppState.ui.value.startedAtMs)
+        assertEquals("Startet …", AppState.ui.value.status)
     }
 
     @Test fun `Stopp und Antwort-Stopp vor jedem Start sind harmlos`() {
@@ -215,15 +246,51 @@ class ListenServiceStartTest {
     }
 
     @Test fun `wird der Dienst mitten im Aufbau beendet bleibt nichts offen und nichts wird mehr gemeldet`() {
+        // Ohne Kopfhörer: Liefe der Aufbau nach dem Ende weiter, würde er genau das melden.
         routeTo(device(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER))
-        val controller = service()
-        controller.startCommand(0, 1)
-        controller.destroy() // z. B. Stopp direkt nach Start
-        // Der Hintergrund-Teil läuft noch zu Ende; sein Ergebnis darf nichts mehr öffnen oder melden.
-        Thread.sleep(300)
-        shadowOf(Looper.getMainLooper()).idle()
+        val controller = startHeld()
+        controller.destroy() // z. B. Stopp direkt nach Start: Der Hintergrund-Teil steckt noch im Öffnen der Einstellungen
+        assertEquals("bis zum Ende gab es nichts zu melden", null, AppState.ui.value.error)
+
+        // Jetzt erst wird der Hintergrund-Teil fertig; sein Ergebnis darf nichts mehr öffnen oder melden.
+        hold!!.release()
+        awaitQuiet(controller)
         assertFalse(AppState.ui.value.running)
         assertEquals("Bereit", AppState.ui.value.status)
         assertEquals("nach dem Ende kommt keine Meldung mehr", null, AppState.ui.value.error)
+        assertFalse("ein beendeter Dienst verlangt sein Ende nicht noch einmal", shadowOf(controller.get()).isStoppedBySelf)
+    }
+
+    @Test fun `scheitert der Hintergrund-Teil erst nach dem Ende wird auch das nicht mehr gemeldet`() {
+        // Der härtere Fall: Der Hintergrund-Teil kommt nicht mit einem Ergebnis zurück, sondern mit einem
+        // Fehler. Einen Fehler reicht die Coroutine auch nach einem Abbruch noch weiter; dass daraus keine
+        // Meldung wird, liegt allein an der Schranke in fail() ("stopping"). Vor dem Ende wird derselbe
+        // Fehler gemeldet, siehe den Test "ein Fehler im Hintergrund-Teil ..." weiter oben.
+        routeTo(device(AudioDeviceInfo.TYPE_WIRED_HEADSET))
+        val controller = startHeld()
+        controller.destroy()
+
+        hold!!.release(failing = true) // der Tresor verweigert sich, als der Dienst schon beendet ist
+        awaitQuiet(controller)
+        assertEquals("nach dem Ende kommt keine Meldung mehr", null, AppState.ui.value.error)
+        assertFalse(AppState.ui.value.running)
+        assertEquals("Bereit", AppState.ui.value.status)
+        assertFalse("ein beendeter Dienst verlangt sein Ende nicht noch einmal", shadowOf(controller.get()).isStoppedBySelf)
+    }
+
+    @Test fun `meldet der Aufbau vor dem Ende bleibt die Meldung stehen`() {
+        // Das Gegenstück, und genau der Ablauf, an dem der Bau in der CI gescheitert ist: Der Hintergrund-Teil
+        // wird fertig, BEVOR der Dienst endet. Dann meldet der Aufbau zu Recht die fehlenden Kopfhörer, und
+        // diese Meldung gehört dem Nutzer auch nach dem Ende noch gezeigt.
+        routeTo(device(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER))
+        val controller = startHeld()
+        hold!!.release()
+        waitFor { shadowOf(controller.get()).isStoppedBySelf }
+        assertEquals("Bitte zuerst Kopfhörer verbinden: Die Antworten sollen nur Sie hören.", AppState.ui.value.error)
+
+        controller.destroy()
+        awaitQuiet(controller)
+        assertFalse(AppState.ui.value.running)
+        assertEquals("Bitte zuerst Kopfhörer verbinden: Die Antworten sollen nur Sie hören.", AppState.ui.value.error)
     }
 }

@@ -13,8 +13,25 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+      # Dieselben Aufgaben, die CLAUDE.md für die Arbeit am Rechner nennt. Früher lief hier "test": Das führte
+      # die App-Tests zweimal aus, einmal je Bauart (Debug und Release). Die App hat aber keinen Code, der sich
+      # zwischen den Bauarten unterscheidet; der zweite Durchlauf prüfte nichts Neues und kostete nur Zeit.
+      # Kommt solcher Code einmal dazu (src/debug, src/release, Abfragen von BuildConfig, Verkleinern mit R8),
+      # gehört :app:testReleaseUnitTest wieder in diese Zeile.
       - name: Tests und Debug-APK
-        run: ./gradlew test assembleDebug --no-daemon
+        run: ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug --no-daemon
+      # Scheitert ein Test, nennt die Konsole nur seinen Namen und die Zeile. Was erwartet war und was
+      # stattdessen kam, steht in den Berichten. Ohne sie lässt sich ein Fehlschlag, der nur gelegentlich
+      # auftritt, hinterher nicht mehr aufklären. Darum werden sie bei einem Fehlschlag aufgehoben.
+      - name: Testberichte aufheben (nur bei Fehlschlag)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testberichte
+          path: |
+            app/build/reports/tests
+            core/build/reports/tests
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: claude-voice-debug-apk

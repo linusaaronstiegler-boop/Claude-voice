@@ -1,5 +1,94 @@
 # Projektprotokoll (neueste zuerst)
 
+## 2026-11-12 (Schlussrunde) – Antworten ohne Kopfzeile, Anschlussfrage, Angriffsrunde, CI-Test
+Anlass: zwei offene Punkte aus der Gegenprüfung (Antworten ohne Kopfzeile, die verschluckte Anschlussfrage),
+danach drei unabhängige Angriffs-Prüfer auf die neue Gesprächssteuerung (Nebenläufigkeit, Stimm-Schranke,
+Verhalten im Gespräch) und parallel die Ursache des wackligen Dienst-Tests auf GitHub.
+
+**Neu im Verhalten**
+- Eine Antwort ohne Kopfzeile wird jetzt auch ohne Anrede gesprochen, mit dem Deckel „kurz“ (22 Wörter).
+  Grund: Alle 31 gemessenen Antworten ohne Kopfzeile waren echte Antworten, 29 davon gewollt. Eine Sperre
+  (`Headerless.isCommentary` in `ReplyParser.kt`) hält zurück, was nach lautem Nachdenken über die
+  Entscheidung aussieht: ein Protokollwort (SKIP/SAY) in der ersten Zeile, eine bloße Absage („hintergrund“)
+  oder eine kurze Ankündigung mit Doppelpunkt. Bekannte Lücke, per Test festgehalten: Ein frei formulierter
+  Satz über die Entscheidung („Das ist nicht an mich gerichtet.“) ginge durch; in 1480 Antworten kam keiner vor.
+- Steht die Antwort vor einer verspäteten Kopfzeile, wird sie gesprochen statt verworfen. Eine erste Zeile, die
+  mit SKIP beginnt, gilt nur noch als Absage, wenn höchstens zwei Wörter folgen (trifft auf 711 von 712
+  gemessenen Absagen zu); ein ganzer Satz dahinter wartet auf eine spätere Kopfzeile.
+- Anschlussfrage vor der ersten Antwort („Wie viele Zeitzonen hat Russland?“ … „Und China?“): Der Nachsatz
+  des Trägers wird nach der ersten Antwort als Nachfrage vorgelegt, mit der Antwort im Verlauf. Das gilt auch
+  ohne Fragezeichen und kleingeschrieben („und china“, `Heuristics.isShortFollowUp`). Nur kurze Nachsätze
+  gehen ohne Vorprüfung ans Antwortmodell; ein ganzer Satz an jemand anderen läuft erst durch die Vorprüfung.
+  Hat inzwischen ein anderer aus der Runde etwas mit Inhalt gesagt, entfällt der Nachsatz.
+- Korrektur im Wortlaut der Anleitung („Nein, ich meine den Watzmann.“) löst die wartende eigene Frage ab
+  (`Heuristics.isCorrection`: „ich meine / meinte / mein …“ nach höchstens drei Wörtern wie nein, ach, sorry).
+  Bewusst nicht erfasst: ein bloßes „Nein, den Watzmann.“, weil so auch „Nein, danke.“ an den Kellner beginnt.
+- In Gesellschaft nimmt der eigene Nachsatz des Trägers ihm die Antwort nicht mehr weg: Bei seiner Frage
+  zählt als „ein Mensch antwortet“ nur noch eine andere Stimme. Solange er selbst weiterspricht, wartet die
+  Antwort. Gilt am Kopfhörer-Mikro; am Handy-Mikro ist der Träger von den anderen nicht zu unterscheiden.
+- Nach dem Weckwort wird auch eine kurze Bitte ohne Frageform („Uhrzeit bitte“) dem Antwortmodell vorgelegt,
+  solange das Fenster offen ist und die Stimme nah ist. Preis: Jede nahe Äußerung in diesen bis zu zwölf
+  Sekunden kostet einen Aufruf.
+
+**Aus der Angriffsrunde (19 Funde, 18 behoben, je mit Test, der vorher scheiterte)**
+- Stimm-Schranke, enger gezogen: Ohne gespeichertes Stimmprofil reichte am Kopfhörer-Mikro „lauteste Stimme
+  der Sitzung“. Ein Tischnachbar konnte so etwas merken lassen, und sein erster Ruf mit dem Namen wurde als
+  Profil des Trägers gespeichert und sperrte den Träger aus. Jetzt braucht es ohne Profil beides: die Stimme
+  ist in der Sitzung die nächste UND absolut laut genug (mindestens −30 dBFS, vorher −35). Das Profil lernt nur
+  noch von einer so gesicherten Stimme, die mit dem Namen beginnt. Folge für den Gerätetest: Kommt die eigene
+  Stimme leiser als −30 dBFS an, lassen sich ohne Profil keine Notizen und keine Ruhe per Sprache auslösen.
+- Zugesagte Ruhe galt erst, wenn das Modell zu Ende geschrieben hatte, und eine zurückgestellte Äußerung
+  rückte trotz Ruhe nach. Jetzt wird die Ruhe an jeder Stelle geprüft, an der Ton freigegeben wird; bittet der
+  Träger erkennbar um Ruhe, gilt sie schon, während der Rest der Antwort noch gelesen wird.
+- Scheitert das Speichern einer Notiz hinter dem Längendeckel, stürzte die App ab; jetzt erscheint eine Meldung.
+- Was direkt nach einem „Stopp“ gesagt wurde, konnte für immer zurückgestellt bleiben; „Stopp“ räumt jetzt auf.
+- Eine alte Antwort konnte noch hörbar werden, wenn sie genau zwischen Ablösung und Abbruch eintraf (älter
+  als diese Runde, unter Last jeder zehnte Lauf). Eine Antwort wird nur noch freigegeben, solange ihr Auftrag
+  der aktuelle ist.
+- Der Fernseher verdrängte eine zurückgestellte Aussage, die Anschlussfrage und ein „Warum?“ des Trägers. Der
+  eine Warteplatz behält jetzt die Äußerung mit dem höheren Anspruch.
+- Das Echo-Filter schluckte die Rückfrage des Trägers, wenn sie Wörter der Antwort wiederholte. Was die Akustik
+  dem Träger zuordnet, gilt nie als Echo.
+
+**Der wacklige Test auf GitHub** (`ListenServiceStartTest`, „mitten im Aufbau beendet“)
+- Ursache: eine Wettlaufsituation in der Annahme des Tests, kein Fehler nach dem Ende. Robolectric arbeitet in
+  `startCommand()` die Warteschlange des Hauptfadens ab; war der erste Hintergrundschritt schon fertig, meldete
+  der Aufbau zu Recht „Bitte zuerst Kopfhörer verbinden“, bevor der Dienst endete. Unter Last 1 von 7 Läufen,
+  mit künstlich verbreitertem Fenster jedes Mal.
+- Behoben mit einem Halter statt einer Wartezeit (`SetupHold.kt`): Der Test bestimmt, wann der erste Schritt
+  endet. Danach 15 von 15 Läufen grün unter Last.
+- Dabei drei echte Lücken in `ListenService.kt` geschlossen, je mit Test: Nach dem Ende ging der
+  Vorwärm-Aufruf ein zweites Mal an Claude hinaus; Meldungen der Transkription kamen während des Abbaus noch
+  in der Anzeige an; nach einem Stopp blieb stehen, was zuletzt in die Meldezeile geschrieben wurde.
+- CI führt jetzt genau die Befehle aus `CLAUDE.md` aus und hängt bei einem Fehlschlag die Testberichte an.
+  Die Tests der Release-Variante laufen dort nicht mehr mit (gleiche Quellen, gleiche Tests).
+
+**Aus der Recherche zu Schlüsseln und Kosten** (offizielle Seiten, gelesen am 12.11.2026, je gegengeprüft)
+- Der Anthropic-Schlüssel muss beim Anlegen einem Workspace zugeordnet werden. Ohne Zuordnung verlangt die
+  API bei jedem Aufruf einen Workspace-Kopf, den die App nicht sendet (Antwort 400).
+- Die eingebaute Standardstimme ist eine „Default voice“ von ElevenLabs. Die gibt es nur für Konten von vor
+  März 2026 und nur bis 31.12.2026. Die App braucht also eine eigene Voice-ID.
+- Die App schickt die Rufnamen als Schlüsselbegriffe an die Transkription. Das kostet bei ElevenLabs einen
+  Aufpreis (0,08 $ je Stunde auf 0,22 $). Stille wird mitberechnet.
+- ElevenLabs verlangt in den Bedingungen der Echtzeit-Transkription, dass Anwesende vorher erfahren, dass
+  mitgeschrieben wird, und verbietet Stimmdaten von unter 18-Jährigen. Soniox speichert laut eigener Angabe
+  weder Ton noch Mitschrift.
+- Ein falscher oder leerer Anthropic-Schlüssel beendet das Zuhören nicht: Der Ton geht weiter an die
+  Transkription, nur die Antwort scheitert.
+
+**Offen**
+- Die Anschlussfrage greift bisher nur hinter sehr kurzen ersten Antworten (sie darf höchstens 4 s alt sein,
+  wenn die erste Antwort verklungen ist). Wird gerade geändert: Die Sprechzeit der ersten Antwort zählt nicht.
+- Am Handy-Mikro ergeben zwei schnelle Fragen weiter höchstens die zweite Antwort.
+- Kein Weg in der App, ein falsch gelerntes Stimmprofil zu vergessen (in Arbeit).
+- Ohne ElevenLabs-Schlüssel startet die App nicht; eine Sprachausgabe mit der Stimme des Geräts ist in Arbeit.
+- Die Reparaturen der Angriffsrunde hat außer ihrem Autor noch niemand geprüft; die Gegenprüfung läuft.
+
+**Stand der Tests**: 553 Kern-Tests (1 übersprungen: braucht einen Schlüssel), 131 App-Tests, alle grün;
+APK mit Weckwort gebaut, Lint ohne Fehler; Selbsttest der Auswertung bestanden (797 Prüfungen).
+
+**Nicht geprüft**: weiterhin nichts mit echten Schlüsseln durch die App selbst und nichts auf einem Gerät.
+
 ## 2026-11-12 (Gegenprüfung nach dem Zusammenführen) – Tests am gehärteten Vorfilter, fünf Nahtstellen repariert
 Anlass: Gesprächssteuerung, gehärteter Vorfilter und Sprech-Sicherheitsnetz wurden zusammengeführt; acht
 Tests waren rot und wurden an die neuen Einstufungen angeglichen. Diese Runde hat das unabhängig geprüft

@@ -51,7 +51,9 @@ enum class Reach { ICH, GESPRAECH, RAUM }
  *  - Es gibt höchstens einen Auftrag ([handle]), der eine Antwort abholt und spricht.
  *  - Eine neuere Äußerung verdrängt ihn, solange noch nichts zu hören ist, wenn sie mindestens so viel
  *    Anspruch auf eine Antwort hat ([claimOf]). Hat sie weniger, steht sie zurück und kommt dran, falls der
- *    Auftrag ohne Ton endet ([revive]).
+ *    Auftrag ohne Ton endet ([revive]). Wurde gesprochen, verfällt sie, mit einer Ausnahme: Was der Träger
+ *    hinter seiner eigenen Frage hergeschoben hat ("Und China?"), wird danach wie eine Nachfrage vorgelegt.
+ *    Verbessert er sich ausdrücklich ("Nein, ich meine den Watzmann"), löst das seine Frage sofort ab.
  *  - Ist die Antwort schon zu hören, unterbricht sie nur eine direkte Anrede oder der Träger selbst,
  *    der einfach weiterredet.
  */
@@ -156,16 +158,33 @@ class Pipeline(
         val epoch: Int,
         /** Wie viel Anspruch auf eine Antwort diese Äußerung hat, solange sie wartet ([claimOf]). */
         val claim: Int,
+        /**
+         * Seit wann die Äußerung auf ihre Antwort wartet. Daran misst die Höflichkeitspause, ob die Antwort noch
+         * rechtzeitig kommt und ob seither ein Mensch geantwortet hat. Fast immer ist das der Moment, in dem die
+         * Äußerung fertig war. Nur eine nachgereichte Anschlussfrage ([asFollowUp]) wartet erst, seit die
+         * Antwort davor verklungen ist: Vorher konnte niemand auf sie eingehen, auch der Assistent nicht.
+         */
+        val askedAtMs: Long = line.atMs,
     )
 
     /** Ergebnis der Stimm-Einschätzung für eine Äußerung. */
     private class Heard(val voice: Voice, val trusted: Boolean)
 
-    /** Wie die Äußerung zum Assistenten steht: nach dem Weckwort, bloßer Ruf, direkte Anrede. */
-    private class Address(val woken: Boolean, val callOnly: Boolean, val named: Boolean)
+    /**
+     * Wie die Äußerung zum Assistenten steht: nach dem Weckwort, bloßer Ruf, direkte Anrede.
+     * [awaited]: Das Fenster nach dem Weckwort ist offen, und die Stimme kommt aus der Nähe ([addressOf]).
+     */
+    private class Address(val woken: Boolean, val callOnly: Boolean, val named: Boolean, val awaited: Boolean)
 
-    /** Wie dringend die Äußerung ist und ob diese Stimme überhaupt etwas auslösen darf. */
-    private class Urgency(val hot: Boolean, val wanted: Boolean, val permitted: Boolean)
+    /**
+     * Wie dringend die Äußerung ist und ob diese Stimme überhaupt etwas auslösen darf.
+     * [correction]: Der Träger verbessert seine eigene, noch wartende Frage. [addOn]: ein verkürzter Nachsatz
+     * hinter ihr, den nur diese Lage zum Anlass macht (beides in [urgencyOf]).
+     */
+    private class Urgency(
+        val hot: Boolean, val wanted: Boolean, val permitted: Boolean,
+        val correction: Boolean = false, val addOn: Boolean = false,
+    )
 
     /** Was die Höflichkeitspause für eine Antwort bedeutet. */
     private sealed interface Hold {
@@ -193,7 +212,11 @@ class Pipeline(
 
     /** Die jüngste angenommene Äußerung, solange ihr Auftrag noch aussteht oder läuft. */
     private val pending = AtomicReference<Trigger?>(null)
-    /** Die jüngste Äußerung, die [pending] nicht verdrängen durfte. Sie kommt dran, falls jene ohne Ton endet. */
+    /**
+     * Eine Äußerung, die [pending] nicht verdrängen durfte: von mehreren die mit dem höchsten Anspruch, bei
+     * Gleichstand die jüngste. Sie kommt dran, falls jene ohne Ton endet, oder als Nachfrage, falls der
+     * Träger sie hinter seiner eigenen Frage hergeschoben hat ([revive]).
+     */
     private val parked = AtomicReference<Trigger?>(null)
     /**
      * Schützt die Übergabe "wer ist als Nächstes dran": Annehmen oder Zurückstellen in [onCommitted] und das
@@ -202,6 +225,8 @@ class Pipeline(
     private val turnLock = Any()
     /** Zählt jedes "Stopp". Damit erwischt ein Stopp auch eine Äußerung, die gerade zwischen zwei Aufträgen hängt. */
     private val stopEpoch = AtomicInteger()
+    /** Zählt jede direkte Anrede des Trägers selbst. Sie hebt eine Ruhe auf, auch eine, die erst noch eingetragen wird ([drain]). */
+    private val addressEpoch = AtomicInteger()
 
     // "Conflated": Der Kanal hält nur die jeweils neueste Äußerung. Was verdrängt wird, bevor sein Auftrag
     // beginnt, braucht auch seinen Modell-Aufruf nicht mehr.
@@ -213,9 +238,16 @@ class Pipeline(
     /** Wann der Assistent zuletzt gesprochen hat; null = in dieser Sitzung noch nicht. */
     @Volatile private var lastSpokeAtMs: Long? = null
     @Volatile private var mutedUntilMs = 0L
+    /**
+     * Der Leser, der hinter einer zugesagten Ruhe noch auf die Sonderzeile MUTE wartet ([drain]); sonst null.
+     * Solange er läuft, gilt die Ruhe schon ([mutedAt]).
+     */
+    @Volatile private var quietReader: Job? = null
     @Volatile private var scene: String? = null
     /** Zeitpunkt der letzten Äußerung, mit der ein Mensch im Gespräch selbst zu antworten begann. */
     @Volatile private var humanSpokeAtMs = 0L
+    /** Dasselbe, aber ohne den Träger: wann zuletzt jemand ANDERES aus dem Gespräch inhaltlich etwas gesagt hat ([answeredSince]). */
+    @Volatile private var othersSpokeAtMs = 0L
     @Volatile private var lastAnswerWords: Set<String> = emptySet()
     /** Zeitpunkt, zu dem das lokale Weckwort erkannt wurde; null, sobald die Bitte danach verarbeitet ist. */
     @Volatile private var wokeAtMs: Long? = null
@@ -330,7 +362,7 @@ class Pipeline(
         } else if (heard.voice != Voice.FERN && Heuristics.isRealContent(text)) {
             // Nur wer zum Gespräch gehört, "antwortet". Der Fernseher und der Nachbartisch reden ständig
             // weiter; sie dürfen eine wartende Antwort nicht zurückziehen.
-            humanSpokeAtMs = now
+            humanSpoke(heard.voice, now)
         }
         speculate(text, key, turnProbability, speakerId, address, heard, now)
     }
@@ -382,7 +414,11 @@ class Pipeline(
         }
         // Eigenes Echo: Schallt die Sprachausgabe ins Mikro zurück, steht der Antworttext plötzlich
         // in der Mitschrift. Was dem eben Gesprochenen stark ähnelt, wird verworfen.
-        if ((speaking || spokeWithin(now, 3_000)) && isEcho(Heuristics.words(t))) {
+        // Die Stimme des Trägers ist nie das Echo: Was aus dem Kopfhörer zurückschallt, kommt am Mikro viel
+        // leiser an als er selbst. Seine Rückfrage "Wirklich drei Kilometer?" wiederholt die Wörter der
+        // Antwort und ginge sonst als Echo verloren. Nur ohne Kopfhörer (echoRisk) trennt die Lautstärke nicht.
+        val ownVoice = !config.echoRisk && classifier.classify(features, record = false) == Voice.ICH
+        if (!ownVoice && (speaking || spokeWithin(now, 3_000)) && isEcho(Heuristics.words(t))) {
             takeSpeculation()?.cancel()
             return
         }
@@ -406,7 +442,7 @@ class Pipeline(
         if (segment != null) rememberSegment(segment, line.id)
         state.update { it.copy(partial = "", transcript = (it.transcript + display(line)).takeLast(60)) }
 
-        if (voice != Voice.FERN && Heuristics.isRealContent(t)) humanSpokeAtMs = now
+        if (voice != Voice.FERN && Heuristics.isRealContent(t)) humanSpoke(voice, now)
         val spec = takeSpeculation()
         if (Heuristics.isStopCommand(t, names) || (speaking && (voice == Voice.ICH || ownStart) && Heuristics.isBareStop(t))) {
             spec?.cancel()
@@ -417,32 +453,47 @@ class Pipeline(
 
         // Nur der Träger selbst hebt eine Stummschaltung auf ("Alfred, du darfst wieder"). Dass sein Name
         // irgendwo fällt, ein Fremder ihn ruft oder ein Film "Jarvis" sagt, reicht dafür nicht.
-        val muted = now < mutedUntilMs
-        if (muted && address.named && heard.trusted) unmute()
+        val muted = mutedAt(now)
+        if (address.named && heard.trusted) {
+            addressEpoch.incrementAndGet()
+            if (muted) unmute()
+        }
         // Der Ton nach dem Weckwort war schon die Bestätigung. Ein "Ja, Sir?" würde jetzt über die
         // eigentliche Frage sprechen. Der Ruf steht in der Mitschrift, löst aber nichts aus.
         if (address.callOnly) {
             spec?.cancel()
             return
         }
-        val urgency = urgencyOf(t, now, heard, address.named, muted)
+        val urgency = urgencyOf(t, now, heard, address, muted)
         // Während der Assistent zu hören ist, unterbricht ihn nur eine direkte Anrede.
         if (!urgency.wanted || !urgency.permitted || (speaking && !address.named)) {
             spec?.cancel()
             return
         }
-        val standing = claimOf(address.named, urgency.hot, voice, t, waiting = true)
+        val standing = claimOf(address.named, urgency, voice, t, now, waiting = true)
         synchronized(turnLock) {
+            // Ein Nachsatz, den nur die wartende Frage zum Anlass macht, kann ihr nichts wegnehmen: Er steht
+            // hinter ihr zurück. Ist sie in diesem Augenblick schon erledigt, bleibt er, was er ohne sie wäre.
+            if (urgency.addOn && pending.get() == null) {
+                spec?.cancel()
+                return
+            }
             // Wartet schon eine Antwort, verdrängt sie nur, wer mindestens so viel Anspruch hat. Wer weniger hat,
             // steht zurück: Sein Aufruf startet erst, falls die wartende Antwort ohne Ton endet ([revive]).
-            if (!mayReplace(claimOf(address.named, urgency.hot, voice, t, waiting = false))) {
+            if (urgency.addOn || !mayReplace(claimOf(address.named, urgency, voice, t, now, waiting = false))) {
                 spec?.cancel()
-                parked.set(
-                    Trigger(
-                        line, hot = urgency.hot, named = address.named, woken = address.woken, trusted = heard.trusted,
-                        run = null, quietSinceMs = quietSince, epoch = stopEpoch.get(), claim = standing,
+                // Zurückstehen kann nur eine Äußerung. Es bleibt die mit dem höheren Anspruch, bei Gleichstand
+                // die neuere. Früher gewann immer die neuere: Eine Quizfrage aus dem Fernseher warf den Nachsatz
+                // des Trägers aus dem Platz, obwohl sie ihm nach [claimOf] nichts wegnehmen darf.
+                val waiting = parked.get()
+                if (waiting == null || standing >= waiting.claim || outdated(waiting, now)) {
+                    parked.set(
+                        Trigger(
+                            line, hot = urgency.hot, named = address.named, woken = address.woken, trusted = heard.trusted,
+                            run = null, quietSinceMs = quietSince, epoch = stopEpoch.get(), claim = standing,
+                        )
                     )
-                )
+                }
                 return
             }
             val interrupting = speaking
@@ -510,8 +561,16 @@ class Pipeline(
 
     /** Laufende oder noch wartende Antwort abbrechen (Knopf in der App, Kopfhörer-Taste oder "Alfred, stopp"). */
     fun stopSpeaking() {
-        stopEpoch.incrementAndGet()
-        parked.set(null) // auch was zurückstand, rückt nach einem Stopp nicht mehr nach
+        // Unter derselben Sperre wie das Annehmen und Zurückstellen ([onCommitted]): Der Platz wird hier schon
+        // frei, nicht erst, wenn der gestoppte Auftrag aufgeräumt hat. Der Lautsprecher braucht dafür einen
+        // Augenblick, und was in dieser Spanne gesagt wurde, stellte sich sonst hinter einem Auftrag an, der
+        // niemanden mehr nachholt: Es blieb für immer liegen. Was nach einem Stopp gesagt wird, wird neu
+        // beurteilt; die Schleife in [start] wartet trotzdem, bis der alte Auftrag fertig aufgeräumt hat.
+        synchronized(turnLock) {
+            stopEpoch.incrementAndGet()
+            parked.set(null) // auch was zurückstand, rückt nach einem Stopp nicht mehr nach
+            pending.set(null)
+        }
         current?.cancel()
         speaker.stop()
         speaking = false
@@ -528,7 +587,13 @@ class Pipeline(
         // Der bloße Ruf zählt von jeder Stimme als Ruf: Er löst ohnehin nichts aus.
         val callOnly = wakeOpen && isBareCall(text, names, afterWakeWord = true)
         val mine = wakeOpen && ownsWake(voice)
-        return Address(woken = mine && !callOnly, callOnly = callOnly, named = mine || Heuristics.mentionsAny(text, names))
+        return Address(
+            woken = mine && !callOnly, callOnly = callOnly, named = mine || Heuristics.mentionsAny(text, names),
+            // Nach dem Weckwort wird eine Bitte erwartet. Löst die Äußerung es nicht ein (der Ruf klang nach dem
+            // Träger, sie selbst ließ sich nicht messen), ist sie keine Anrede und trägt keinen Hinweis. Dem
+            // Modell wird sie trotzdem vorgelegt, auch ohne Frageform ([urgencyOf]).
+            awaited = wakeOpen && !callOnly && voice != Voice.FERN,
+        )
     }
 
     /**
@@ -549,6 +614,13 @@ class Pipeline(
      * Wer das Weckwort nicht einlöst, verbraucht es auch nicht: Seine Äußerung geht den normalen Weg, und
      * die Bitte des Trägers kann danach noch kommen. Das Fenster schließt sich mit der Bitte, mit der
      * nächsten Antwort des Assistenten ([consume]) oder nach WAKE_WINDOW_MS von selbst.
+     *
+     * Der normale Weg hat im offenen Fenster eine Besonderheit ([Address.awaited]): Eine Äußerung aus der Nähe
+     * geht auch dann ans Modell, wenn der Vorfilter in ihr keinen Anlass sieht. Die Bitte nach dem Weckwort
+     * ist oft keine Frage ("Uhrzeit bitte", "Timer zehn Minuten"), und die Stimme des Trägers lässt sich bei
+     * so kurzen Sätzen nicht immer messen. Sie gälte sonst als Füllsel und bliebe ohne jede Reaktion. Das
+     * Modell liest sie ohne den Hinweis auf das Weckwort, sieht aber den Ruf direkt darüber, und für den Ton
+     * gilt die Höflichkeitspause wie bei jeder Äußerung ohne Anrede. Ferne Stimmen bleiben ausgenommen.
      */
     private fun ownsWake(voice: Voice): Boolean {
         val caller = wakeCaller
@@ -559,13 +631,36 @@ class Pipeline(
         }
     }
 
-    private fun urgencyOf(text: String, now: Long, heard: Heard, named: Boolean, muted: Boolean): Urgency {
+    /**
+     * Zwei Dinge sieht der Vorfilter nicht, weil sie vom Zusammenhang abhängen. Beide gelten nur, solange die
+     * eigene Frage des Trägers noch auf ihre Antwort wartet und nichts zu hören ist ([behindOwnQuestion]):
+     *  - Die Korrektur ("Nein, ich meine den Watzmann."): für sich genommen ein kurzer Satz ohne Frageform,
+     *    den niemand ein Modell sähe. Hinter der eigenen Frage ist sie die neue Frage und löst die alte ab.
+     *  - Der verkürzte Nachsatz ("Und China", "und in Fuß"): Als Anlass erkennt der Vorfilter ihn nur mit
+     *    Fragezeichen und großem Hauptwort, und beides liefert die Transkription nicht verlässlich. Er wird
+     *    zurückgestellt und nach der Antwort vorgelegt ([asFollowUp]), so wie derselbe Satz eine Sekunde
+     *    nach der Antwort ohnehin als Nachfrage gälte.
+     */
+    private fun urgencyOf(text: String, now: Long, heard: Heard, address: Address, muted: Boolean): Urgency {
         val heat = Heuristics.heat(text, names)
-        val hot = named || isFollowUp(now, heard.voice, text) || heat == Heuristics.Heat.HOT
-        val wanted = hot || heat == Heuristics.Heat.MAYBE
-        val permitted = if (muted) named && heard.trusted else named || allowed(heard.voice, hot)
-        return Urgency(hot, wanted, permitted)
+        val behindOwn = !muted && behindOwnQuestion(heard.voice)
+        val correction = behindOwn && heard.voice == Voice.ICH && pending.get()?.line?.voice == Voice.ICH &&
+            Heuristics.isCorrection(text)
+        val hot = address.named || address.awaited || correction || isFollowUp(now, heard.voice, text) ||
+            heat == Heuristics.Heat.HOT
+        val addOn = !hot && heat != Heuristics.Heat.MAYBE && behindOwn && Heuristics.isShortFollowUp(text)
+        val wanted = hot || heat == Heuristics.Heat.MAYBE || addOn
+        val permitted = if (muted) address.named && heard.trusted else address.named || allowed(heard.voice, hot)
+        return Urgency(hot, wanted, permitted, correction, addOn)
     }
+
+    /**
+     * Wartet gerade eine Frage des Trägers auf ihre Antwort (nicht bloß eine beiläufige Aussage, über die noch
+     * die Vorprüfung urteilt), und kann auch diese Stimme er sein? Großzügig gemessen ([mayBeWearer]), denn
+     * zunächst geht es nur darum, ob eine Äußerung zurückgestellt wird. Die Korrektur verlangt mehr ([urgencyOf]).
+     */
+    private fun behindOwnQuestion(voice: Voice): Boolean =
+        !speaking && mayBeWearer(voice) && pending.get()?.let { it.hot && mayBeWearer(it.line.voice) } == true
 
     /**
      * @param learn true nur für die fertige Äußerung: Dann zählt sie in die Statistik und darf das Stimmprofil
@@ -576,24 +671,30 @@ class Pipeline(
         var voice = raw
         // "Gesichert" heißt: Die Akustik selbst hält die Stimme für die des Trägers. Nur dann darf eine
         // Äußerung etwas Dauerhaftes bewirken (merken, stummschalten, Stimmprofil lernen).
-        var trusted = raw == Voice.ICH
+        //  - Mit Stimmprofil ist das die Einschätzung ICH: so laut wie das Profil und in seiner Stimmlage.
+        //  - Ohne Profil heißt ICH nur "die lauteste Stimme dieser Sitzung". Die erste Stimme überhaupt bekäme
+        //    es geschenkt, auch der Fernseher. Als Etikett in der Mitschrift ist diese Schätzung gut genug, als
+        //    Nachweis nicht. Dazu muss die Stimme auch für sich genommen so laut sein, wie nur die eigene am
+        //    Kopfhörer-Mikro ankommt (OWN_MIN_DB). Am Handy-Mikro trennt die Lautstärke nicht: Dort gibt es
+        //    ohne Profil keinen Nachweis.
+        // Früher genügte jeweils eine der beiden Bedingungen. Die Stimme vom Tischnachbarn erfüllte mal die
+        // eine, mal die andere: Sie durfte merken und stummschalten, und ihr erster Ruf wurde als Profil des
+        // Trägers gespeichert, der danach ausgesperrt war.
+        val known = classifier.profile != null
+        var trusted = f != null && raw == Voice.ICH &&
+            (known || (config.mic == MicMode.AIRPODS && f.levelDb >= OWN_MIN_DB))
         // Selbstkalibrierung: Wer den Satz mit dem Namen des Assistenten beginnt, ist meist der Träger.
-        // Das gilt aber nur, wenn auch die Akustik dazu passt. Sonst würde der Erste, der den Namen
-        // ruft (ein Freund, ein Film), als "Träger" gespeichert. Gemeint ist der Name im Wortlaut: Das
-        // Weckwort allein reicht dafür nicht, es sagt nichts darüber, wessen Stimme hier zu hören ist.
+        // Gelernt wird daraus aber nur, wenn die Akustik die Stimme schon für seine hält. Sonst würde der
+        // Erste, der den Namen ruft (ein Freund, ein Film), als "Träger" gespeichert. Gemeint ist der Name im
+        // Wortlaut: Das Weckwort allein reicht dafür nicht, es sagt nichts darüber, wessen Stimme hier zu hören ist.
         val addressed = Heuristics.words(text).take(3).any { Heuristics.mentionsAny(it, names) }
-        val plausible = f != null && if (classifier.profile == null) {
-            config.mic == MicMode.AIRPODS && f.levelDb >= OWN_MIN_DB
-        } else raw == Voice.ICH
-        if (addressed && plausible) {
-            if (learn) {
-                classifier.learnOwn(f)
-                classifier.profile?.let(env::saveVoiceProfile)
-            }
-            voice = Voice.ICH
-            trusted = true
+        if (addressed && trusted && learn) {
+            classifier.learnOwn(f)
+            classifier.profile?.let(env::saveVoiceProfile)
         }
-        if (learn) speakers.observe(speakerId, voice)
+        // Für die Abstimmung, welche Sprecher-ID dem Träger gehört, zählt ICH nur mit Nachweis. Sonst wählte
+        // die bloße Schätzung "lauteste Stimme" einen Träger, und der gälte danach als gesichert.
+        if (learn) speakers.observe(speakerId, if (voice == Voice.ICH && !trusted) Voice.UNKLAR else voice)
         val wearer = speakers.wearer()
         if (speakerId != null && wearer != null) {
             // Die Diarisierung kennt den Träger bereits: sie überstimmt die Akustik in beide Richtungen.
@@ -638,7 +739,9 @@ class Pipeline(
      * wartende Antwort ohne Ton endet. So nimmt der Satz eines Freundes oder der Fernseher dem Träger keine
      * Antwort weg, und trotzdem geht keine Äußerung verloren, nur weil gerade über eine andere geurteilt wird.
      *
-     * Drei Einzelheiten, die sich aus Fehlern ergeben haben:
+     * Vier Einzelheiten, die sich aus Fehlern ergeben haben:
+     *  - Die ausdrückliche Korrektur des Trägers ("Nein, ich meine den Watzmann.") zählt wie seine Frage, auch
+     *    wenn der Vorfilter in dem Satz keine erkennt ([urgencyOf]).
      *  - "?" heißt "zu wenig Signal" und trifft gerade leise und kurze fremde Stimmen. Die eigene Stimme ist
      *    am Kopfhörer-Mikro die, die sich immer messen lässt. "?" zählt darum wie die Runde, nicht wie der Träger.
      *    Der Preis: Wo der Träger selbst nicht als ICH messbar ist (Handy-Mikro ohne Stimmprofil, lauter
@@ -647,15 +750,25 @@ class Pipeline(
      *  - Ein Einwurf ohne Inhalt sieht mit seinem Fragezeichen wie eine Frage aus, ist aber kein Anliegen.
      *    ("Echt?", "Was?" und "Oder?" kommen gar nicht mehr bis hierher: Die verwirft schon der Vorfilter.)
      *    Was als Einwurf gilt, hängt davon ab, ob die Äußerung neu dazukommt oder selbst wartet ([isAside]).
+     *    Eine Ausnahme: Hat der Assistent eben gesprochen, ist das "Warum?" des Trägers eine Nachfrage zu
+     *    dieser Antwort. Wartet es, steht es so hoch wie seine beiläufige Aussage (Rang 3): Die Quizfrage
+     *    aus dem Fernseher nimmt ihm die Antwort dann nicht weg, eine Frage aus der Runde schon.
      *  - Wartet die Frage des Trägers selbst und trägt keine Anrede ([waiting]), steht sie nur auf Rang 4. Eine
      *    inhaltliche Äußerung aus der Runde danach heißt: Das Gespräch geht weiter. Die Höflichkeitspause
      *    zöge die Antwort dann ohnehin zurück ([holdVerdict]); so beginnt der neue Aufruf wenigstens gleich.
      *
      * Vertrauen (merken, stummschalten) hängt von alledem nicht ab, nur davon, wer als Nächstes dran ist.
      */
-    private fun claimOf(named: Boolean, hot: Boolean, voice: Voice, text: String, waiting: Boolean): Int = when {
+    private fun claimOf(named: Boolean, urgency: Urgency, voice: Voice, text: String, now: Long, waiting: Boolean): Int =
+        claimOf(named, urgency.hot, urgency.correction, voice, text, now, waiting)
+
+    private fun claimOf(
+        named: Boolean, hot: Boolean, correction: Boolean, voice: Voice, text: String, now: Long, waiting: Boolean,
+    ): Int = when {
         named -> if (voice == Voice.FERN) CLAIM_FAR_CALL else CLAIM_DIRECT
-        hot && isAside(text, waiting) -> CLAIM_ASIDE
+        correction -> if (waiting) CLAIM_QUESTION else CLAIM_DIRECT
+        hot && isAside(text, waiting) ->
+            if (waiting && voice == Voice.ICH && spokeWithin(now, FOLLOW_UP_MS)) CLAIM_OWN_REMARK else CLAIM_ASIDE
         hot && voice == Voice.ICH -> if (waiting) CLAIM_QUESTION else CLAIM_DIRECT
         hot && voice == Voice.FERN -> CLAIM_FAR_QUESTION
         hot -> CLAIM_QUESTION
@@ -682,7 +795,14 @@ class Pipeline(
     private fun mayReplace(claim: Int): Boolean = pending.get()?.let { claim >= it.claim } ?: true
 
     private fun isFollowUp(now: Long, voice: Voice, text: String): Boolean =
-        spokeWithin(now, FOLLOW_UP_MS) && (voice == Voice.ICH || voice == Voice.UNKLAR) && Heuristics.words(text).size >= 2
+        spokeWithin(now, FOLLOW_UP_MS) && mayBeWearer(voice) && Heuristics.words(text).size >= 2
+
+    /**
+     * Kann diese Stimme der Träger sein? ICH, oder "?", wenn die Akustik nichts hergab (am Handy-Mikro ist das
+     * oft er selbst). NAH und FERN sind andere. Das ist der großzügige Maßstab der Nachfrage: Er entscheidet
+     * nur, ob das Modell gefragt wird. Vertrauen (merken, stummschalten) hängt allein an `trusted`.
+     */
+    private fun mayBeWearer(voice: Voice): Boolean = voice == Voice.ICH || voice == Voice.UNKLAR
 
     private fun spokeWithin(now: Long, ms: Long): Boolean = lastSpokeAtMs?.let { now - it < ms } ?: false
 
@@ -697,11 +817,12 @@ class Pipeline(
         if (turnProbability == null || turnProbability < SPECULATE_AT || speculation != null || speaking) return
         // Der bloße Ruf nach dem Weckwort ist keine Bitte: darauf wird nichts vorbereitet.
         if (key.isEmpty() || address.callOnly) return
-        if (now < mutedUntilMs) return // stumm: kein Vorgriff, die fertige Äußerung entscheidet
-        val urgency = urgencyOf(text, now, heard, address.named, muted = false)
-        if (!urgency.wanted || !urgency.permitted) return
+        if (mutedAt(now)) return // stumm: kein Vorgriff, die fertige Äußerung entscheidet
+        val urgency = urgencyOf(text, now, heard, address, muted = false)
+        // Ein Nachsatz hinter der eigenen Frage steht ohnehin zurück: Für ihn lohnt kein Vorgriff.
+        if (!urgency.wanted || !urgency.permitted || urgency.addOn) return
         // Ein Vorgriff für eine Äußerung, die die wartende Antwort gar nicht verdrängen dürfte, wäre verschenkt.
-        if (!mayReplace(claimOf(address.named, urgency.hot, heard.voice, text, waiting = false))) return
+        if (!mayReplace(claimOf(address.named, urgency, heard.voice, text, now, waiting = false))) return
         val line = Line(id = -1, atMs = now, voice = heard.voice, text = text.trim(), speaker = speakers.label(speakerId))
         val basis = Basis(key, heard.voice, heard.trusted, address.woken, line.speaker, gated = !urgency.hot, spokeAt = lastSpokeAtMs)
         speculation = startRun(turnFor(line, address.woken, heard.trusted), basis)
@@ -834,7 +955,9 @@ class Pipeline(
             // seither etwas gesagt hat: Dann fehlt dem laufenden Aufruf diese Antwort in der Mitschrift.
             if (run == null || run.basis.spokeAt != lastSpokeAtMs) {
                 run?.cancel()
-                val line = trigger.line
+                // Für das Modell ist "jetzt" der Moment, seit dem die Äußerung auf ihre Antwort wartet. Bei einer
+                // nachgereichten Anschlussfrage liegt er hinter der Antwort davor ([asFollowUp]); sonst ändert sich nichts.
+                val line = trigger.line.let { if (it.atMs == trigger.askedAtMs) it else it.copy(atMs = trigger.askedAtMs) }
                 val basis = Basis(
                     normalize(line.text), line.voice, trigger.trusted, trigger.woken, line.speaker,
                     gated = !trigger.hot, spokeAt = lastSpokeAtMs,
@@ -865,28 +988,81 @@ class Pipeline(
      * Der Auftrag für [done] ist von selbst zu Ende gegangen. Er macht Platz, und wer zurückstehen musste
      * ([parked]), rückt nach.
      *
-     * Nachgerückt wird nur, wenn nichts zu hören war (das Modell schweigt, ein Mensch hat selbst geantwortet,
-     * der Aufruf ist gescheitert). Wurde gesprochen ([spoke]), verfällt die zurückgestellte Äußerung: Der
-     * Assistent hat eben geredet, und was währenddessen gesagt wurde, steht in der Mitschrift für die
-     * nächste Frage.
+     * Unverändert nachgerückt wird nur, wenn nichts zu hören war (das Modell schweigt, ein Mensch hat selbst
+     * geantwortet, der Aufruf ist gescheitert). Wurde gesprochen ([spoke]), verfällt die zurückgestellte
+     * Äußerung: Der Assistent hat eben geredet, und was währenddessen gesagt wurde, steht in der Mitschrift
+     * für die nächste Frage. Die eine Ausnahme davon beschreibt [asFollowUp].
      */
     private fun revive(done: Trigger, spoke: Boolean) {
         synchronized(turnLock) {
             // Nur wenn dieser Auftrag noch der aktuelle ist. Hat inzwischen eine neuere Äußerung übernommen,
             // hat sie auch die zurückgestellte abgelöst.
             if (pending.get() !== done) return
-            val next = parked.getAndSet(null)?.takeIf {
-                !spoke &&
-                    it.epoch == stopEpoch.get() && // dazwischen kam kein "Stopp"
-                    // Veraltet: Ohne Anrede würde die Antwort jetzt ohnehin nicht mehr gesprochen ([holdVerdict]).
-                    (it.named || clock() - it.line.atMs <= STALE_MS)
+            val now = clock()
+            val waited = parked.getAndSet(null)?.takeIf {
+                // Kein "Stopp" dazwischen, nicht veraltet, und inzwischen ist auch keine Ruhe zugesagt. Das gilt
+                // auf beiden Wegen: Auch eine Bestätigung ohne Ton ("SAY kurz" und gleich "MUTE: 10") schaltet stumm.
+                !outdated(it, now) && !silenced(it)
             }
+            val next = if (spoke) waited?.let { asFollowUp(it, done, now) } else waited
             // Auch ohne Nachrücker wird hier schon freigegeben, nicht erst, wenn die Coroutine ganz beendet ist:
             // Eine Äußerung, die in genau diesem Augenblick eintrifft, soll nicht hinter einem Auftrag
             // zurückstehen, der niemanden mehr nachholt.
             pending.set(next)
             if (next != null) triggers.trySend(next)
         }
+    }
+
+    /**
+     * Die Anschlussfrage, die zu früh kam.
+     *
+     * Der Träger fragt "Wie viele Zeitzonen hat Russland?" und schiebt gleich "Und China?" nach, bevor die erste
+     * Antwort zu hören ist. Für sich genommen ist der Nachsatz eine beiläufige Aussage: Er steht hinter der
+     * eigenen Frage zurück ([claimOf]). Früher verfiel er, sobald die Antwort gesprochen war, und über "Und
+     * China?" urteilte nie jemand. Dieselben zwei Wörter eine Sekunde später, nach der Antwort, gelten dagegen
+     * als Nachfrage ([isFollowUp]) und werden beantwortet.
+     *
+     * Deshalb wird [waited] jetzt, wo die Antwort auf [answered] verklungen ist, genauso vorgelegt wie eine
+     * Nachfrage direkt nach der Antwort: mit der Antwort im Verlauf. Für das Modell ist die Lage damit
+     * dieselbe wie bei einer echten Nachfrage, nur dass der Träger sie schon gestellt hatte.
+     *
+     * Ohne Vorprüfung geht dabei nur, was nach einer verkürzten Anschlussfrage aussieht
+     * ([Heuristics.isShortFollowUp]: "Und China?", "und in Fuß", "Wirklich so viele?") oder den Namen nennt.
+     * Alles andere, was der Träger in der Wartezeit gesagt hat ("Kannst du mir mal das Salz geben?"), geht
+     * erst durch die billige Vorprüfung, so wie es ohne die Antwort davor gegangen wäre. Sonst bekäme das
+     * starke Modell jeden Satz an den Tischnachbarn als Nachfrage direkt unter seiner eigenen Antwort
+     * vorgelegt, und gemessen spricht es in solchen Fällen etwa jedes zwanzigste Mal, obwohl es schweigen soll.
+     *
+     * Die Bedingungen, alle zusammen:
+     *  - Die Antwort war wirklich zu hören. Dafür sorgt der Aufrufer ([revive] mit `spoke`); nur dann steht
+     *    sie auch im Verlauf, auf den sich die Nachfrage bezieht.
+     *  - Kein "Stopp" dazwischen und nicht veraltet: Das hat [revive] schon geprüft, mit derselben Frist wie
+     *    für jede zurückgestellte Äußerung. Sie zählt ab dem Moment, in dem der Nachsatz gesagt wurde. Dauert
+     *    die erste Antwort länger als diese Frist, verfällt er also weiterhin.
+     *  - Es war die eigene Frage des Trägers, hinter der er zurückstand, und der Nachsatz erfüllt, was auch
+     *    eine Nachfrage erfüllen muss: seine Stimme, mindestens zwei Wörter, im Fenster nach der Antwort. Für
+     *    NAH und FERN gilt das nie. Was der Tischnachbar dazwischen sagt, verfällt wie bisher.
+     *  - Die Antwort hat nicht gerade Ruhe zugesagt. Der Nachsatz wurde angenommen, als noch nicht stumm
+     *    geschaltet war; käme er jetzt erst, bliebe er ohne Anrede ungehört. Dabei bleibt es ([revive]).
+     *  - Seit dem Nachsatz hat niemand anderes aus der Runde inhaltlich etwas gesagt. Sonst hat ein Mensch
+     *    schon darauf geantwortet ("Nur eine."), oder das Gespräch ist weitergegangen. Die Höflichkeitspause
+     *    sähe das nicht mehr: Sie zählt für die Nachfrage erst ab jetzt.
+     *  - Höchstens eine: Zurückstehen kann immer nur eine Äußerung.
+     *
+     * @return die Äußerung als Nachfrage, oder null, wenn sie verfällt.
+     */
+    private fun asFollowUp(waited: Trigger, answered: Trigger, now: Long): Trigger? {
+        val line = waited.line
+        if (!mayBeWearer(answered.line.voice) || !isFollowUp(now, line.voice, line.text)) return null
+        if (othersSpokeAtMs > line.atMs) return null
+        val hot = waited.named || Heuristics.isShortFollowUp(line.text)
+        return Trigger(
+            line, hot = hot, named = waited.named, woken = waited.woken, trusted = waited.trusted, run = null,
+            quietSinceMs = waited.quietSinceMs, epoch = waited.epoch,
+            claim = claimOf(waited.named, hot, correction = false, line.voice, line.text, now, waiting = true),
+            // Die Höflichkeitspause und ihre Frist zählen ab jetzt: Vorher war die Antwort davor noch zu hören.
+            askedAtMs = now,
+        )
     }
 
     /**
@@ -916,6 +1092,10 @@ class Pipeline(
         var words = 0
         var cap = Int.MAX_VALUE
         var capped = false
+        // Hat der Träger um Ruhe gebeten, steht die Sonderzeile dazu (MUTE) noch aus, solange das Modell schreibt.
+        // Die zugesagte Ruhe gilt aber ab der Zusage: Übernimmt der Nachleser den Rest, gilt sie so lange schon
+        // vorläufig ([drain]). Sonst bekäme in der Lücke bis zur Sonderzeile die nächste Frage noch eine Antwort.
+        val quietAsked = trigger.trusted && Heuristics.asksForQuiet(line.text)
         try {
             coroutineScope {
                 val sentences = Channel<String>(Channel.UNLIMITED)
@@ -936,9 +1116,25 @@ class Pipeline(
                     }
                 }
 
-                fun open(d: Decision.Say) {
-                    audible = true
-                    speaking = true
+                /**
+                 * Macht die Antwort hörbar. Das darf nur der Auftrag, der noch dran ist.
+                 *
+                 * Eine neuere Äußerung löst diesen Auftrag ab, indem [onCommitted] sie als [pending] einträgt;
+                 * abgebrochen wird er erst danach, von der Schleife in [start]. Dazwischen liegt ein
+                 * Augenblick, und trifft die Antwort genau dann ein, wäre die alte Frage beantwortet worden,
+                 * obwohl der Träger sich schon verbessert hat (so gesehen unter Last, mit echten Threads).
+                 * Dasselbe gilt nach einem "Stopp". Geprüft wird unter derselben Sperre, unter der die neue
+                 * Äußerung angenommen wird: Entweder ist diese Antwort dann schon zu hören (`speaking`) und
+                 * wird als hörbare Antwort unterbrochen, oder sie wird es nicht mehr.
+                 *
+                 * @return false, wenn dieser Auftrag nicht mehr dran ist; dann endet er ohne Ton.
+                 */
+                fun open(d: Decision.Say): Boolean {
+                    synchronized(turnLock) {
+                        if (pending.get() !== trigger) return false
+                        audible = true
+                        speaking = true
+                    }
                     // Das Weckwort gilt genau einer Bitte. Wird auf eine Äußerung geantwortet, die nach ihm kam,
                     // ist es eingelöst, auch wenn sie es selbst nicht einlösen durfte (etwa weil die Stimme des
                     // Trägers diesmal leiser gemessen wurde). Sonst gälte sein nächster Satz noch als Bitte.
@@ -952,6 +1148,7 @@ class Pipeline(
                     release?.complete(true)
                     waiting.forEach { directive(it, trigger) }
                     waiting.clear()
+                    return true
                 }
 
                 try {
@@ -970,7 +1167,12 @@ class Pipeline(
                             is Released -> {
                                 hold = null
                                 val d = say
-                                if (step.go && d != null) open(d) else { skipped("mensch antwortet"); break }
+                                when {
+                                    !step.go || d == null -> { skipped("mensch antwortet"); break }
+                                    // In der Pause kann die Ruhe eingetragen worden sein (siehe unten).
+                                    silenced(trigger) -> { skipped("stumm"); break }
+                                    !open(d) -> break
+                                }
                             }
                             is Finished -> {
                                 events = null
@@ -981,21 +1183,28 @@ class Pipeline(
                                 // mehr; offen ist nur, ob am Schluss eine Sonderzeile steht. Bliebe dieser Auftrag
                                 // dafür stehen, gälte der Assistent so lange als sprechend und überhörte jede
                                 // Frage ohne Anrede. Den Rest liest deshalb ein eigener kleiner Leser ([drain]).
-                                drain(run, trigger)
+                                drain(run, trigger, quiet = quietAsked)
                                 events = null
                             }
                             is Event.Decided -> when (val d = step.decision) {
                                 is Decision.Skip -> skipped(d.reason.ifEmpty { "ohne Angabe" })
                                 is Decision.Say -> {
-                                    // Kopfzeile vergessen: Dann gilt die Antwort nur, wenn er den Assistenten direkt angesprochen hat.
-                                    if (d.offProtocol && !trigger.named) { skipped("format"); break }
-                                    cap = WORD_CAPS[d.length] ?: WORD_CAPS.getValue("mittel")
+                                    // Kopfzeile vergessen. Gemessen war das in 31 von 1480 Antworten so, und jede davon
+                                    // war eine echte Antwort: Sie wird gesprochen wie jede andere, auch durch dieselbe
+                                    // Höflichkeitspause. Verworfen wird nur noch, was nach einem Kommentar zur
+                                    // Entscheidung aussieht ([Headerless]), und auch das nicht nach direkter Anrede.
+                                    if (d.offProtocol && d.commentary && !trigger.named) { skipped("format"); break }
+                                    // Stumm wird nicht nur beim Annehmen geprüft, sondern auch hier, wo der Ton
+                                    // freigegeben wird: Die Ruhe kann eingetragen worden sein, während diese
+                                    // Antwort entstand (ein Nachleser liest MUTE erst am Ende, siehe [drain]).
+                                    if (silenced(trigger)) { skipped("stumm"); break }
+                                    cap = WORD_CAPS[d.length] ?: WORD_CAPS.getValue(defaultLength(d, trigger))
                                     // Höflichkeit: Im Gespräch mit anderen erst abwarten, ob ein Mensch antwortet.
                                     when (val verdict = holdVerdict(trigger)) {
                                         is Hold.Go -> {
                                             say = d
+                                            if (!open(d)) break
                                             speak(gate = null)
-                                            open(d)
                                         }
                                         is Hold.No -> { skipped(verdict.reason); break }
                                         is Hold.Wait -> {
@@ -1067,6 +1276,18 @@ class Pipeline(
     private fun skipped(reason: String) = state.update { it.copy(lastDecision = "übersprungen: $reason") }
 
     /**
+     * Welcher Längendeckel gilt, wenn hinter SAY keine bekannte Länge stand?
+     *
+     * Mit Kopfzeile wie bisher "mittel". Ganz ohne Kopfzeile hat das Modell auch keine Länge gewählt, und
+     * dann richtet sich der Deckel danach, wie sicher die Antwort erwünscht ist: nach direkter Anrede
+     * "mittel", sonst "kurz". Im Gespräch mit anderen ist kurz ohnehin der Normalfall, und sollte doch einmal
+     * ein Kommentar statt einer Antwort durchrutschen, ist er nach einem Satz vorbei. (Der erste Satz geht
+     * immer ganz hinaus, der Deckel greift erst beim zweiten.)
+     */
+    private fun defaultLength(d: Decision.Say, trigger: Trigger): String =
+        if (d.offProtocol && !trigger.named) "kurz" else "mittel"
+
+    /**
      * Liest den Rest eines Aufrufs zu Ende, dessen Antwort schon verklungen ist ([Faded]). Gebraucht wird davon
      * nur noch eine Sonderzeile (MEMO, MUTE): Sie steht ganz am Schluss, und die Bestätigung dazu ("Notiert")
      * war schon zu hören. Alles andere wird überlesen, auch ein Abbruch: Gesprochen ist bereits.
@@ -1075,16 +1296,46 @@ class Pipeline(
      * sofort; die nächste Äußerung wird behandelt wie nach jeder anderen Antwort. Für die Sonderzeile gilt
      * dieselbe Schranke wie sonst: Ausgeführt wird sie nur, wenn die Stimme der Äußerung als die des Trägers
      * gesichert war ([directive]).
+     *
+     * Die Lücke bis zur Sonderzeile MUTE:
+     *  - War die Äußerung eine Bitte um Ruhe ([quiet]), gilt die Ruhe schon, solange dieser Leser läuft
+     *    ([mutedAt]). "Sehr wohl, Sir." war zu hören, und was der Träger danach ohne Anrede fragt, bekäme
+     *    sonst noch eine Antwort. Der Auftrag selbst bleibt dafür nicht stehen: Er gälte als sprechend, und
+     *    redete der Träger dann einfach weiter, bräche das den Aufruf ab, bevor MUTE gelesen ist.
+     *  - War ihr das nicht anzusehen und schaltet das Modell trotzdem stumm, gilt die Ruhe ab dem Moment, in dem
+     *    die Sonderzeile eintrifft. Eine Antwort, die dann erst fertig wird, bleibt ungesprochen ([silenced]);
+     *    eine, die schon zu hören war, lässt sich nicht zurücknehmen.
+     *  - Spricht der Träger den Assistenten in der Lücke wieder an ("Alfred, du darfst wieder"), wird die Ruhe
+     *    gar nicht mehr eingetragen: Eine Anrede hebt sie auf, ob die Sonderzeile schon gelesen war oder nicht.
      */
-    private fun drain(run: Run, trigger: Trigger) {
+    private fun drain(run: Run, trigger: Trigger, quiet: Boolean) {
         run.handedOver = true
-        scope.launch {
+        val addressed = addressEpoch.get()
+        // LAZY, damit der Leser als "Ruhe gilt schon" eingetragen ist, bevor er anläuft und bevor der Auftrag endet.
+        val reader = scope.launch(start = CoroutineStart.LAZY) {
             try {
-                for (event in run.events) if (event is Event.Direct) directive(event.directive, trigger)
+                for (event in run.events) {
+                    if (event !is Event.Direct) continue
+                    // Der Träger hat den Assistenten inzwischen wieder angesprochen: Die Ruhe gilt nicht mehr.
+                    if (event.directive is Directive.Mute && addressEpoch.get() != addressed) continue
+                    // Scheitert das Speichern (Speicher voll, Datei gesperrt), wird das eine Meldung in der
+                    // Anzeige, wie auf dem gewöhnlichen Weg in [handle]. Ungefangen verließe die Ausnahme diese
+                    // Coroutine, und auf Android beendet das die ganze App: Zu hören war "Notiert", gespeichert
+                    // wäre nichts, und zugehört würde auch nicht mehr.
+                    try {
+                        directive(event.directive, trigger)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        state.update { it.copy(error = "Merken fehlgeschlagen: ${e.message ?: e.javaClass.simpleName}") }
+                    }
+                }
             } finally {
                 run.end()
             }
         }
+        if (quiet) quietReader = reader
+        reader.start()
     }
 
     /**
@@ -1118,25 +1369,65 @@ class Pipeline(
      *   Stimmen (Fernseher, Nachbartisch). "?" zählt mit, weil dort jemand am Tisch gemeint sein kann.
      * - Läuft die Pause ab, während gerade jemand hörbar spricht, wartet die Antwort bis eine volle Sekunde
      *   nach dem Eintreffen ([someoneStarting]). Zu hören ist ein Mensch früher, als sein Text ankommt.
+     * - Redet der Träger nach seiner eigenen Frage selbst weiter, nimmt ihm das die Antwort nicht weg
+     *   ([answeredSince]). Der Ton wartet dann aber, bis sein Satz zu Ende ist ([wearerGoesOn]).
      * - Die Sprachausgabe arbeitet in der Pause schon (siehe [consume]); gewartet wird nur mit dem Ton.
      */
     private fun holdVerdict(trigger: Trigger): Hold {
         if (trigger.named) return Hold.Go
         val line = trigger.line
+        // Seit wann die Äußerung wartet: fast immer, seit sie fertig war ([Trigger.askedAtMs]).
+        val askedAt = trigger.askedAtMs
         val now = clock()
         // Veraltet: Wer vier Sekunden nach der Frage erst loslegt, stört mehr, als er hilft.
-        if (now - line.atMs > STALE_MS) return Hold.No("zu spät")
+        if (now - askedAt > STALE_MS) return Hold.No("zu spät")
         val inCompany = line.voice == Voice.NAH || buffer.snapshot(now).any {
             it.id != line.id && !it.aside && it.voice != Voice.ALFRED && it.voice != Voice.ICH && it.voice != Voice.FERN &&
                 line.atMs - it.atMs < COMPANY_MS
         }
         if (!inCompany) return Hold.Go
-        if (humanSpokeAtMs > line.atMs) return Hold.No("mensch antwortet")
-        val until = maxOf(trigger.quietSinceMs + HOLD_MS, line.atMs + HOLD_FLOOR_MS)
+        if (answeredSince(trigger)) return Hold.No("mensch antwortet")
+        val until = maxOf(trigger.quietSinceMs + HOLD_MS, askedAt + HOLD_FLOOR_MS)
         // Ist die Pause schon um, darf gleich gesprochen werden, außer es setzt gerade jemand an: Dann
         // entscheidet [quietUntil], das dieselbe Verlängerung kennt.
-        return if (now >= until && !(now < line.atMs + HOLD_MS && someoneStarting())) Hold.Go else Hold.Wait(until)
+        val free = now >= until && !(now < askedAt + HOLD_MS && someoneStarting()) && !wearerGoesOn(trigger)
+        return if (free) Hold.Go else Hold.Wait(until)
     }
+
+    /**
+     * Hat seit der Äußerung ein Mensch aus dem Gespräch selbst zu antworten begonnen?
+     *
+     * Auf die Frage des Trägers antworten nur die anderen. Redet er selbst weiter ("Und China?", "Mal sehen,
+     * was er sagt."), hat ihm damit niemand geantwortet. Früher zog sein eigener Nachsatz die Antwort auf
+     * seine erste Frage zurück, sobald jemand am Tisch saß: Zu hören war dann höchstens die zweite Antwort.
+     * Fragt jemand anderes, zählt wie bisher jede Stimme aus dem Gespräch, auch die des Trägers.
+     */
+    private fun answeredSince(trigger: Trigger): Boolean =
+        (if (trigger.line.voice == Voice.ICH) othersSpokeAtMs else humanSpokeAtMs) > trigger.askedAtMs
+
+    /** Jemand aus dem Gespräch hat inhaltlich etwas gesagt ([answeredSince]). */
+    private fun humanSpoke(voice: Voice, now: Long) {
+        humanSpokeAtMs = now
+        if (voice != Voice.ICH) othersSpokeAtMs = now
+    }
+
+    /**
+     * Gilt für diese Äußerung gerade eine zugesagte Ruhe? Nur die direkte Anrede des Trägers selbst geht
+     * durch eine Stummschaltung hindurch (sie hebt sie auf, siehe [onCommitted]).
+     */
+    private fun silenced(trigger: Trigger): Boolean = mutedAt(clock()) && !(trigger.named && trigger.trusted)
+
+    /**
+     * Ist der Assistent zu diesem Zeitpunkt stumm geschaltet? Entweder ist die Ruhe eingetragen, oder sie ist
+     * zugesagt und ihre Sonderzeile wird gerade noch gelesen ([quietReader]).
+     */
+    private fun mutedAt(now: Long): Boolean = now < mutedUntilMs || quietReader?.isActive == true
+
+    /** Rückt diese zurückgestellte Äußerung nicht mehr nach, weil ein "Stopp" kam oder sie zu alt ist? */
+    private fun outdated(waiting: Trigger, now: Long): Boolean =
+        waiting.epoch != stopEpoch.get() ||
+            // Veraltet: Ohne Anrede würde die Antwort jetzt ohnehin nicht mehr gesprochen ([holdVerdict]).
+            !(waiting.named || now - waiting.line.atMs <= STALE_MS)
 
     /**
      * Wartet die Höflichkeitspause ab.
@@ -1144,19 +1435,37 @@ class Pipeline(
      * @return true, wenn bis zum Ende niemand aus dem Gespräch zu antworten begonnen hat.
      */
     private suspend fun quietUntil(trigger: Trigger, untilMs: Long): Boolean {
-        val askedAt = trigger.line.atMs
+        val askedAt = trigger.askedAtMs
         // Länger als eine volle Sekunde nach dem Eintreffen der fertigen Äußerung wird nie gewartet.
         val latest = askedAt + HOLD_MS
         var until = untilMs
         while (true) {
-            if (humanSpokeAtMs > askedAt) return false
-            if (clock() >= until) {
-                if (until >= latest || !someoneStarting()) return true
-                until = latest
+            if (answeredSince(trigger)) return false
+            val now = clock()
+            if (now >= until) {
+                when {
+                    until < latest && someoneStarting() -> until = latest
+                    !wearerGoesOn(trigger) -> return true
+                    // Er redet seit vier Sekunden: Die Antwort käme jetzt zu spät ([holdVerdict]).
+                    now - askedAt > STALE_MS -> return false
+                }
             }
             delay(HOLD_POLL_MS)
         }
     }
+
+    /**
+     * Redet der Träger nach seiner eigenen Frage gerade selbst weiter?
+     *
+     * Sein Weiterreden zieht die Antwort nicht mehr zurück ([answeredSince]). Ohne diese Prüfung spräche der
+     * Assistent dafür nach der Höflichkeitspause mitten in seinen Satz hinein und würde gleich wieder
+     * unterbrochen (wer selbst weiterredet, bringt ihn zum Schweigen, siehe [onPartial]). Also wartet der Ton,
+     * bis der Satz fertig ist. Dann zeigt sich auch, was er war: Eine neue Frage löst die alte ab, alles andere
+     * steht hinter ihr zurück, und die Antwort ist zu hören.
+     *
+     * Gemessen wird großzügig ([bargeOwn]): Ein Irrtum kostet nur etwas Wartezeit.
+     */
+    private fun wearerGoesOn(trigger: Trigger): Boolean = trigger.line.voice == Voice.ICH && utteranceOpen && bargeOwn
 
     /**
      * Spricht seit der fertigen Äußerung gerade jemand, ohne dass sein Text schon da ist?
@@ -1208,6 +1517,7 @@ class Pipeline(
     }
 
     private fun unmute() {
+        quietReader = null
         mutedUntilMs = 0
         state.update { it.copy(mutedUntilMs = 0) }
     }
@@ -1258,8 +1568,14 @@ class Pipeline(
         const val TIDY_MIN_GAP_MS = 12_000L
         const val WAKE_WINDOW_MS = 12_000L
         const val MAX_NOTE_CHARS = 240
-        /** Leiser als das kann die eigene Stimme am Kopfhörer-Mikro kaum sein (dBFS). */
-        const val OWN_MIN_DB = -35.0
+        /**
+         * Leiser als das ist die eigene Stimme am Kopfhörer-Mikro nicht (dBFS). Die Grenze gilt nur, solange
+         * noch kein Stimmprofil gelernt ist, und sie liegt acht Dezibel unter dem Erfahrungswert für normale
+         * Sprache direkt am Mikro (-22): So weit darf eine Stimme auch mit Profil höchstens unter der eigenen
+         * liegen, um noch als ICH zu gelten. Früher stand hier -35, mitten in dem Bereich, in dem der
+         * Tischnachbar ankommt.
+         */
+        const val OWN_MIN_DB = -30.0
         const val HOLD_MS = 1_000L
         /** So lange wird nach dem Eintreffen der fertigen Äußerung mindestens gewartet. */
         const val HOLD_FLOOR_MS = 350L

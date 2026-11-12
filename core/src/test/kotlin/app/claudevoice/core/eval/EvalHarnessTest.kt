@@ -513,8 +513,8 @@ $lage
     @Test fun `Beispiel-Antworten fuer das Auswertungs-Skript kommen vom echten ReplyParser`() {
         fun read(raw: String) = EvalParserCheck.read(raw).copy(raw = "")
         fun verdict(spoke: Boolean, off: Boolean = false, reason: String = "", length: String = "", speech: String = "",
-                    memos: List<String> = emptyList(), mutes: List<Int> = emptyList()) =
-            EvalParserCheck.Verdict("", spoke, off, reason, length, speech, memos, mutes)
+                    memos: List<String> = emptyList(), mutes: List<Int> = emptyList(), commentary: Boolean = false) =
+            EvalParserCheck.Verdict("", spoke, off, commentary, reason, length, speech, memos, mutes)
 
         assertEquals(verdict(spoke = false, reason = "sozial"), read("skip Sozial\nund noch Text, den niemand liest"))
         assertEquals(verdict(spoke = false), read(""))
@@ -524,17 +524,25 @@ $lage
             read("SAY kurz\nGemerkt.\nMEMO: Der Zahnarzt ist am Dienstag.\nMUTE: 10"),
         )
         assertEquals(verdict(spoke = true, off = true, speech = "Klar, Sir.\n", mutes = listOf(15)), read("Klar, Sir.\nMUTE: 15"))
+        // Ohne Kopfzeile, und die erste Zeile ist nur ein SKIP-Grund: Das meldet der Parser als Kommentar.
+        assertEquals(verdict(spoke = true, off = true, speech = "hintergrund", commentary = true), read("hintergrund"))
+        // Die Antwort stand vor der verspäteten Kopfzeile, dahinter kam nichts mehr: Sie ist der Sprechtext.
+        assertEquals(verdict(spoke = true, length = "kurz", speech = "Zweitausend Meter.\n"), read("Zweitausend Meter.\nSAY kurz"))
 
-        // Die Liste deckt beide Entscheidungen, fehlende Kopfzeilen und Anweisungen ab; evalDump schreibt sie vollständig.
+        // Die Liste deckt beide Entscheidungen, fehlende Kopfzeilen, Kommentare und Anweisungen ab; evalDump schreibt sie vollständig.
         val all = EvalParserCheck.all()
         assertEquals(EvalParserCheck.SAMPLES, all.map { it["raw"] })
         assertTrue(all.any { it["spoke"] == false } && all.any { it["off_protocol"] == true })
+        assertTrue(all.any { it["commentary"] == true } && all.any { it["off_protocol"] == true && it["commentary"] == false })
         assertTrue(all.any { (it["memos"] as List<*>).isNotEmpty() } && all.any { (it["mutes"] as List<*>).isNotEmpty() })
         val out = tmp.newFolder("eval3")
         EvalDump.write(out, cases.take(1), "S")
         val written = ObjectMapper().readTree(File(out, "parser_check.json"))
         assertEquals(EvalParserCheck.SAMPLES, written.map { it["raw"].asText() })
-        assertEquals(listOf("raw", "spoke", "off_protocol", "reason", "length", "speech", "memos", "mutes"), written[0].fieldNames().asSequence().toList())
+        assertEquals(
+            listOf("raw", "spoke", "off_protocol", "commentary", "reason", "length", "speech", "memos", "mutes"),
+            written[0].fieldNames().asSequence().toList(),
+        )
     }
 
     @Test fun `ein eigener System-Prompt aus einer Datei wird unveraendert uebernommen`() {

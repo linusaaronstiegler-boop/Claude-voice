@@ -69,6 +69,12 @@ android {
                 // "record" = Bilder bei jedem Testlauf neu schreiben (statt mit alten zu vergleichen).
                 it.systemProperty("roborazzi.test.record", "true")
                 it.maxHeapSize = "1g"
+                // Scheitert ein Test, nennt Gradle sonst nur seinen Namen und die Zeile. So steht auch in der
+                // Konsole (und damit im Protokoll der CI), was erwartet war und was stattdessen kam.
+                it.testLogging {
+                    events("failed")
+                    exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                }
             }
         }
     }

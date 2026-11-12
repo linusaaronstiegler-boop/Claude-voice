@@ -49,6 +49,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.time.LocalDateTime
@@ -83,6 +84,15 @@ import java.util.concurrent.atomic.AtomicReference
 class ListenService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /**
+     * Für Tests: true, solange noch irgendeine Coroutine dieses Dienstes läuft. Das kann auch nach dem Ende
+     * kurz so sein: Ein Hintergrund-Schritt, der gerade rechnet oder auf das Netz wartet, lässt sich nicht
+     * mittendrin anhalten. Er läuft zu Ende, und erst dann wird sein Ergebnis verworfen (siehe [shutDown]).
+     * Tests warten auf "false", statt zu schätzen, wie lange so etwas dauert.
+     */
+    internal val busy: Boolean get() = scope.coroutineContext[Job]?.children?.any() == true
+
     private val main = Handler(Looper.getMainLooper())
     private val http = OkHttpClient.Builder()
         .pingInterval(20, TimeUnit.SECONDS) // hält WebSocket-Verbindungen offen und bemerkt Funklöcher
@@ -102,6 +112,12 @@ class ListenService : Service() {
 
     /** Der Grund, mit dem [fail] das Zuhören beendet hat; null bei einem gewöhnlichen Stopp. */
     private var stopReason: String? = null
+
+    /**
+     * Was in der Meldungszeile stand, als der Dienst sein Ende beschlossen hat ([shutDown]). Bei einem
+     * gewöhnlichen Stopp ist das die Meldung, die nach dem Ende stehen bleibt (siehe onDestroy).
+     */
+    private var noticeAtEnd: String? = null
     private var mic: MicSource? = null
     private var speaker: AndroidSpeaker? = null
     @Volatile private var pipeline: Pipeline? = null
@@ -369,7 +385,12 @@ class ListenService : Service() {
         // Vorwärmen, während der Nutzer noch gar nichts gesagt hat: Die Verbindung zur Sprachausgabe steht
         // dann schon, und Claude hat Regeln und Gedächtnis bereits zwischengespeichert.
         tts.warmUp()
-        scope.launch(Dispatchers.IO) { runCatching { ready.brain.warmUp() } }
+        // runInterruptible: Endet der Dienst, während dieser Aufruf noch unterwegs ist, wird sein Thread
+        // unterbrochen. Ohne das liefe er unbeirrt weiter, und der Client von Anthropic versuchte es nach einem
+        // Fehlschlag sogar noch einmal: Regeln und Gedächtnis gingen dann ein zweites Mal hinaus, obwohl schon
+        // niemand mehr zuhört. Eine Anfrage, die bereits abgeschickt ist, holt die Unterbrechung nicht zurück;
+        // sie verhindert aber jede weitere.
+        scope.launch(Dispatchers.IO) { runCatching { runInterruptible { ready.brain.warmUp() } } }
         keyterms = s.names
         callName = s.aliases.firstOrNull() ?: s.name
         elevenKey = s.elevenKey
@@ -482,8 +503,8 @@ class ListenService : Service() {
                 }
                 AppState.ui.update {
                     // Die Prüfung steht absichtlich IN der Aktualisierung: Geht der Dienst genau jetzt in die
-                    // Bereitschaft, darf dieser Rückruf deren Statuszeile nicht mehr überschreiben.
-                    if (!weiche.isCurrent(t)) it
+                    // Bereitschaft oder endet er, darf dieser Rückruf die Anzeige nicht mehr überschreiben.
+                    if (stopping || !weiche.isCurrent(t)) it
                     else it.copy(
                         status = ConnectionReport.status(connected, error, micLabel),
                         error = error ?: if (connected) notice() else it.error,
@@ -493,7 +514,12 @@ class ListenService : Service() {
         }
         // Rückrufe einer Verbindung, die nicht mehr die aktuelle ist (nach der Rückkehr in die Bereitschaft
         // geschlossen), werden verworfen, bevor sie den Listener oben erreichen.
-        val current = CurrentOnlyListener(listener) { mine.get()?.let(weiche::isCurrent) == true }
+        //
+        // Dasselbe gilt ab dem Moment, in dem der Dienst sein Ende beschlossen hat ("stopping"). Die Verbindung
+        // selbst wird erst etwas später geschlossen: shutDown() wartet vorher auf den Mikrofon-Thread, bis zu
+        // einer halben Sekunde. Ohne diese Prüfung konnte die Transkription in dieser Zeit noch eine Meldung in
+        // die Anzeige setzen oder der Pipeline eine Äußerung nachreichen, aus der ein neuer Aufruf an Claude wurde.
+        val current = CurrentOnlyListener(listener) { !stopping && mine.get()?.let(weiche::isCurrent) == true }
         // Zwei Anbieter stehen zur Wahl. Soniox (eigener Schlüssel) liefert Sprecher-Kürzel je Wort;
         // ohne Soniox-Schlüssel läuft die Transkription über ElevenLabs.
         val client: Transcriber =
@@ -579,6 +605,7 @@ class ListenService : Service() {
     private fun shutDown() {
         if (stopping) return
         stopping = true
+        noticeAtEnd = AppState.ui.value.error
         main.removeCallbacksAndMessages(null)
         standbyWatch?.cancel()
         // Jeder Schritt wird für sich versucht (runCatching): Scheitert einer, dürfen die folgenden nicht
@@ -612,10 +639,14 @@ class ListenService : Service() {
 
     override fun onDestroy() {
         shutDown()
-        // Der Grund des Endes wird hier noch einmal gesetzt: Die Pipeline schreibt ihren Stand in dieselbe
-        // Anzeige und kann ihn im letzten Augenblick geleert haben (sie löscht alte Fehler, wenn sie antwortet).
+        // Die Meldungszeile kommt hier auf den Stand zurück, den sie beim Ende hatte: den Grund aus fail() oder,
+        // bei einem gewöhnlichen Stopp, das, was in dem Moment dastand. Pipeline und Sprachausgabe schreiben von
+        // eigenen Threads aus in dieselbe Anzeige. Ein Schritt, der beim Ende gerade lief, kann die Zeile noch
+        // einen Augenblick danach geleert haben (die Pipeline löscht alte Fehler, wenn sie antwortet) oder eine
+        // eigene Meldung hineingesetzt haben ("Antwort fehlgeschlagen", weil ihm die Verbindung unter den
+        // Händen geschlossen wurde). Beides gehört nicht mehr zu dem, was der Nutzer nach dem Ende lesen soll.
         AppState.ui.update {
-            it.copy(running = false, speaking = false, partial = "", status = "Bereit", error = stopReason ?: it.error)
+            it.copy(running = false, speaking = false, partial = "", status = "Bereit", error = stopReason ?: noticeAtEnd)
         }
         super.onDestroy()
     }

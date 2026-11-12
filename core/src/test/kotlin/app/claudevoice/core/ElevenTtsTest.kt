@@ -347,7 +347,11 @@ class ElevenTtsTest {
         serve(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE), healthy, http = echoHttp)
         tts.warmUp()
         awaitRequests(1)
-        tts.firstAudioTimeoutMs = 300
+        // Nicht drei Sekunden auf die hängende Leitung warten. Die Frist gilt aber auch für die frische
+        // Verbindung danach: In dieser Zeit muss sie aufgebaut sein und den ersten Ton liefern, sonst weicht
+        // die Antwort auf HTTP aus und der Test schlägt fehl. Anderthalb Sekunden lassen dafür auch auf
+        // einem ausgelasteten Rechner Luft; mit den früheren 300 ms war das knapp.
+        tts.firstAudioTimeoutMs = 1_500
         assertEquals("Eins.", speak("Eins."))
         tts.firstAudioTimeoutMs = 3_000
         // Dass wir die hängende Verbindung selbst gekappt haben, ist kein Ausfall des WebSockets:

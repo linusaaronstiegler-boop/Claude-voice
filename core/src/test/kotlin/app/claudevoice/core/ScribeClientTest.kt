@@ -441,7 +441,11 @@ class ScribeClientTest {
             onOpen = { gapMs += (System.nanoTime() - limitAt.get()) / 1_000_000; it.send(STARTED) },
             onAudio = { ws, _ -> ws.send("""{"message_type":"committed_transcript","text":"weiter gehts"}""") },
         )
-        val client = connect()
+        // Die gewöhnliche Wartezeit vor einem neuen Versuch wäre hier eine Minute (wie im gleichen Test für
+        // Soniox). Kommt die neue Verbindung trotzdem gleich, ging sie daran vorbei. Mit der üblichen einen
+        // Sekunde lagen zwischen "sofort" (unter 900 ms) und "gewartet" nur 100 ms; auf einem ausgelasteten
+        // Rechner kann schon der Aufbau der neuen Verbindung so lange dauern.
+        val client = connect(retryBaseMs = 60_000)
         assertEquals("conn:true:null:fresh", next())
         client.sendAudio(byteArrayOf(1, 2), 2)
 
@@ -451,9 +455,8 @@ class ScribeClientTest {
         client.sendAudio(byteArrayOf(3, 4), 2)
         assertEquals("committed:weiter gehts:null:null", next())
 
-        // Die gewöhnliche Wartezeit vor einem neuen Versuch wäre mindestens eine Sekunde.
         val gap = gapMs.poll(5, TimeUnit.SECONDS)!!
-        assertTrue("Neuverbinden dauerte $gap ms", gap < 900)
+        assertTrue("Neuverbinden dauerte $gap ms", gap < 10_000)
         assertEquals(2, server.requestCount)
     }
 
@@ -554,19 +557,25 @@ class ScribeClientTest {
     @Test fun `Solange der Server etwas schickt gilt die Sitzung als lebendig`() {
         // Lebenszeichen und Zwischenstände in kürzerem Abstand als die Frist, insgesamt aber länger als
         // die Frist: kein Alarm.
+        //
+        // Die Zahlen lassen Luft für einen ausgelasteten Rechner: alle 100 ms eine Nachricht bei zwei Sekunden
+        // Frist. Erst eine Pause von fast zwei Sekunden zwischen zwei Nachrichten sähe wie Schweigen aus (und
+        // der Wächter schlüge dann zu Recht an). Mit der früheren Frist von 800 ms genügte dafür ein Stocken
+        // von 700 ms, etwa wenn der Rechner gerade anderes zu tun hat.
+        val messages = 26 // 2,6 Sekunden, also länger als die Frist
         serve(onOpen = { ws ->
             ws.send(STARTED)
             thread {
-                repeat(14) { i ->
+                repeat(messages) { i ->
                     ws.send(if (i % 2 == 0) KEEPALIVE else """{"message_type":"partial_transcript","text":"Hallo"}""")
                     Thread.sleep(100)
                 }
             }
         })
-        val client = connect(stallTimeoutMs = 800, retryBaseMs = 50)
+        val client = connect(stallTimeoutMs = 2_000, retryBaseMs = 50)
         assertEquals("conn:true:null:fresh", next())
         withMic(client) {
-            repeat(14) { i -> assertEquals(if (i % 2 == 0) "partial::null" else "partial:Hallo:null", next()) }
+            repeat(messages) { i -> assertEquals(if (i % 2 == 0) "partial::null" else "partial:Hallo:null", next()) }
         }
         assertEquals(1, server.requestCount)
     }

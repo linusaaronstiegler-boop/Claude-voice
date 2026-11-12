@@ -866,6 +866,64 @@ object Heuristics {
         words(text).map(Words::fold).count { it.isNotEmpty() && it !in Words.FILLERS } >= 2
 
     // ==============================================================================================
+    // Nachsatz, Korrektur, Bitte um Ruhe
+    //
+    // Drei Fragen, die nicht zur Hitze gehören: Die Pipeline stellt sie nur in einer bestimmten Lage (die
+    // eigene Frage des Trägers wartet noch auf ihre Antwort, oder er hat eben um Ruhe gebeten). Für sich
+    // genommen sagen diese Sätze dem Vorfilter nichts, und so soll es bleiben.
+
+    /** Länger ist kein verkürzter Nachsatz mehr, sondern ein eigener Satz. */
+    private const val MAX_FOLLOW_UP_WORDS = 5
+    private const val MAX_SHORT_QUESTION_WORDS = 4
+
+    /** So viele Wörter dürfen vor "ich meine" stehen ("ach nee, sorry, ich meine ..."). */
+    private const val MAX_CORRECTION_LEAD = 3
+
+    /**
+     * Sieht die Äußerung nach einer verkürzten Anschlussfrage aus? Zwei Formen:
+     *  - Sie beginnt mit "und" oder "oder" und ist kurz: "Und China?", "und in Fuß", "Oder Fahrenheit".
+     *  - Sie ist eine Frage aus höchstens vier Wörtern: "China auch?", "Wirklich so viele?".
+     *
+     * Anders als die Regel in [sentenceHeat] verlangt das weder ein Fragezeichen noch ein großgeschriebenes
+     * Hauptwort hinter "und": Die Transkription liefert beides nicht verlässlich ("und china", "Und China.").
+     * Dafür gilt es nur im Zusammenhang, direkt hinter der eigenen Frage. Ohne ihn ist "und du" Geplauder.
+     */
+    fun isShortFollowUp(text: String): Boolean {
+        val w = words(text).map(Words::fold).filter { it.isNotEmpty() }
+        if (w.size < 2) return false
+        return (w[0] in FOLLOW_UP_STARTS && w.size <= MAX_FOLLOW_UP_WORDS) || ('?' in text && w.size <= MAX_SHORT_QUESTION_WORDS)
+    }
+
+    /**
+     * Verbessert sich hier jemand ausdrücklich? "Nein, ich meine den Watzmann.", "Ach nee, ich mein den
+     * Watzmann.", "Sorry, ich meinte natürlich Canberra.", "Ich meinte Österreich, nicht Australien."
+     *
+     * Erkannt wird nur die Form mit "ich meine" am Anfang (höchstens ein "nein", "ach nee" oder "sorry"
+     * davor) und dahinter dem, was gemeint ist. Ein bloßes "Nein, den Watzmann." gehört bewusst nicht dazu:
+     * Mit "nein" beginnt auch, was jemand dem Kellner antwortet ("Nein, danke."), und eine Korrektur löst
+     * die wartende Frage ab. Irrtum also lieber so: Die Korrektur wird übersehen und die alte Frage
+     * beantwortet, als dass ein Satz an jemand anderen dem Träger seine Antwort nimmt.
+     */
+    fun isCorrection(text: String): Boolean {
+        val w = words(text).map(Words::fold).filter { it.isNotEmpty() }
+        var i = 0
+        while (i < w.size && i < MAX_CORRECTION_LEAD && w[i] in Words.CORRECTION_LEAD_INS) i++
+        if (w.getOrNull(i) != "ich" || w.getOrNull(i + 1) !in Words.MEANT) return false
+        // Es muss auch dastehen, was gemeint ist: "ich mein ja" verbessert nichts.
+        return w.drop(i + 2).any { it !in Words.FILLERS && it !in Words.EMPTY_WORDS }
+    }
+
+    /**
+     * Bittet die Äußerung um Ruhe ("sei bitte zehn Minuten ruhig", "Ruhe bis morgen", "schalte dich stumm")?
+     * Großzügig gelesen: Ob wirklich stumm geschaltet wird, entscheidet das Modell mit seiner Sonderzeile.
+     * Die Pipeline will nur wissen, ob sie auf diese Sonderzeile warten soll (Pipeline.consume).
+     */
+    fun asksForQuiet(text: String): Boolean {
+        val w = words(text).map(Words::fold).filter { it.isNotEmpty() }
+        return w.any { it in Words.QUIET_WORDS } || w.indices.any { i -> Words.STOP_PHRASES.any { matchAt(w, i, it) > i } }
+    }
+
+    // ==============================================================================================
 
     /** Levenshtein-Abstand: wie viele Buchstaben muss man einfügen, löschen oder tauschen. */
     fun editDistance(a: String, b: String): Int {

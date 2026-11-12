@@ -164,7 +164,7 @@ class WakeSplitTest {
 
     @Test fun `ferne Stimme nach dem Ruf loest das Weckwort nicht ein`() = runTest {
         val rig = rig(this, config = measured.copy(reach = Reach.ICH))
-        rig.claude.reply = { listOf("Ich helfe gern.") } // ohne Kopfzeile: gilt nur bei direkter Anrede
+        rig.claude.reply = { listOf("Ich helfe gern.") } // wäre zu hören, sobald die Zeile das Modell erreicht
         rig.pipeline.onWakeWord()
         rig.own()
         rig.say("Hey Jarvis")
@@ -250,6 +250,67 @@ class WakeSplitTest {
         assertFalse("das Weckwort wirkt nach der Antwort noch nach", rig.claude.respondCalls.last().contains(hint))
     }
 
+    @Test fun `nach Weckwort und Ruf des Traegers wird auch eine kurze Bitte ohne Frageform dem Modell vorgelegt`() = runTest {
+        // Der Ruf klang nach dem Träger, also löst nur seine Stimme das Weckwort ein. Die Bitte danach ist kurz
+        // und spät gemeldet: Die Akustik gibt nichts her ("?"). Mit "Wie spät ist es?" fiel das nie auf, denn
+        // eine klare Frage geht ohnehin ans Modell. Eine Bitte ohne Frageform hält der Vorfilter für Füllsel:
+        // Früher blieb sie ohne jede Reaktion. Dasselbe nach einem bloßen Zögern ("Ähm") statt des Rufs.
+        for (call in listOf("Hey Jarvis", "Ähm")) {
+            for (request in listOf("Uhrzeit bitte", "Sag mir die Uhrzeit")) {
+                assertEquals("Einstufung von \"$request\"", Heuristics.Heat.COLD, Heuristics.heat(request, measured.names))
+                val rig = rig(this, config = measured)
+                rig.claude.reply = { time }
+                rig.pipeline.onWakeWord()
+                advanceTimeBy(300)
+                rig.own()
+                rig.say(call)
+                runCurrent()
+                assertEquals("der Ruf löst nichts aus", 0, rig.claude.respondCalls.size)
+                advanceTimeBy(1_500)
+                rig.say(request) // ohne messbare Stimme
+                runCurrent()
+                advanceTimeBy(2_000)
+                runCurrent()
+
+                assertEquals(listOf("ICH: $call", "?: $request"), rig.state.value.transcript)
+                assertEquals("$call / $request", listOf("Es ist einundzwanzig Uhr vierzehn."), rig.speaker.spoken)
+                // Eingelöst hat sie das Weckwort nicht: Der Hinweis fehlt, das Modell urteilt am Inhalt und am Ruf darüber.
+                assertFalse(rig.claude.respondCalls.single().contains(hint))
+                assertEquals("eine Vorprüfung gibt es dafür nicht", 0, rig.claude.quickCalls.size)
+            }
+        }
+    }
+
+    @Test fun `ohne Weckwort und nach dem Ende des Fensters bleibt die kurze Bitte Fuellsel`() = runTest {
+        // Die Ausnahme gilt nur im offenen Fenster nach dem Weckwort, und nicht für ferne Stimmen.
+        val plain = rig(this, config = measured)
+        plain.say("Uhrzeit bitte")
+        runCurrent()
+        assertEquals(0, plain.claude.respondCalls.size + plain.claude.quickCalls.size)
+
+        val late = rig(this, config = measured)
+        late.pipeline.onWakeWord()
+        late.own()
+        late.say("Hey Jarvis")
+        runCurrent()
+        advanceTimeBy(13_000)
+        late.say("Uhrzeit bitte")
+        runCurrent()
+        assertEquals(0, late.claude.respondCalls.size + late.claude.quickCalls.size)
+
+        val tv = rig(this, config = measured)
+        tv.pipeline.onWakeWord()
+        tv.own()
+        tv.say("Hey Jarvis")
+        runCurrent()
+        advanceTimeBy(1_500)
+        tv.far()
+        tv.say("Uhrzeit bitte")
+        runCurrent()
+        assertEquals(listOf("ICH: Hey Jarvis", "FERN: Uhrzeit bitte"), tv.state.value.transcript)
+        assertEquals(0, tv.claude.respondCalls.size + tv.claude.quickCalls.size)
+    }
+
     @Test fun `ferne Stimme gleich nach dem Weckwort gilt nicht als die Bitte`() = runTest {
         // Der Ruf selbst ist nicht in der Mitschrift gelandet; als Erstes kommt ein Satz aus dem Fernseher.
         val rig = rig(this, config = measured.copy(reach = Reach.ICH))
@@ -276,7 +337,7 @@ class WakeSplitTest {
         // sagt es aber nicht: Sonst hätte "der Ruf" fern geklungen, und der nächste ferne Satz gälte als die Bitte.
         assertTrue(isBareCall("Ja.", measured.names, afterWakeWord = true))
         val rig = rig(this, config = measured.copy(reach = Reach.ICH))
-        rig.claude.reply = { listOf("Ich helfe gern.") } // ohne Kopfzeile: gilt nur bei direkter Anrede
+        rig.claude.reply = { listOf("Ich helfe gern.") } // wäre zu hören, sobald die Zeile das Modell erreicht
         rig.pipeline.onWakeWord()
         rig.far()
         rig.say("Ja.")

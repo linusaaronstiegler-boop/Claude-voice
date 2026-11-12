@@ -32,6 +32,13 @@ object FakeAndroidKeyStore {
     private val keys = ConcurrentHashMap<String, Key>()
 
     /**
+     * Wird gerufen, sobald jemand den Tresor lädt, also immer dann, wenn die verschlüsselten Einstellungen
+     * frisch geöffnet werden. Im Normalfall leer. [SetupHold] hängt sich hier ein, um den Hintergrund-Teil
+     * des Dienstes genau an dieser Stelle anzuhalten.
+     */
+    @Volatile var atTheDoor: (() -> Unit)? = null
+
+    /**
      * Für den Anfang jedes Tests: Tresor-Ersatz anmelden und die je Prozess geteilte Instanz von [Prefs]
      * vergessen (Robolectric gibt jedem Test eine frische App, die alte Instanz zeigte noch auf die vorige).
      */
@@ -71,8 +78,10 @@ object FakeAndroidKeyStore {
         override fun engineDeleteEntry(alias: String) { keys.remove(alias) }
         override fun engineAliases(): Enumeration<String> = Collections.enumeration(keys.keys)
         override fun engineSize(): Int = keys.size
-        override fun engineLoad(stream: InputStream?, password: CharArray?) = Unit
-        override fun engineLoad(param: KeyStore.LoadStoreParameter?) = Unit
+        // Laden ist der erste Schritt jedes Zugriffs. Zu laden gibt es hier nichts, aber ein Test kann an
+        // dieser Stelle mithören oder anhalten (siehe atTheDoor).
+        override fun engineLoad(stream: InputStream?, password: CharArray?) { atTheDoor?.invoke() }
+        override fun engineLoad(param: KeyStore.LoadStoreParameter?) { atTheDoor?.invoke() }
         override fun engineStore(stream: OutputStream?, password: CharArray?) = Unit
         override fun engineGetCertificateChain(alias: String): Array<Certificate>? = null
         override fun engineGetCertificate(alias: String): Certificate? = null

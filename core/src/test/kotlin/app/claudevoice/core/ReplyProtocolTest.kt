@@ -142,6 +142,148 @@ class ReplyProtocolTest {
         ),
     )
 
+    @Test fun `steht hinter der verspaeteten Kopfzeile nichts Sprechbares mehr, war der Text davor die Antwort`() = check(
+        listOf(
+            // So gemessen (claude-sonnet-5-5, Fall vor-20): erst die Antwort, dann die Kopfzeile als letzte Zeile.
+            // Früher blieb der Sprechtext leer: "SAY kurz" in der Anzeige, im Ohr nichts.
+            "Yes. Venus averages about four hundred sixty-four degrees Celsius, hotter even than Mercury.\n\nSAY kurz" to
+                say("kurz", "Yes. Venus averages about four hundred sixty-four degrees Celsius, hotter even than Mercury.\n\n"),
+            "Zweitausend Meter.\nSAY mittel\n" to say("mittel", "Zweitausend Meter.\n"),
+            "Zweitausend Meter.\nSie liegt in Bayern.\n**SAY lang**" to say("lang", "Zweitausend Meter.\nSie liegt in Bayern.\n"),
+            "Zweitausend Meter.\nSAY" to say("", "Zweitausend Meter.\n"),
+            // Leerzeilen und Verzierung hinter der Kopfzeile sind nichts Sprechbares.
+            "Zweitausend Meter.\nSAY kurz\n\n  \n" to say("kurz", "\n  \nZweitausend Meter.\n"),
+            "Zweitausend Meter.\nSAY kurz (!)" to say("kurz", "Zweitausend Meter.\n"),
+            // Eine Sonderzeile zählt nicht als Sprechtext, gleich ob sie vor oder hinter der Kopfzeile steht, und
+            // sie wird genau einmal ausgeführt.
+            "Notiert, Sir.\nMEMO: Zahnarzt am Dienstag\nSAY kurz" to say("kurz", "Notiert, Sir.\n", Directive.Memo("Zahnarzt am Dienstag")),
+            "Notiert, Sir.\nSAY kurz\nMEMO: Zahnarzt am Dienstag" to say("kurz", "Notiert, Sir.\n", Directive.Memo("Zahnarzt am Dienstag")),
+            // Der Text davor ist jetzt Sprechtext, also gilt auch die Regel für eine Sonderzeile hinter einem Satzende.
+            "Notiert, Sir. MEMO: Zahnarzt am Dienstag\nSAY kurz" to say("kurz", "Notiert, Sir. \n", Directive.Memo("Zahnarzt am Dienstag")),
+            // Stand davor nur eine Sonderzeile, gibt es nichts zu sprechen.
+            "MEMO: Zahnarzt am Dienstag\nSAY kurz" to say("kurz", "", Directive.Memo("Zahnarzt am Dienstag")),
+            // Die Gegenprobe: Kommt hinter der Kopfzeile noch Sprechtext, war der Text davor eine Begründung.
+            "Zweitausend Meter.\nSAY kurz\nDreitausend Meter." to say("kurz", "Dreitausend Meter."),
+            "Zweitausend Meter.\nSAY kurz\n\n3" to say("kurz", "\n3"),
+        ),
+    )
+
+    @Test fun `eine zweite Kopfzeile mitten in der Antwort wird nicht gesprochen, die Ankuendigung davor auch nicht`() = check(
+        listOf(
+            // So gemessen (claude-sonnet-5-5, Fall mus-03): Das Modell verbessert sich selbst. Früher gingen alle
+            // vier Zeilen an die Stimme, auch "Korrektur für die Aussprache:" und "SAY kurz".
+            "SAY kurz\nEinundzwanzig Komma null97 Kilometer.\n\nKorrektur für die Aussprache:\n\nSAY kurz\n" +
+                "Einundzwanzig Komma neun sieben Kilometer, also gerundet einundzwanzig Komma einen Kilometer." to
+                say("kurz", "Einundzwanzig Komma null97 Kilometer.\n\nEinundzwanzig Komma neun sieben Kilometer, also gerundet einundzwanzig Komma einen Kilometer."),
+            // Die zweite Kopfzeile allein, verziert, mit anderer Länge, als letzte Zeile.
+            "SAY kurz\nZweitausend Meter.\nSAY kurz\nGenauer: zweitausendneunhundert." to say("kurz", "Zweitausend Meter.\nGenauer: zweitausendneunhundert."),
+            "SAY kurz\nZweitausend Meter.\n\n**SAY mittel**\nUnd noch ein Satz." to say("kurz", "Zweitausend Meter.\n\nUnd noch ein Satz."),
+            "SAY kurz\nZweitausend Meter.\nSAY" to say("kurz", "Zweitausend Meter.\n"),
+            "SAY kurz\nZweitausend Meter.\n\nKorrektur:\n\nSAY kurz" to say("kurz", "Zweitausend Meter.\n\n"),
+            // Auch SKIP mitten in der Antwort ist Protokoll und kein Sprechtext. Zurücknehmen lässt sich aber nichts mehr.
+            "SAY kurz\nZweitausend Meter.\n\nSKIP medien\n" to say("kurz", "Zweitausend Meter.\n\n"),
+            "SAY kurz\nZweitausend Meter.\nSKIP" to say("kurz", "Zweitausend Meter.\n"),
+            // Dasselbe in einer Antwort ohne Kopfzeile, sobald feststeht, dass keine mehr kommt.
+            "Gern, Sir.\n" + "Das ist ein langer Absatz ohne Zeilenumbruch, Satz an Satz. ".repeat(9) + "\nSKIP medien" to
+                offProtocol("Gern, Sir.\n" + "Das ist ein langer Absatz ohne Zeilenumbruch, Satz an Satz. ".repeat(9) + "\n"),
+        ),
+    )
+
+    @Test fun `was nur aehnlich aussieht wie eine Kopfzeile oder Ankuendigung, bleibt Sprechtext`() = check(
+        listOf(
+            // Genaue Schreibweise heißt: SAY oder SKIP in Großbuchstaben, dahinter nur eine Länge oder ein bekannter Grund.
+            "SAY kurz\nSay hello to her.\nSay kurz und knapp." to say("kurz", "Say hello to her.\nSay kurz und knapp."),
+            "SAY kurz\nSo heißt das.\nSAY hello heißt sag hallo." to say("kurz", "So heißt das.\nSAY hello heißt sag hallo."),
+            "SAY kurz\nSo heißt das.\nSAY kurz und knapp." to say("kurz", "So heißt das.\nSAY kurz und knapp."),
+            "SAY kurz\nSo heißt das.\nSAYONARA" to say("kurz", "So heißt das.\nSAYONARA"),
+            "SAY kurz\nEin Kartenspiel.\nSKIP BO heißt es." to say("kurz", "Ein Kartenspiel.\nSKIP BO heißt es."),
+            "SAY kurz\nEin Kartenspiel.\nSKIP BO" to say("kurz", "Ein Kartenspiel.\nSKIP BO"),
+            "SAY kurz\nDer Kapitän.\nSKIPPER" to say("kurz", "Der Kapitän.\nSKIPPER"),
+            "SAY kurz\nS" to say("kurz", "S"),
+            "SAY kurz\nGut.\nSA" to say("kurz", "Gut.\nSA"),
+            // Eine Ankündigung fällt nur zusammen mit der Kopfzeile weg, die sie ankündigt.
+            "SAY mittel\nSie brauchen drei Dinge.\n\nDie Zutaten:\nEier, Mehl und Milch." to
+                say("mittel", "Sie brauchen drei Dinge.\n\nDie Zutaten:\nEier, Mehl und Milch."),
+            "SAY mittel\nSie brauchen drei Dinge.\n\nDie Zutaten:\n\n" to say("mittel", "Sie brauchen drei Dinge.\n\nDie Zutaten:\n\n"),
+            "SAY mittel\nSie brauchen drei Dinge.\n\nDie Zutaten:" to say("mittel", "Sie brauchen drei Dinge.\n\nDie Zutaten:"),
+            // Nur am Anfang eines Absatzes: Eine Zeile mit Doppelpunkt direkt unter dem Satz davor gehört zu ihm.
+            "SAY kurz\nZweitausend Meter.\nGenauer:\nSAY kurz\nZweitausendneunhundert." to say("kurz", "Zweitausend Meter.\nGenauer:\nZweitausendneunhundert."),
+            // Eine Sonderzeile am Absatzanfang bleibt eine Sonderzeile, auch wenn sie mit dem Doppelpunkt endet.
+            "SAY kurz\nSehr wohl, Sir.\n\nMUTE:\n\nSAY kurz" to say("kurz", "Sehr wohl, Sir.\n\n\n", Directive.Mute(30)),
+            "SAY kurz\nNotiert, Sir.\n\nMEMO: Zahnarzt am Dienstag\n" to say("kurz", "Notiert, Sir.\n\n", Directive.Memo("Zahnarzt am Dienstag")),
+        ),
+    )
+
+    @Test fun `SKIP mit einem ganzen Satz in der ersten Zeile entscheidet erst, wenn keine Kopfzeile mehr kommt`() = check(
+        listOf(
+            // So gemessen (Fall bef-01): erst ein Kommentar, der mit SKIP beginnt, dann die Kopfzeile, dann die Antwort.
+            // Früher galt die erste Zeile als SKIP, der Aufruf wurde abgebrochen, und die erwünschte Antwort war weg.
+            "SKIP-Entscheidung entfällt, ich antworte.\n\nSAY kurz\nEtwa fünfhunderttausend in der Stadt selbst, im Großraum knapp drei Millionen." to
+                say("kurz", "Etwa fünfhunderttausend in der Stadt selbst, im Großraum knapp drei Millionen."),
+            // Kommt keine Kopfzeile mehr, bleibt es beim Schweigen: Vorgelesen wird eine solche Zeile nie.
+            "SKIP-Entscheidung entfällt, ich antworte." to skip("entscheidung entfällt, ich antworte"),
+            "SKIP weil die Frage an den Tischnachbarn ging\nund noch Text dahinter" to skip("weil die frage an den tischnachbarn ging"),
+            "Skip-Bo ist ein Kartenspiel von Mattel.\nMan legt Karten ab." to skip("bo ist ein kartenspiel von mattel"),
+            // Auch dann, wenn hinter der späteren Kopfzeile nichts Sprechbares mehr kommt: Der Kommentar ist nicht die Antwort.
+            "SKIP-Entscheidung entfällt, ich antworte.\n\nSAY kurz\n" to say("kurz", ""),
+            // Eine spätere SKIP-Kopfzeile in genauer Schreibweise gilt ebenfalls, mit ihrem eigenen Grund.
+            "SKIP-Entscheidung steht noch aus, ich überlege.\nSKIP medien" to skip("medien"),
+            // Höchstens ein Grund hinter SKIP: Das ist sofort entschieden, wie bisher.
+            "SKIP keine frage\nund Text" to skip("keine frage"),
+            "SKIP: medien\nSAY kurz\nText" to skip("medien"),
+        ),
+    )
+
+    @Test fun `SKIP mit hoechstens einem Grund ist nach der ersten Zeile entschieden, mit einem ganzen Satz erst am Ende`() {
+        fun decidedAfter(text: String): Int {
+            var at = -1
+            var fed = 0
+            val parser = ReplyParser({ if (at < 0) at = fed }, {}, {})
+            for (c in text) {
+                fed++
+                parser.feed(c.toString())
+            }
+            parser.finish()
+            return at
+        }
+        // Der Aufruf wird abgebrochen, sobald SKIP feststeht (Pipeline.startRun). Für die gewöhnliche Kopfzeile
+        // ändert sich daran nichts: Sie ist mit ihrem Zeilenende entschieden.
+        assertEquals("SKIP medien\n".length, decidedAfter("SKIP medien\nDas liest niemand mehr."))
+        assertEquals("SKIP keine-frage\n".length, decidedAfter("SKIP keine-frage\nDas liest niemand mehr."))
+        // Der ganze Satz wartet auf eine spätere Kopfzeile, höchstens aber bis zur Obergrenze für Text ohne Kopfzeile.
+        val comment = "SKIP-Entscheidung entfällt, ich antworte.\n\n"
+        assertEquals((comment + "SAY kurz\n").length, decidedAfter(comment + "SAY kurz\nEtwa fünfhunderttausend."))
+        val long = comment + "Ein Satz mit rund fünfzig Zeichen, Leerraum dabei.\n".repeat(12)
+        assertTrue(decidedAfter(long) in 501..560)
+        assertEquals(skip("entscheidung entfällt, ich antworte"), read(long, 7))
+    }
+
+    @Test fun `die Antwort vor einer nachgetragenen Kopfzeile fliesst erst, wenn feststeht, dass nichts mehr kommt`() {
+        val speech = StringBuilder()
+        val decisions = mutableListOf<Decision>()
+        val parser = ReplyParser({ decisions += it }, { speech.append(it) }, {})
+        fun feed(text: String) = text.forEach { parser.feed(it.toString()) }
+        // Solange keine Kopfzeile da ist, kann der Text eine Begründung sein: nichts entschieden, nichts gesprochen.
+        feed("Yes. Venus is the hottest planet.\n\n")
+        assertEquals(emptyList<Decision>(), decisions)
+        // Hinter "kurz" kann das Wort noch weitergehen ("kurzfristig"), also wird weiter gewartet.
+        feed("SAY kurz")
+        assertEquals(emptyList<Decision>(), decisions)
+        // Mit dem Zeilenende steht die Entscheidung fest. Ob der Text davor die Antwort war, noch nicht:
+        // Dahinter könnte sie erst kommen.
+        feed("\n")
+        assertEquals(listOf<Decision>(Decision.Say("kurz")), decisions)
+        assertEquals("", speech.toString())
+        // Der Strom ist zu Ende, und es kam nichts mehr: Der Text davor war die Antwort.
+        parser.finish()
+        assertEquals("Yes. Venus is the hottest planet.\n\n", speech.toString())
+        assertEquals(1, decisions.size)
+
+        // Endet der Strom gleich hinter "kurz", fällt beides am Ende.
+        val late = read("Yes. Venus is the hottest planet.\n\nSAY kurz", 1)
+        assertEquals(say("kurz", "Yes. Venus is the hottest planet.\n\n"), late)
+    }
+
     @Test fun `die Entscheidung kommt vor der Sonderzeile, auch wenn die Sonderzeile zuerst dastand`() {
         // Die Pipeline nimmt Anweisungen nur an, wenn schon feststeht, dass gesprochen wird.
         val order = ArrayList<String>()

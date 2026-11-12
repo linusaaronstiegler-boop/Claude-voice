@@ -542,6 +542,12 @@ internal object HeuristicWords {
         "sei * ruhig", "seid * ruhig",
     )
 
+    /**
+     * Wörter, an denen eine Bitte um Ruhe zu erkennen ist ([Heuristics.asksForQuiet]): die Stoppwörter und
+     * dazu, was nur mit einer Dauer vorkommt ("sei zehn Minuten ruhig", "schalte dich stumm").
+     */
+    val QUIET_WORDS = STOP_WORDS + words("ruhig stumm schweigen schweige lautlos mute")
+
     /** Dürfen neben dem Stoppwort stehen, ohne dass es weniger Befehl ist: "bitte", "jetzt", "endlich". */
     val STOP_FILLERS = words("bitte jetzt mal endlich sofort danke ok okay sei mach doch einfach hey ja nun aber und please now just")
 
@@ -556,6 +562,15 @@ internal object HeuristicWords {
         "minute minuten stunde stunden sekunde sekunden weile minutes minute hour hours " +
             "bis solange erstmal vorerst heute morgen lang lange tag tage abend until"
     )
+
+    // ---------------------------------------------------------------------------------------------
+    // Korrektur
+
+    /** Was vor "ich meine" stehen darf, wenn sich jemand verbessert: "Nein, ich meine ...", "Ach nee, sorry, ich meinte ...". */
+    val CORRECTION_LEAD_INS = words("nein nee ne nö ach äh ähm oh also quatsch sorry entschuldigung moment falsch")
+
+    /** "ich meine", "ich meinte", umgangssprachlich "ich mein". */
+    val MEANT = words("meine meinte mein")
 
     // ---------------------------------------------------------------------------------------------
     // Echter Inhalt
