@@ -188,6 +188,9 @@ class ListenService : Service() {
         // Kurzer Ton als Bestätigung, wie man es vom Sprachassistenten kennt.
         runCatching { ToneGenerator(AudioManager.STREAM_MUSIC, 55).startTone(ToneGenerator.TONE_PROP_BEEP, 120) }
         lastActivityMs = System.currentTimeMillis()
+        // Die Pipeline merkt sich das Weckwort: die folgende Äußerung gilt als Anrede, auch wenn die
+        // Transkription "Hey Jarvis" verhört.
+        pipeline?.onWakeWord()
         openStream()
     }
 
