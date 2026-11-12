@@ -8,7 +8,11 @@ import app.claudevoice.core.WakeWordDetector
 /**
  * Lädt den lokalen Weckwort-Erkenner ("Hey Jarvis").
  * Die drei Modelldateien stecken als Assets in der APK (der Build lädt sie, siehe app/build.gradle.kts).
- * Fehlen sie oder scheitert das Laden, gibt es null zurück: die App hört dann durchgehend zu.
+ * Fehlen sie oder scheitert das Laden, gibt es null zurück. Der Dienst startet die Bereitschaft dann gar
+ * nicht erst (mit Meldung), statt stillschweigend durchgehend zu übertragen.
+ *
+ * Das Laden liest gut 3 MB und baut drei Rechenmodelle auf. Das gehört nicht auf den Haupt-Thread;
+ * der Dienst ruft es deshalb im Hintergrund auf.
  */
 object WakeWords {
     fun create(context: Context): WakeWordDetector? = try {

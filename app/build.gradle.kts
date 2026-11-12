@@ -42,6 +42,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.1")
     implementation("androidx.security:security-crypto:1.1.0")
+    // Dispatchers.Main (Dienst, Mikrofon) kommt aus diesem Paket. Bisher kam es nur indirekt über AndroidX mit.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     // Rechnet die Weckwort-Modelle auf dem Handy. Gleiche Version wie in :core (Begründung dort).
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.28.0")
 }

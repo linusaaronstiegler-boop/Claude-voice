@@ -17,8 +17,11 @@ import java.time.LocalDate
  * Verknüpfte Dateien laufen über den Android-Dateiauswähler (Storage Access Framework). Der gibt der App
  * Lesezugriff auf genau die gewählte Datei, auch in Google Drive, ohne eigenes Drive-Login.
  */
-class MemoryStore(private val context: Context) {
-    private val prefs = Prefs(context)
+class MemoryStore(
+    private val context: Context,
+    // Wer schon Einstellungen geöffnet hat, reicht sie herein; sonst teilt sich Prefs ohnehin eine Instanz je Prozess.
+    private val prefs: Prefs = Prefs(context),
+) {
     private val notesFile = File(context.filesDir, "notes.txt")
     private val cacheDir = File(context.filesDir, "linked").apply { mkdirs() }
 
