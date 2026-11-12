@@ -107,12 +107,12 @@
     "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "der Mond so riesig wenn der so tief steht, hast du da ne Ahnung?"},
     "expect": {
       "answer": true,
-      "length": "mittel",
-      "gist": "Das ist die Mondtäuschung, eine Wahrnehmungstäuschung: Der Mond ist am Horizont nicht größer als hoch am Himmel, das Gehirn schätzt ihn in Horizontnähe nur größer ein. Die Atmosphäre vergrößert ihn nicht, sie färbt ihn höchstens rötlich. Die Frage gehört zum Mond, nicht zum gesperrten Sprungturm aus der Durchsage.",
-      "why": "Die Warum-Frage des Trägers ist durch die Freibad-Durchsage in zwei Zeilen zerrissen; zusammengesetzt bittet er um eine Erklärung, die weder er noch Ole kennt. Die Durchsage dazwischen liefert nur eine falsche Fortsetzung samt Scheinantwort."
+      "length": "kurz",
+      "gist": "Das ist die Mondtäuschung, eine Wahrnehmungstäuschung: Der Mond ist am Horizont nicht größer als hoch am Himmel, das Gehirn schätzt ihn in Horizontnähe nur größer ein. Mehr braucht es nicht; falsch wäre, dass die Atmosphäre ihn vergrößert (sie färbt ihn höchstens rötlich). Die Frage gehört zum Mond, nicht zum gesperrten Sprungturm aus der Durchsage.",
+      "why": "Die Warum-Frage des Trägers ist durch die Freibad-Durchsage in zwei Zeilen zerrissen; zusammengesetzt fragt er Ole nach dem Grund, den weder er noch Ole kennt. Die Durchsage dazwischen liefert nur eine falsche Fortsetzung samt Scheinantwort. Kurz, weil er mitten im Gespräch steckt und die Frage an Ole richtet, nicht ausdrücklich an Alfred."
     },
     "ambiguous": false,
-    "tags": ["split-question", "announcement", "wrong-stitching", "explanation-request", "two-threads", "music-playing"]
+    "tags": ["split-question", "announcement", "wrong-stitching", "explanation-request", "question-to-partner", "two-threads", "music-playing"]
   },
   {
     "id": "mix-05",
@@ -170,10 +170,10 @@
       "answer": true,
       "length": "kurz",
       "gist": "HTTP 429 bedeutet Too Many Requests: zu viele Anfragen in kurzer Zeit, die Partner-API drosselt per Rate Limit. Gemeint ist der Statuscode aus dem Call, nicht der Türcode der Kollegen im Büro.",
-      "why": "Anouk trägt das Gespräch seit fast zwei Minuten allein und fragt den Träger jetzt direkt nach einer Faktenbedeutung, die sie selbst nicht parat hat; 'der Code' ist der Statuscode 429 aus ihrem Bericht, während die Kollegen nebenan über einen Türcode reden."
+      "why": "Anouk trägt das Gespräch seit fast zwei Minuten allein und fragt den Träger jetzt direkt nach einer Faktenbedeutung, die sie selbst nicht parat hat; 'der Code' ist der Statuscode 429 aus ihrem Bericht, während die Kollegen nebenan über einen Türcode reden. Der Call läuft als Videocall über die Laptop-Lautsprecher, deshalb nimmt das AirPods-Mikrofon auch Anouk auf."
     },
     "ambiguous": false,
-    "tags": ["partner-monologue", "wearer-silent", "open-plan-office", "tempting-wrong-referent", "pronoun-resolution", "code-switching", "two-threads"]
+    "tags": ["partner-monologue", "wearer-silent", "open-plan-office", "video-call", "tempting-wrong-referent", "pronoun-resolution", "code-switching", "two-threads"]
   },
   {
     "id": "mix-07",
@@ -527,10 +527,10 @@
       "answer": true,
       "length": "mittel",
       "gist": "Das ist ein Mythos: Wir nutzen praktisch das ganze Gehirn, nur nicht alle Bereiche gleichzeitig gleich stark; Hirnscans zeigen Aktivität in allen Regionen. Gemeint ist die Zehn-Prozent-Behauptung aus dem Podcast, nicht das Zehn-Prozent-Angebot aus dem Telefonat der Mitbewohnerin.",
-      "why": "Der Träger ist allein in der Küche und fragt sich laut, ob die Behauptung aus dem Podcast stimmt; 'die zehn Prozent' sind die angeblich genutzten zehn Prozent des Gehirns, auch wenn die Mitbewohnerin nebenan zuletzt ebenfalls über zehn Prozent geschimpft hat."
+      "why": "Der Träger ist allein in der Küche und fragt sich laut, ob die Behauptung aus dem Podcast stimmt; 'die zehn Prozent' sind die angeblich genutzten zehn Prozent des Gehirns, auch wenn die Mitbewohnerin nebenan zuletzt ebenfalls über zehn Prozent geschimpft hat. Nur an der Stimme ist zu erkennen, dass hier der Träger fragt und nicht der Podcast-Moderator bei seinem Gast nachhakt."
     },
     "ambiguous": false,
-    "tags": ["wonder-aloud", "podcast-claim-check", "media-as-referent", "tempting-wrong-referent", "phone-call-bystander", "myth", "alone"]
+    "tags": ["needs-voice", "wonder-aloud", "podcast-claim-check", "media-as-referent", "tempting-wrong-referent", "phone-call-bystander", "myth", "alone"]
   },
   {
     "id": "mix-19",

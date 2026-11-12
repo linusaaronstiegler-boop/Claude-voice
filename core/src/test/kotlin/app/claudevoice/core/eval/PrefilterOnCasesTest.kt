@@ -43,6 +43,9 @@ class PrefilterOnCasesTest {
         // hängt die Antwort zusätzlich am kleinen Modell. Diese Liste zeigt, welche das sind.
         val viaGate = all.filter { it.expect.answer && !it.ambiguous && reaches(it) && !direct(it) }
         println("Vorfilter: ${viaGate.size} Antwort-Fälle laufen über die Vorprüfung: " + viaGate.joinToString { it.id })
+        // Schweige-Fälle auf demselben Weg: Sagt die Vorprüfung hier NEIN, spart das einen Aufruf des großen Modells.
+        val silentViaGate = silent.filter { reaches(it) && !direct(it) }
+        println("Vorfilter: ${silentViaGate.size} Schweige-Fälle laufen über die Vorprüfung: " + silentViaGate.joinToString { it.id })
     }
 
     /** Geht ohne Vorprüfung direkt an das Antwort-Modell (Anrede, Weckwort, Nachfrage oder klare Frage). */
