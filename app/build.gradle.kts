@@ -12,8 +12,11 @@ android {
         applicationId = "app.claudevoice"
         minSdk = 31 // ab Android 12: setCommunicationDevice für sauberes Bluetooth-Routing
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
+        // Die Weckwort-Bibliothek (ONNX Runtime) bringt Maschinencode für jede Prozessor-Art mit.
+        // Aktuelle Handys sind arm64; nur das einzupacken hält die APK deutlich kleiner.
+        ndk { abiFilters += "arm64-v8a" }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -39,4 +42,13 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.1")
     implementation("androidx.security:security-crypto:1.1.0")
+    // Rechnet die Weckwort-Modelle auf dem Handy. Gleiche Version wie in :core (Begründung dort).
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.28.0")
 }
+
+// Die Weckwort-Modelle ("Hey Jarvis") werden beim Bauen geladen und als Assets in die APK gepackt.
+// Sie liegen nicht im Repo (Lizenz, siehe README). Bewusst ohne Weckwort bauen: -PohneWeckwort
+extra["wakewordDir"] = file("src/main/assets/wakeword")
+extra["wakewordRequired"] = true
+apply(from = rootProject.file("gradle/wakeword-models.gradle.kts"))
+tasks.named("preBuild") { dependsOn("downloadWakeWordModels") }

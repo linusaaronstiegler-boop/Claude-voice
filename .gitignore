@@ -7,3 +7,6 @@ local.properties
 
 # Arbeitskopien der Agenten
 .claude/
+
+# Weckwort-Modelle: werden beim Bauen geladen (Lizenz CC BY-NC-SA, siehe README)
+app/src/main/assets/wakeword/
