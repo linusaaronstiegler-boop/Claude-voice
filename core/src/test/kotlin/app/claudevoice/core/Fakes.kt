@@ -13,7 +13,10 @@ class FakeClaude(
     val quickCalls = mutableListOf<Pair<String, String>>()
     var systemSeen: String? = null
 
-    override fun respond(system: String, user: String, onText: (String) -> Unit) {
+    var warmUps = 0
+    override fun warmUp(system: String) { warmUps++ }
+
+    override fun respond(system: String, user: String, cancel: CancelToken, onText: (String) -> Unit) {
         systemSeen = system
         respondCalls += user
         reply(user).forEach(onText)

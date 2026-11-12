@@ -14,8 +14,11 @@ class Brain(private val claude: ClaudeApi, profile: Profile) {
     val system: String = Persona.systemPrompt(profile)
 
     /** Blockiert, bis die Antwort vollständig ist; [onText] bekommt den Text stückweise. */
-    fun respond(turn: Turn, onText: (String) -> Unit) =
-        claude.respond(system, Persona.userMessage(turn), onText)
+    fun respond(turn: Turn, cancel: CancelToken = CancelToken(), onText: (String) -> Unit) =
+        claude.respond(system, Persona.userMessage(turn), cancel, onText)
+
+    /** Beim Start aufrufen: lädt Regeln und Gedächtnis vorab in den Zwischenspeicher der API. */
+    fun warmUp() = claude.warmUp(system)
 
     fun pregate(turn: Turn): Boolean =
         claude.quick(Persona.PREGATE_SYSTEM, Persona.userMessage(turn), 10).trim().uppercase().startsWith("JA")

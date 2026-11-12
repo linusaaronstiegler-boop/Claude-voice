@@ -304,6 +304,7 @@ class Pipeline(
     /** Startet den Modell-Aufruf sofort im Hintergrund; die Ergebnisse warten im Kanal auf Abholung. */
     private fun startRun(turn: Turn, key: String, voice: Voice): Run {
         val events = Channel<Event>(Channel.UNLIMITED)
+        val cancel = CancelToken()
         val job = scope.launch(io) {
             val chunker = SentenceChunker()
             val parser = ReplyParser(
@@ -314,7 +315,7 @@ class Pipeline(
             try {
                 runInterruptible {
                     try {
-                        brain.respond(turn) { delta ->
+                        brain.respond(turn, cancel) { delta ->
                             parser.feed(delta)
                             // SKIP steht in der ersten Zeile: den Rest brauchen wir nicht, also Aufruf abbrechen.
                             if (parser.decision is Decision.Skip) throw Skipped()
@@ -333,6 +334,8 @@ class Pipeline(
                 events.close()
             }
         }
+        // Wird der Auftrag abgebrochen (Stopp, verworfener Vorgriff), schließt das die Netzverbindung sofort.
+        job.invokeOnCompletion { cancel.cancel() }
         return Run(key, voice, events, job)
     }
 
