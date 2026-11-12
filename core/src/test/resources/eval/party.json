@@ -120,7 +120,7 @@
       {"ago_s": 16, "who": "theke-b", "speaker": "dritte", "proximity": "fern", "text": "Was? Ich versteh dich nicht, sag nochmal!"},
       {"ago_s": 4, "who": "ich", "speaker": "ich", "proximity": "nah", "text": "hey Travis"}
     ],
-    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "erklär mir mal ganz schnell wie das geht, fünfhunderteins double out"},
+    "trigger": {"who": "ich", "speaker": "ich", "proximity": "nah", "text": "erklär mir mal wie das geht, fünfhunderteins double out"},
     "expect": {
       "answer": true,
       "length": "mittel",
@@ -175,7 +175,7 @@
     "expect": {
       "answer": true,
       "length": "kurz",
-      "gist": "Knappe Bestätigung, dass notiert ist: am Montag Powerbank und Regenschirm für Paula mitbringen.",
+      "gist": "Knappe Bestätigung, dass notiert ist: am Montag Powerbank und Regenschirm für Paula mitbringen. Nur wenn die Stimme der auslösenden Äußerung nicht als die des Trägers gesichert ist (im Lauf ohne Sprecherangaben immer, im verrauschten Lauf je nach Störung): keine Notiz, nur wenige Worte, dass Alfred so etwas allein vom Träger selbst annimmt.",
       "why": "Nach einem kurzen Wort zu Paula spricht der Träger Alfred im Partylärm mit zerhackt erkanntem Namen an und gibt einen Notizauftrag; das ist ein Befehl an den Assistenten und nichts, was an die Runde gerichtet wäre."
     },
     "ambiguous": false,
@@ -226,10 +226,10 @@
       "answer": true,
       "length": "kurz",
       "gist": "Nein, es liegt nicht am Gin, sondern am Chinin im Tonic Water, das unter UV- bzw. Schwarzlicht bläulich fluoresziert.",
-      "why": "Die Warum-Frage aus dem eigenen Gespräch wurde von Marek nur falsch beantwortet, und der Träger fragt sich jetzt hörbar, ob die Erklärung stimmt."
+      "why": "Die Warum-Frage aus dem eigenen Gespräch wurde von Marek nur falsch beantwortet, und der Träger fragt sich jetzt hörbar, ob die Erklärung stimmt. Dass der Zweifel von ihm selbst kommt und nicht von Ella oder einem weiteren Gast, ist nur an der Stimme zu erkennen; erst seine eigene Nachfrage hebt sicher auf, dass Alfred niemanden ungefragt verbessert."
     },
     "ambiguous": false,
-    "tags": ["wrong-answer-in-history", "wearer-doubts", "wearer-wonders", "no-wake-name", "lyrics-in-history"]
+    "tags": ["needs-voice", "wrong-answer-in-history", "wearer-doubts", "wearer-wonders", "no-wake-name", "lyrics-in-history"]
   },
   {
     "id": "party-10",
@@ -373,7 +373,7 @@
     "expect": {
       "answer": true,
       "length": "mittel",
-      "gist": "'Verde' meint hier jung, nicht die Farbe: Vinho Verde wird früh abgefüllt und jung getrunken. Er kommt aus dem Nordwesten Portugals und ist meist weiß, es gibt ihn aber auch rot und rosé.",
+      "gist": "Mit der Farbe des Weins hat der Name nichts zu tun. Übliche Erklärung: 'verde' im Sinn von jung, der Wein wird früh abgefüllt und jung getrunken; ebenfalls verbreitet und genauso als richtig zu werten ist die Herleitung von der grünen Landschaft der Anbauregion. Vinho Verde kommt aus dem Nordwesten Portugals und ist meist weiß, es gibt ihn aber auch rot und rosé.",
       "why": "Der Träger wartet allein an der Theke und murmelt die Frage selbst vor sich hin; nur an der Stimme ist zu erkennen, dass sie nicht von den beiden Fremden auf den Hockern kommt."
     },
     "ambiguous": false,
@@ -399,9 +399,9 @@
       "answer": true,
       "length": "kurz",
       "gist": "Beides: Istanbul liegt auf beiden Seiten des Bosporus, ein Teil (darunter die Altstadt) in Europa, der andere in Asien. Nur die Tatsache nennen, nicht entscheiden, ob getrunken wird; Deutsch oder Englisch ist beides in Ordnung.",
-      "why": "Im Trinkspiel der eigenen Runde ist eine nachprüfbare Tatsache strittig, der Träger weiß es selbst nicht, und Sam stellt die Frage ausdrücklich."
+      "why": "Im Trinkspiel der eigenen Runde ist eine nachprüfbare Tatsache strittig, der Träger weiß es selbst nicht, und Sam stellt die Frage ausdrücklich. Strittig, weil Toni sie schon (falsch) beantwortet hat und danach nicht der Träger nachfragt, sondern Sam, Alfred aber niemanden ungefragt verbessert; zudem geht es zur Hälfte um eine Spielentscheidung, die die richtige Antwort ('beides') nicht klärt. Schweigen ist deshalb ebenfalls vertretbar."
     },
-    "ambiguous": false,
+    "ambiguous": true,
     "tags": ["drinking-game", "disputed-fact", "either-or", "false-dichotomy", "english-trigger", "partner-question"]
   }
 ]
