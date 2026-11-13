@@ -13,6 +13,19 @@ data class VoiceFeatures(
 )
 
 /**
+ * Dieselbe Messung dreimal: über die ganze Äußerung ([whole]), nur über ihren Anfang ([head]) und nur über ihr
+ * Ende ([tail]), jeweils höchstens eine Sekunde Sprache.
+ *
+ * Warum: Die Messung über das Ganze lässt sich von einer zweiten Stimme huckepack nehmen. Der Pegel ist der
+ * Wert, den ein Viertel der Sprach-Stücke übertrifft, die Stimmlage der mittlere Wert. Lacht der Träger kurz
+ * in den Ruf des Tischnachbarn, oder hängt der Nachbar seine Bitte ohne Pause an einen Satz des Trägers an,
+ * sieht das Ganze wie die Stimme des Trägers aus. Anfang und Ende für sich genommen verraten es: Eines von
+ * beiden gehört dann der fremden Stimme. Vertrauen gibt es nur, wenn alle drei passen (Pipeline.voiceOf).
+ * Bei einer kurzen Äußerung sind Anfang, Ende und Ganzes dasselbe.
+ */
+class VoiceSpan(val whole: VoiceFeatures, val head: VoiceFeatures, val tail: VoiceFeatures)
+
+/**
  * Misst das Mikrofonsignal nebenbei mit, während es zur Transkription geht.
  *
  * Warum: Die Transkription liefert nur Text. Ob die eigene Stimme, das Gegenüber oder jemand
@@ -64,14 +77,34 @@ class VoiceMeter(private val sampleRate: Int = 16000) {
 
     /** Wie [takeSummary], aber ohne den Zähler zurückzusetzen (für vorläufige Zwischenstände). */
     @Synchronized
-    fun peekSummary(): VoiceFeatures? = summary()
+    fun peekSummary(): VoiceFeatures? = summary(speech)
 
     /** Merkmale der gesammelten Sprache; danach beginnt die Sammlung neu. null, wenn kaum Sprache dabei war. */
     @Synchronized
-    fun takeSummary(): VoiceFeatures? {
-        val result = summary()
+    fun takeSummary(): VoiceFeatures? = takeSpan()?.whole
+
+    /** Wie [takeSpan], aber ohne die Sammlung zu leeren. */
+    @Synchronized
+    fun peekSpan(): VoiceSpan? = span()
+
+    /** Wie [takeSummary], dazu Anfang und Ende der Äußerung getrennt gemessen ([VoiceSpan]). */
+    @Synchronized
+    fun takeSpan(): VoiceSpan? {
+        val result = span()
         speech.clear()
         return result
+    }
+
+    private fun span(): VoiceSpan? {
+        val whole = summary(speech) ?: return null
+        val first = speech.first().at
+        val last = speech.last().at
+        val edge = EDGE_MS / FRAME_MS
+        // Ist am Rand zu wenig Sprache für eine eigene Messung (ein einzelner Laut, dann eine Lücke), gilt
+        // dort die Messung über das Ganze: Mehr ist über diesen Rand nicht bekannt.
+        val head = summary(speech.filter { it.at - first < edge }) ?: whole
+        val tail = summary(speech.filter { last - it.at < edge }) ?: whole
+        return VoiceSpan(whole, head, tail)
     }
 
     /**
@@ -121,7 +154,7 @@ class VoiceMeter(private val sampleRate: Int = 16000) {
     @Synchronized
     fun clear() = speech.clear()
 
-    private fun summary(): VoiceFeatures? {
+    private fun summary(speech: List<Speech>): VoiceFeatures? {
         val speechMs = speech.size * FRAME_MS
         if (speechMs < MIN_SPEECH_MS) return null
         // "Aktiver Sprachpegel": der Wert, den ein Viertel der Frames übertrifft (75. Perzentil).
@@ -189,5 +222,7 @@ class VoiceMeter(private val sampleRate: Int = 16000) {
         const val SPEECH_ABOVE_NOISE_DB = 12.0
         const val VOICED_THRESHOLD = 0.5
         const val MAX_FRAMES = 2000 // eine Minute Sprache reicht als Obergrenze
+        /** So lang sind "Anfang" und "Ende" einer Äußerung, die [VoiceSpan] getrennt misst. */
+        const val EDGE_MS = 1000
     }
 }

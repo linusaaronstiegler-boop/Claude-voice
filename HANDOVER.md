@@ -20,9 +20,28 @@
   wer ähnlich klingt und nah sitzt, gilt dann ebenfalls als Träger (Hinweis steht im Dialog). Schwellen
   bisher nur an künstlichen Tönen geprüft. Schalter „Messwerte anzeigen“ ist da, die Werte liefert der Kern
   noch nicht.
-- **In Arbeit** (nach einem Neustart des Containers neu angesetzt): 18 Funde der Gegenprüfung an der
-  Angriffsrunde, darunter vier zur Stimmerkennung (Profil aus einer einzigen Äußerung, Sprecher-Nummern
-  des Anbieters übersteuern die Akustik); „Stimme einlernen“ in den Einstellungen; Messwerte in der Mitschrift.
+- **Gegenprüfung der Angriffsrunde: 18 Funde, alle im Kern behandelt** (Tests `ClosingTrustTest`,
+  `ClosingTalkTest`, `ClosingConcurrencyTest`):
+  - Stimmprofil entsteht nicht mehr aus einer einzigen Äußerung, sondern aus drei Proben, die in der
+    Stimmlage übereinstimmen; ein gespeichertes Profil mit weniger als drei Proben wird ignoriert. Ab zehn
+    Proben (`FIRM_SAMPLES`) ist es fest; ein eingelerntes Profil (50 Proben) verschiebt sich also nicht mehr.
+  - Die Untergrenze von −30 dBFS am Kopfhörer-Mikro gilt jetzt mit und ohne Profil. Wird deshalb abgelehnt,
+    steht der Grund mit den gemessenen Werten in der Anzeige. Die Grenze ist weiter ein Schätzwert.
+  - Anfang und Ende einer Äußerung werden einzeln gemessen (`VoiceSpan`): Eine zweite Stimme, die sich an
+    einen Satz des Trägers hängt, gilt nicht mehr als gesichert.
+  - Die Sprecher-Nummern des Anbieters können das Vertrauen nur noch entziehen, nie verleihen.
+  - „Danke, Alfred“ hebt eine zugesagte Ruhe nicht mehr auf. Ruhe-Bitten werden strenger erkannt
+    (Befehlsform, Dauer oder „stumm schalten“; keine Fragen, kein „in Ruhe erklären“).
+  - „ich meine …“ zählt nur noch als Korrektur, wenn etwas Kurzes folgt. Nach dem Weckwort geht nicht mehr
+    jeder Satz des Tischnachbarn ans Antwortmodell.
+  - Stopp wartet nicht mehr hinter langsamer Arbeit unter der Sperre; mehrere kleine Wettläufe geschlossen.
+  - Die Anschlussfrage („Und China?“) wird auch hinter normal langen Antworten beantwortet: Die Sprechzeit
+    der ersten Antwort zählt nicht mit. Ein abgebrochener Auftrag meldet keinen Fehler mehr.
+- **Messwerte in der Mitschrift:** `UiState.measures` trägt je Zeile Pegel, Stimmlage und Einschätzung; mit
+  dem Schalter „Messwerte anzeigen“ stehen sie unter jeder Zeile.
+- **Offen:** ein Knopf „Ruhe aufheben“ (Ruhe ohne Stimme beenden); die Reparaturen dieser Runde hat außer
+  ihrem Autor niemand gegengeprüft; das Einlernen misst den Median, die Pipeline das obere Viertel des
+  Pegels (erwarteter Unterschied 1 bis 2 dB).
 - **Nur auf dem Gerät zu prüfen:** ob die Stimme des Geräts über die Kopfhörer kommt und wie sie klingt.
 
 ## 2026-11-12 (Schlussrunde) – Antworten ohne Kopfzeile, Anschlussfrage, Angriffsrunde, CI-Test

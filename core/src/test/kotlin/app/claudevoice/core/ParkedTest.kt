@@ -877,49 +877,77 @@ class ParkedTest {
         assertEquals("die beantwortete Anschlussfrage kostet keinen Aufruf mehr", before + 1, rig.claude.respondCalls.size)
     }
 
-    @Test fun `bekannte Grenze - hinter einer laengeren ersten Antwort verfaellt die Anschlussfrage weiterhin`() = runTest {
-        // Die Frist für eine zurückgestellte Äußerung (vier Sekunden) zählt ab dem Moment, in dem sie gesagt
-        // wurde, und sie läuft weiter, während die erste Antwort zu hören ist. Hinter "Elf." kommt der Nachsatz
-        // dran. Hinter einem gewöhnlichen Satz von dreizehn Wörtern (rund fünf Sekunden Sprache) ist er schon zu
-        // alt. Gemessen hat die Hälfte der gesprochenen Antworten dreizehn Wörter oder mehr, nur jede fünfte
-        // höchstens sieben. Ob die Zeit des Zuhörens mitzählen soll, ist eine Entscheidung für den Eigentümer;
-        // dieser Test hält fest, wie es heute ist.
-        val medium = "Russland hat elf Zeitzonen, von Kaliningrad im Westen bis Kamtschatka ganz im Osten."
-        assertEquals(13, Heuristics.words(medium).size)
-        for ((first, expected) in listOf(eleven to listOf(eleven, one), medium to listOf(medium))) {
-            lateinit var rig: Rig
-            // Ein Lautsprecher, dessen Wiedergabe auf der Uhr des Tests dauert: 400 ms je Wort.
-            val out = object : Speaker {
-                val spoken = ArrayList<String>()
-                override suspend fun speak(
-                    sentences: kotlinx.coroutines.channels.ReceiveChannel<String>, release: kotlinx.coroutines.Deferred<Boolean>?,
-                    onFirstAudio: () -> Unit,
-                ) {
-                    if (release != null && !release.await()) return
-                    var any = false
-                    for (sentence in sentences) {
-                        if (!any) onFirstAudio()
-                        any = true
-                        spoken += sentence
-                        rig.lagMs += Heuristics.words(sentence).size * 400L
-                    }
-                }
-                override fun stop() {}
+    /** Ein Lautsprecher, dessen Wiedergabe auf der Uhr des Tests dauert: 400 ms je Wort. */
+    private class Paced : Speaker {
+        lateinit var rig: Rig
+        val spoken = ArrayList<String>()
+        override suspend fun speak(
+            sentences: kotlinx.coroutines.channels.ReceiveChannel<String>, release: kotlinx.coroutines.Deferred<Boolean>?,
+            onFirstAudio: () -> Unit,
+        ) {
+            if (release != null && !release.await()) return
+            var any = false
+            for (sentence in sentences) {
+                if (!any) onFirstAudio()
+                any = true
+                spoken += sentence
+                rig.lagMs += Heuristics.words(sentence).size * 400L
             }
-            rig = Rig(this, FakeClaude(), withProfile, out)
-            rig.claude.reply = { user ->
-                rig.lagMs += 1_000
-                listOf("SAY kurz\n", if (asked(user).contains("Russland")) first else one)
-            }
-            rig.wearer(russia)
-            rig.lagMs += 500
-            rig.wearer(china)
-            runCurrent()
-            advanceTimeBy(4_000)
-            runCurrent()
-
-            assertEquals("erste Antwort: $first", expected, out.spoken)
         }
+        override fun stop() {}
+    }
+
+    private val medium = "Russland hat elf Zeitzonen, von Kaliningrad im Westen bis Kamtschatka ganz im Osten."
+
+    /**
+     * Der Träger fragt [question] und schiebt eine halbe Sekunde später "Und China?" nach. Das Modell braucht
+     * [modelMs] für die erste Antwort [first]; sie dauert beim Abspielen 400 ms je Wort.
+     * @return was zu hören war.
+     */
+    private fun TestScope.zonesThenChina(question: String, first: List<String>, modelMs: Long = 1_000): List<String> {
+        val out = Paced()
+        val rig = Rig(this, FakeClaude(), withProfile, out)
+        out.rig = rig
+        rig.claude.reply = { user ->
+            if (asked(user).contains("Russland")) { rig.lagMs += modelMs; first } else { rig.lagMs += 1_000; listOf("SAY kurz\n", one) }
+        }
+        rig.wearer(question)
+        rig.lagMs += 500
+        rig.wearer(china)
+        runCurrent()
+        advanceTimeBy(4_000)
+        runCurrent()
+        return out.spoken
+    }
+
+    @Test fun `auch hinter einer normal langen ersten Antwort wird die Anschlussfrage beantwortet`() = runTest {
+        // Früher zählte die Frist für eine zurückgestellte Äußerung (vier Sekunden) durch, auch während die erste
+        // Antwort zu hören war. Hinter "Elf." kam der Nachsatz dran, hinter einem gewöhnlichen Satz von dreizehn
+        // Wörtern (rund fünf Sekunden Sprache) war er schon zu alt. Gemessen hat die Hälfte der gesprochenen
+        // Antworten dreizehn Wörter oder mehr. Die Zeit des Zuhörens zählt jetzt nicht mehr gegen den Nachsatz.
+        assertEquals(13, Heuristics.words(medium).size)
+        for (first in listOf(eleven, medium)) {
+            assertEquals("erste Antwort: $first", listOf(first, one), zonesThenChina(russia, listOf("SAY kurz\n", first)))
+        }
+    }
+
+    @Test fun `Obergrenze - nach einer sehr langen ersten Antwort verfaellt die Anschlussfrage`() = runTest {
+        // Insgesamt darf seit dem Nachsatz nicht mehr Zeit vergangen sein als das Fenster für Nachfragen (zwanzig
+        // Sekunden). Drei Sätze zu dreizehn Wörtern dauern knapp sechzehn Sekunden: noch drin. Fünf Sätze dauern
+        // sechsundzwanzig: Danach weiß niemand mehr, worauf sich "Und China?" bezog.
+        val three = List(3) { medium }
+        val five = List(5) { medium }
+        assertEquals(three + one, zonesThenChina(russia, listOf("SAY lang\n", three.joinToString(" "))))
+        assertEquals(five, zonesThenChina(russia, listOf("SAY lang\n", five.joinToString(" "))))
+    }
+
+    @Test fun `war der Nachsatz schon zu alt, als der erste Ton begann, verfaellt er weiterhin`() = runTest {
+        // Nur das Zuhören zählt nicht mit. Lässt schon die erste Antwort länger als vier Sekunden auf sich warten
+        // (hier nach direkter Anrede, sonst käme sie selbst zu spät), ist der Nachsatz beim ersten Ton veraltet.
+        val named = "Alfred, wie viele Zeitzonen hat Russland?"
+        val reply = listOf("SAY kurz\n", medium)
+        assertEquals("drei Sekunden beim Modell", listOf(medium, one), zonesThenChina(named, reply, modelMs = 3_000))
+        assertEquals("viereinhalb Sekunden beim Modell", listOf(medium), zonesThenChina(named, reply, modelMs = 4_500))
     }
 
     // --- Wer zurücksteht, behält seinen Platz gegen den Fernseher -----------------------------------------

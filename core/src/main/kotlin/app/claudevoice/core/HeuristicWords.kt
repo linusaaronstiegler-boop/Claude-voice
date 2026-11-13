@@ -542,11 +542,45 @@ internal object HeuristicWords {
         "sei * ruhig", "seid * ruhig",
     )
 
+    // Bitte um Ruhe ([Heuristics.asksForQuiet]). Ein einzelnes Wort genügt dafür nicht, siehe dort.
+
+    /** "sei still", "bleib ruhig", "kannst du mal still sein": das Verb der Aufforderung ... */
+    val QUIET_IMPERATIVES = words("sei seid sein bleib bleibe")
+
+    /** ... und das Wort dazu. Für sich allein sind beide nichts ("mach ruhig weiter", "sei so gut"). */
+    val QUIET_ADJECTIVES = words("ruhig still leise stumm")
+
+    /** Wörter für Ruhe, die zusammen mit einer Dauer eine Bitte sind: "zwei Stunden Ruhe", "Pause bis drei". */
+    val QUIET_NOUNS = words(
+        "ruhe stille funkstille sendepause pause frieden stören stumm lautlos schweigen schweig schweige klappe mute quiet silence"
+    )
+
     /**
-     * Wörter, an denen eine Bitte um Ruhe zu erkennen ist ([Heuristics.asksForQuiet]): die Stoppwörter und
-     * dazu, was nur mit einer Dauer vorkommt ("sei zehn Minuten ruhig", "schalte dich stumm").
+     * Zwei Wörter, die erst zusammen (und mit einer Dauer) um Ruhe bitten: "halt dich eine Stunde zurück",
+     * "sag eine Weile nichts", "misch dich zehn Minuten nicht ein", "ich will eine Stunde nichts hören".
      */
-    val QUIET_WORDS = STOP_WORDS + words("ruhig stumm schweigen schweige lautlos mute")
+    val QUIET_PAIRS = listOf(
+        words("halt halte") to fold("zurück"),
+        words("sag sage sagst hören") to fold("nichts"),
+        words("misch mische") to fold("ein"),
+    )
+
+    /** "schalte dich stumm", "geh auf lautlos": stumm schalten ... */
+    val MUTE_WORDS = words("stumm lautlos mute schweig schweige")
+
+    /** ... mit einem dieser Verben. Ohne Verb zählt es nur in einem ganz kurzen Satz ("Alfred, stumm bitte"). */
+    val MUTE_VERBS = words("schalt schalte stell stelle mach mache geh gehe bleib bleibe sei go stay")
+
+    /** Dank oder Bestätigung ([Heuristics.isMereThanks]): Mindestens eines dieser Wörter muss fallen ... */
+    val THANKS = words("danke dankeschön dank merci thanks thank ok okay gut super prima perfekt klar passt")
+
+    /** ... und daneben darf nur so etwas stehen: "vielen Dank dir", "alles klar", "thank you so much". */
+    val THANKS_FILLERS = words("schön sehr vielen besten lieben herzlichen dir dafür alles ja you so much")
+
+    /** Mit diesen Wörtern beginnt eine Frage, und eine Frage bittet nicht um Ruhe: "wann ist Ruhe im Haus". */
+    val QUIET_QUESTION_STARTS = words(
+        "wie was wann wer wo warum wieso weshalb welche welcher welches wieviel how what when who where why"
+    )
 
     /** Dürfen neben dem Stoppwort stehen, ohne dass es weniger Befehl ist: "bitte", "jetzt", "endlich". */
     val STOP_FILLERS = words("bitte jetzt mal endlich sofort danke ok okay sei mach doch einfach hey ja nun aber und please now just")
@@ -571,6 +605,29 @@ internal object HeuristicWords {
 
     /** "ich meine", "ich meinte", umgangssprachlich "ich mein". */
     val MEANT = words("meine meinte mein")
+
+    /**
+     * Steht eines dieser Wörter hinter "ich meine", folgt keine Sache, sondern ein ganzer Satz oder eine
+     * Person: "ich mein ja nur", "ich meine das ernst", "ich meine, wir können auch morgen fahren", "ich meinte
+     * dich". Das ist die Redewendung und keine Korrektur ([Heuristics.isCorrection]).
+     */
+    val NOT_WHAT_IS_MEANT = words(
+        """
+        nur bloß ernst so halt eben doch schon mal auch dass wenn weil ob
+        ich du er sie es wir ihr man dich dir mich mir ihn ihm ihnen euch uns
+        ist sind war waren bin bist hat habe haben hast hatte kann kannst können könnte will willst wollen
+        soll sollte muss musst müssen wird werden würde geht gehen gibt recht klar egal
+        """
+    )
+
+    // ---------------------------------------------------------------------------------------------
+    // Anschlussfrage
+
+    /** Wer so spricht, redet mit einem Menschen, nicht mit dem Assistenten ([Heuristics.isShortFollowUp]). */
+    val TO_A_PERSON = words("du dir dich dein deine deinen deinem deiner euch euer eure mir mich you your")
+
+    /** Bleibt hinter "und" / "oder" nur so etwas übrig, steht da nichts, wonach gefragt wäre: "Und dann?", "Oder was?" */
+    val NO_FOLLOW_UP_SUBJECT = words("dann jetzt so was wie nun weiter nicht noch then what")
 
     // ---------------------------------------------------------------------------------------------
     // Echter Inhalt

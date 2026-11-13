@@ -169,8 +169,19 @@ class SpeculationContextTest {
         rig.pipeline.onCommitted("Alfred, wie spät ist es", null, null)
         runCurrent()
         assertEquals("übernommen", 1, rig.claude.respondCalls.size)
-        assertEquals("gelernt wird erst aus der fertigen Äußerung", 1, rig.env.profiles.size)
         assertEquals(listOf("Viertel nach neun."), rig.speaker.spoken)
+        // Gelernt wird nur aus fertigen Äußerungen, und ein Profil entsteht erst aus drei Proben. Mit zwei
+        // weiteren Anreden steht es also; zählten die Zwischenstände mit, stünde es schon früher.
+        repeat(2) {
+            advanceTimeBy(30_000)
+            rig.voice(8000.0)
+            rig.pipeline.onPartial("Alfred, wie spät ist es", 0.8)
+            runCurrent()
+            assertTrue(rig.env.profiles.isEmpty())
+            rig.pipeline.onCommitted("Alfred, wie spät ist es", null, null)
+            runCurrent()
+        }
+        assertEquals("gelernt wird erst aus der fertigen Äußerung", 3, rig.env.profiles.single().samples)
     }
 
     @Test fun `Nachfrage ohne Fragewort bekommt ebenfalls einen Vorgriff`() = runTest {

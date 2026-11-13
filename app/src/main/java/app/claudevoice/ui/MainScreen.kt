@@ -295,11 +295,15 @@ private fun Conversation(
     showMeasurements: Boolean = false,
 ) {
     val c = Glass.colors
-    // TODO(Messwerte): Die Pipeline liefert die Mitschrift bisher als reine Textzeilen. Sobald der
-    // UI-Zustand je Zeile Pegel und Stimmlage mitbringt, hier in TranscriptLine.levelDb / pitchHz eintragen
-    // (z. B. parseTranscriptLine(text).copy(levelDb = ..., pitchHz = ...)). Die Anzeige dafür steht schon
-    // in TranscriptRow und zeigt sich, sobald die Werte nicht mehr null sind.
-    val lines = remember(ui.transcript) { ui.transcript.map(::parseTranscriptLine) }
+    // Die Pipeline liefert zu jeder Zeile der Mitschrift die Messwerte in einer zweiten Liste mit
+    // denselben Positionen (ui.measures). Hier werden beide zusammengeführt; fehlt ein Messwert, bleibt
+    // die Zeile ohne Zusatz.
+    val lines = remember(ui.transcript, ui.measures) {
+        ui.transcript.mapIndexed { i, raw ->
+            val m = ui.measures.getOrNull(i)
+            parseTranscriptLine(raw).copy(levelDb = m?.levelDb, pitchHz = m?.pitchHz)
+        }
+    }
     val partial = ui.partial.takeIf { it.isNotBlank() }
     val hasTranscript = lines.isNotEmpty() || partial != null
     val listState = rememberLazyListState()

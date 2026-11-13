@@ -798,6 +798,26 @@ object Heuristics {
     }
 
     /** Ein bloßes "stopp" oder "danke, reicht" ohne Namen. Gilt nur, während der Assistent spricht. */
+    /** So viele Wörter darf ein bloßer Dank samt Namen haben ("Vielen Dank dir, Alfred"). */
+    private const val MAX_THANKS_WORDS = 5
+
+    /**
+     * Ist das nur ein Dank oder eine Bestätigung an den Assistenten ("Danke, Alfred.", "Alles klar, Jarvis",
+     * "Ok Alfred")? Gebraucht wird das, solange Ruhe gilt (Pipeline.onCommitted): Wer um zehn Minuten Ruhe
+     * bittet, "Sehr wohl, Sir." hört und "Danke, Alfred." sagt, will die Ruhe nicht gleich wieder aufheben.
+     * Genau das geschah früher, weil jede Anrede beim Namen die Ruhe beendet. Steht neben Dank und Namen noch
+     * irgendetwas anderes ("Danke Alfred, und wie spät ist es?"), ist es kein bloßer Dank.
+     */
+    fun isMereThanks(text: String, names: List<String>): Boolean {
+        val raw = words(text)
+        if (raw.size > MAX_THANKS_WORDS) return false
+        val named = HashSet<Int>()
+        for (name in names) named += nameHits(raw, name)
+        if (named.isEmpty()) return false
+        val rest = raw.filterIndexed { i, _ -> i !in named }.map(Words::fold).filter { it.isNotEmpty() }
+        return rest.any { it in Words.THANKS } && rest.all { it in Words.THANKS || it in Words.THANKS_FILLERS }
+    }
+
     fun isBareStop(text: String): Boolean {
         val w = words(text).map(Words::fold).filter { it.isNotEmpty() }
         return w.size in 1..MAX_BARE_STOP_WORDS && isStopPhrase(w, withThanks = true)
@@ -879,6 +899,12 @@ object Heuristics {
     /** So viele Wörter dürfen vor "ich meine" stehen ("ach nee, sorry, ich meine ..."). */
     private const val MAX_CORRECTION_LEAD = 3
 
+    /** So viele Wörter dürfen hinter "ich meine" stehen ("den Watzmann, nicht die Zugspitze"). Mehr ist ein eigener Satz. */
+    private const val MAX_MEANT_WORDS = 6
+
+    /** "Alfred, stumm bitte": So kurz darf ein Satz sein, in dem "stumm" ohne Verb als Bitte um Ruhe gilt. */
+    private const val MAX_BARE_MUTE_WORDS = 4
+
     /**
      * Sieht die Äußerung nach einer verkürzten Anschlussfrage aus? Zwei Formen:
      *  - Sie beginnt mit "und" oder "oder" und ist kurz: "Und China?", "und in Fuß", "Oder Fahrenheit".
@@ -891,6 +917,12 @@ object Heuristics {
     fun isShortFollowUp(text: String): Boolean {
         val w = words(text).map(Words::fold).filter { it.isNotEmpty() }
         if (w.size < 2) return false
+        // Wer "du", "dir" oder "bitte" sagt, redet mit einem Menschen am Tisch ("Und du so?", "Schmeckt's dir?",
+        // "Und für mich bitte auch."). Den Assistenten spricht der Träger so nicht an: Hinter seiner Frage ist das
+        // Tischgespräch und keine Anschlussfrage. Dasselbe gilt für "Und dann?" und "Oder was?", in denen gar
+        // nichts steht, wonach gefragt sein könnte.
+        if (w.any { it in Words.TO_A_PERSON }) return false
+        if (w[0] in FOLLOW_UP_STARTS && w.drop(1).all { it in Words.NO_FOLLOW_UP_SUBJECT }) return false
         return (w[0] in FOLLOW_UP_STARTS && w.size <= MAX_FOLLOW_UP_WORDS) || ('?' in text && w.size <= MAX_SHORT_QUESTION_WORDS)
     }
 
@@ -903,24 +935,63 @@ object Heuristics {
      * Mit "nein" beginnt auch, was jemand dem Kellner antwortet ("Nein, danke."), und eine Korrektur löst
      * die wartende Frage ab. Irrtum also lieber so: Die Korrektur wird übersehen und die alte Frage
      * beantwortet, als dass ein Satz an jemand anderen dem Träger seine Antwort nimmt.
+     *
+     * "Ich mein(e)" ist im Deutschen aber vor allem eine Redewendung: "Ich mein ja nur.", "Ich meine, das ist
+     * doch klar.", "Nein, ich meine das ernst.", "Ich meinte dich, nicht ihn." Das alles sagt man zum
+     * Tischnachbarn, und nichts davon verbessert eine Frage. Früher galt jeder dieser Sätze als Korrektur und
+     * nahm dem Träger die Antwort weg. Deshalb muss hinter "ich meine" eine kurze Sache stehen ("den
+     * Watzmann", "natürlich Canberra", "Österreich, nicht Australien"): wenige Wörter, und keines davon ein
+     * Wort, das einen ganzen Satz oder eine Person ankündigt ([Words.NOT_WHAT_IS_MEANT]).
      */
     fun isCorrection(text: String): Boolean {
         val w = words(text).map(Words::fold).filter { it.isNotEmpty() }
         var i = 0
         while (i < w.size && i < MAX_CORRECTION_LEAD && w[i] in Words.CORRECTION_LEAD_INS) i++
         if (w.getOrNull(i) != "ich" || w.getOrNull(i + 1) !in Words.MEANT) return false
+        val rest = w.drop(i + 2)
+        if (rest.size > MAX_MEANT_WORDS || rest.any { it in Words.NOT_WHAT_IS_MEANT }) return false
         // Es muss auch dastehen, was gemeint ist: "ich mein ja" verbessert nichts.
-        return w.drop(i + 2).any { it !in Words.FILLERS && it !in Words.EMPTY_WORDS }
+        return rest.any { it !in Words.FILLERS && it !in Words.EMPTY_WORDS }
     }
 
     /**
      * Bittet die Äußerung um Ruhe ("sei bitte zehn Minuten ruhig", "Ruhe bis morgen", "schalte dich stumm")?
-     * Großzügig gelesen: Ob wirklich stumm geschaltet wird, entscheidet das Modell mit seiner Sonderzeile.
-     * Die Pipeline will nur wissen, ob sie auf diese Sonderzeile warten soll (Pipeline.consume).
+     * Ob wirklich stumm geschaltet wird, entscheidet das Modell mit seiner Sonderzeile. Die Pipeline will nur
+     * wissen, ob sie auf diese Sonderzeile warten soll (Pipeline.consume).
+     *
+     * Früher genügte ein einzelnes Wort wie "leise", "ruhig" oder "Ruhe". Damit galt als Bitte um Ruhe, was
+     * gar keine ist: "wie leise ist ein Flüstern", "erklär mir das ruhig Schritt für Schritt", "erklär mir in
+     * Ruhe ...", "I think you're on mute". Ausgerechnet nach solchen Bitten um eine lange Erklärung blieb die
+     * nächste Frage dann ohne Antwort. Jetzt braucht es eine von drei Formen:
+     *  1. die Aufforderung selbst: "sei still", "halt die Klappe", "sei bitte mal ruhig" (auch mit Wörtern
+     *     dazwischen: "sei erstmal still"), nicht verneint ("du musst nicht leise sein");
+     *  2. ein Wort für Ruhe zusammen mit einer Dauer: "zwei Stunden Ruhe", "Pause für zwanzig Minuten",
+     *     "Sendepause bis heute Abend", "sag eine Weile nichts mehr". "In Ruhe" ist dabei kein Wort für Ruhe;
+     *  3. stumm schalten: "schalte dich stumm", "geh auf lautlos", oder knapp "Alfred, stumm bitte".
+     * Was mit einem Fragewort beginnt ("wann ist Ruhe im Haus", "wie lange dauert die Pause"), ist nie eine
+     * Bitte um Ruhe. Die höfliche Frageform ("kannst du mal zehn Minuten still sein?") ist dagegen eine.
+     *
+     * Was dabei übersehen wird, kostet wenig: Die Ruhe gilt dann erst, wenn die Sonderzeile eintrifft.
      */
     fun asksForQuiet(text: String): Boolean {
         val w = words(text).map(Words::fold).filter { it.isNotEmpty() }
-        return w.any { it in Words.QUIET_WORDS } || w.indices.any { i -> Words.STOP_PHRASES.any { matchAt(w, i, it) > i } }
+        if (w.take(3).any { it in Words.QUIET_QUESTION_STARTS }) return false
+        val negated = w.any { it in Words.NEGATIONS }
+        // 1. Die Aufforderung
+        if (!negated) {
+            if (w.indices.any { i -> Words.STOP_PHRASES.any { matchAt(w, i, it) > i } }) return true
+            if (w.any { it in Words.QUIET_IMPERATIVES } && w.any { it in Words.QUIET_ADJECTIVES }) return true
+        }
+        // 2. Ruhe für eine Dauer. Hier stört eine Verneinung nicht: "bitte nicht stören bis drei".
+        if (w.any { it in Words.DURATION_WORDS }) {
+            val calm = w.withIndex().any { (i, word) -> word in Words.QUIET_NOUNS && !(word == "ruhe" && w.getOrNull(i - 1) == "in") }
+            if (calm || Words.QUIET_PAIRS.any { (a, b) -> a.any { it in w } && b in w }) return true
+        }
+        // 3. Stumm schalten
+        if (!negated && w.any { it in Words.MUTE_WORDS }) {
+            return w.any { it in Words.MUTE_VERBS } || w.size <= MAX_BARE_MUTE_WORDS
+        }
+        return false
     }
 
     // ==============================================================================================

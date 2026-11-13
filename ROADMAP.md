@@ -16,10 +16,10 @@
       Warteplatz), wackliger CI-Test an der Ursache behoben
 
 ## In Arbeit
-- [ ] Gegenprüfung der Reparaturen aus der Angriffsrunde; Anschlussfrage auch hinter normal langen Antworten.
+- [x] Gegenprüfung der Reparaturen aus der Angriffsrunde; Anschlussfrage auch hinter normal langen Antworten.
 - [x] Sprachausgabe mit der Stimme des Geräts, damit die App ohne ElevenLabs-Schlüssel läuft.
 - [x] Gelerntes Stimmprofil in den Einstellungen vergessen können.
-- [ ] „Stimme einlernen“ in den Einstellungen und Messwerte in der Mitschrift (Befund vom ersten
+- [x] „Stimme einlernen“ in den Einstellungen und Messwerte in der Mitschrift (Befund vom ersten
       Gerätetest: die eigene Stimme gilt als fremd).
 
 ## Als Nächstes (in dieser Reihenfolge)

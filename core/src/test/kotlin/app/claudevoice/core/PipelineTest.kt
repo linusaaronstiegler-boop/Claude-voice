@@ -338,7 +338,15 @@ class PipelineTest {
             "Mitschrift=${rig.state.value.transcript} gelernt=${rig.env.profiles} zuletzt=${rig.state.value.lastDecision}",
             listOf("Zahnarzt am Dienstag"), rig.env.notes,
         )
-        // Gelernt ist jetzt die Stimme des Trägers: laut und tief.
+        // Eine Probe ist noch kein Profil (dafür braucht es drei, die zusammenpassen). Nach zwei weiteren
+        // Anreden ist die Stimme des Trägers gelernt: laut und tief.
+        assertTrue("nach einer Probe: ${rig.env.profiles}", rig.env.profiles.isEmpty())
+        repeat(2) {
+            advanceTimeBy(30_000)
+            rig.own()
+            rig.say("Alfred, merk dir Zahnarzt am Dienstag")
+            runCurrent()
+        }
         assertEquals(115.0, rig.env.profiles.last().pitchHz!!, 3.0)
         assertTrue(rig.env.profiles.last().levelDb > -25.0)
     }

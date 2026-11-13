@@ -1,6 +1,8 @@
 package app.claudevoice.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VoiceClassifierTest {
@@ -56,10 +58,72 @@ class VoiceClassifierTest {
         val c = VoiceClassifier(MicMode.AIRPODS)
         c.learnOwn(f(-20.0, 110.0))
         c.learnOwn(f(-16.0, 120.0))
+        assertEquals("zwei Proben sind noch kein Profil", null, c.profile)
+        c.learnOwn(f(-18.0, 115.0))
         val p = c.profile!!
         assertEquals(-18.0, p.levelDb, 0.01)
         assertEquals(115.0, p.pitchHz!!, 0.01)
-        assertEquals(2, p.samples)
+        assertEquals(3, p.samples)
+        // Danach gleitet der Mittelwert: Die vierte Probe zählt ein Viertel.
+        c.learnOwn(f(-22.0, 111.0))
+        assertEquals(-19.0, c.profile!!.levelDb, 0.01)
+        assertEquals(114.0, c.profile!!.pitchHz!!, 0.01)
+        assertEquals(4, c.profile!!.samples)
+    }
+
+    @Test fun `ab zehn Proben steht das Profil fest`() {
+        // Bis dahin verfeinert jede Probe das Profil; danach ändert es eine einzelne Äußerung nicht mehr. So kann
+        // ein in den Einstellungen eingelerntes Profil nicht von der eigenen Stimme wegwandern.
+        val c = VoiceClassifier(MicMode.AIRPODS, VoiceProfile(-18.0, 115.0, 9))
+        assertTrue(c.learnOwn(f(-20.0, 120.0)))
+        val firm = c.profile!!
+        assertEquals(10, firm.samples)
+        assertEquals(-18.2, firm.levelDb, 0.01)
+        assertFalse(c.learnOwn(f(-12.0, 130.0)))
+        assertEquals(firm, c.profile)
+        val enrolled = VoiceClassifier(MicMode.AIRPODS, VoiceProfile(-21.0, 108.0, 300))
+        assertFalse(enrolled.learnOwn(f(-12.0, 120.0)))
+        assertEquals(VoiceProfile(-21.0, 108.0, 300), enrolled.profile)
+    }
+
+    @Test fun `Anfang und Ende einer Aeusserung werden getrennt gemessen`() {
+        // 1,2 s leise hohe Stimme, gleich danach 0,5 s laute tiefe Stimme: Über das Ganze gemessen bestimmt das
+        // laute Viertel den Pegel. Der Anfang für sich zeigt die leise Stimme.
+        val m = VoiceMeter()
+        m.feed(silence(300), 9600)
+        val a = tone(200.0, 1300.0, 1200)
+        m.feed(a, a.size)
+        val b = tone(115.0, 8000.0, 500)
+        m.feed(b, b.size)
+        val span = m.takeSpan()!!
+        assertEquals(-18.6, span.whole.levelDb, 0.7)
+        assertEquals(-34.4, span.head.levelDb, 0.7)
+        assertEquals(200.0, span.head.pitchHz!!, 5.0)
+        assertEquals(-18.6, span.tail.levelDb, 0.7)
+        assertEquals(null, m.takeSpan())
+        // Eine kurze Äußerung: Anfang, Ende und Ganzes sind dasselbe.
+        m.feed(silence(300), 9600)
+        m.feed(b, b.size)
+        val short = m.takeSpan()!!
+        assertEquals(short.whole, short.head)
+        assertEquals(short.whole, short.tail)
+    }
+
+    @Test fun `ein Ausreisser in der Stimmlage wird nicht zum Profil`() {
+        // Der erste Ruf mit erhobener Stimme (150 Hz) passt nicht zu den drei folgenden (um 115 Hz).
+        val c = VoiceClassifier(MicMode.AIRPODS)
+        c.learnOwn(f(-18.0, 150.0))
+        c.learnOwn(f(-19.0, 114.0))
+        c.learnOwn(f(-19.0, 116.0))
+        assertEquals("nur zwei passen zusammen", null, c.profile)
+        c.learnOwn(f(-19.0, 115.0))
+        assertEquals(VoiceProfile(-19.0, 115.0, 3), c.profile)
+    }
+
+    @Test fun `ein gespeichertes Profil aus weniger als drei Proben gilt als unbekannt`() {
+        assertEquals(null, VoiceClassifier(MicMode.AIRPODS, VoiceProfile(-29.5, 200.0, 1)).profile)
+        assertEquals(null, VoiceClassifier(MicMode.AIRPODS, VoiceProfile(-29.5, 200.0, 2)).profile)
+        assertEquals(VoiceProfile(-18.0, 115.0, 3), VoiceClassifier(MicMode.AIRPODS, VoiceProfile(-18.0, 115.0, 3)).profile)
     }
 }
 

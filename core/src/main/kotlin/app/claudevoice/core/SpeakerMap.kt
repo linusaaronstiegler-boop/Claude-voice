@@ -10,8 +10,17 @@ package app.claudevoice.core
  */
 class SpeakerMap {
     private val labels = LinkedHashMap<String, String>()
-    private val total = HashMap<String, Int>()
-    private val own = HashMap<String, Int>()
+
+    /** Eine Beobachtung: Diese Sprecher-ID war zu hören, und die Akustik hielt sie für den Träger ([own]) oder nicht. */
+    private class Vote(var id: String, val own: Boolean)
+
+    /**
+     * Nur die letzten Beobachtungen zählen. Früher zählte jede seit Beginn der Sitzung: Vergab der Anbieter dem
+     * Träger mitten im Gespräch eine neue ID, musste die neue erst mehr Stimmen sammeln als die alte je hatte.
+     * Nach hundert Äußerungen war er damit für hundert weitere ausgesperrt, obwohl die Akustik ihn erkannte.
+     * Mit dem Fenster vergisst die Abstimmung, was lange her ist ([wearer]).
+     */
+    private val votes = ArrayDeque<Vote>()
 
     /** Kurzes, für das Modell lesbares Kürzel: "S1", "S2", ... in Reihenfolge des ersten Auftretens. */
     @Synchronized
@@ -23,29 +32,46 @@ class SpeakerMap {
     @Synchronized
     fun observe(id: String?, voice: Voice) {
         if (id == null || voice == Voice.UNKLAR || voice == Voice.ALFRED) return
-        total[id] = (total[id] ?: 0) + 1
-        if (voice == Voice.ICH) own[id] = (own[id] ?: 0) + 1
+        votes.addLast(Vote(id, voice == Voice.ICH))
+        if (votes.size > WINDOW) votes.removeFirst()
     }
 
     /** Die Sprecher-ID, die sehr wahrscheinlich dem Träger gehört, oder null, wenn noch unklar. */
     @Synchronized
     fun wearer(): String? {
-        val best = own.maxByOrNull { it.value } ?: return null
-        val share = best.value.toDouble() / (total[best.key] ?: 1)
-        return if (best.value >= 2 && share >= 0.6) best.key else null
+        val own = HashMap<String, Int>()
+        val total = HashMap<String, Int>()
+        for (v in votes) {
+            total[v.id] = (total[v.id] ?: 0) + 1
+            if (v.own) own[v.id] = (own[v.id] ?: 0) + 1
+        }
+        // In Frage kommt jede ID, die mindestens zweimal als Träger gemessen wurde und überwiegend (60 %) so.
+        // Sind es mehrere, gilt die, die zuletzt so gemessen wurde: Unter ihr spricht er jetzt. Früher gewann
+        // die ID mit den meisten Stimmen. Wechselte der Anbieter mitten im Gespräch die ID des Trägers (das
+        // kommt vor, die IDs sind vorläufig), blieb er ausgesperrt, bis die neue ID die alte eingeholt hatte.
+        // Jetzt genügen der neuen zwei Äußerungen, die die Akustik ihm zuordnet.
+        fun qualifies(id: String): Boolean {
+            val o = own[id] ?: 0
+            return o >= 2 && o.toDouble() / (total[id] ?: 1) >= 0.6
+        }
+        return votes.lastOrNull { it.own && qualifies(it.id) }?.id
     }
 
     /** Der Anbieter meldet: [from] und [to] sind dieselbe Person. */
     @Synchronized
     fun merge(from: String, to: String) {
-        total[to] = (total[to] ?: 0) + (total.remove(from) ?: 0)
-        own[to] = (own[to] ?: 0) + (own.remove(from) ?: 0)
+        for (v in votes) if (v.id == from) v.id = to
         if (to !in labels) labels[to] = labels[from] ?: "S${labels.size + 1}"
     }
 
     /** Nach einem Neuverbinden beginnen die IDs des Anbieters von vorn. */
     @Synchronized
     fun reset() {
-        labels.clear(); total.clear(); own.clear()
+        labels.clear(); votes.clear()
+    }
+
+    private companion object {
+        /** So viele Beobachtungen zählen für die Abstimmung. */
+        const val WINDOW = 12
     }
 }
