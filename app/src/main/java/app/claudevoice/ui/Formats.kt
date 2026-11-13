@@ -6,10 +6,27 @@ import java.util.Locale
 // so lassen sie sich als gewöhnliche Funktionen in Millisekunden testen.
 
 /** Eine Mitschrift-Zeile, zerlegt in Sprecher-Kürzel ("ICH", "NAH", ...), Sprecher-Nummer ("S2") und Text. */
-data class TranscriptLine(val voice: String?, val speaker: String?, val text: String) {
+data class TranscriptLine(
+    val voice: String?,
+    val speaker: String?,
+    val text: String,
+    /** Gemessener Pegel der Äußerung in dBFS; null, solange die Pipeline ihn nicht mitliefert. */
+    val levelDb: Double? = null,
+    /** Gemessene Stimmlage in Hz; null, wenn unbekannt. */
+    val pitchHz: Double? = null,
+) {
     /** Das Kürzel, wie es links neben dem Text steht, z. B. "NAH S2". Leer, wenn die Zeile keines hat. */
     val prefix: String get() = listOfNotNull(voice, speaker).joinToString(" ")
+
+    /** Die Messwerte als kleiner Anhang, z. B. "-27 dBFS · 118 Hz". Leer, wenn es keine gibt. */
+    val measurement: String get() = formatMeasurement(levelDb, pitchHz)
 }
+
+/** Pegel und Stimmlage in einer Zeile: "-27 dBFS · 118 Hz". Was fehlt, bleibt weg. */
+fun formatMeasurement(levelDb: Double?, pitchHz: Double?): String = listOfNotNull(
+    levelDb?.let { String.format(Locale.GERMAN, "%.0f dBFS", it) },
+    pitchHz?.let { String.format(Locale.GERMAN, "%.0f Hz", it) },
+).joinToString(" · ")
 
 // Die Pipeline liefert Zeilen der Form "ICH: Text" oder "NAH S2: Text". Das Kürzel besteht aus
 // Großbuchstaben (oder "?" für unklar); danach kann eine Sprecher-Nummer folgen.

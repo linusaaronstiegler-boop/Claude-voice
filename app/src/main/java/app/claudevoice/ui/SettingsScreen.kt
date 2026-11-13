@@ -46,7 +46,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.progressSemantics
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontFamily
+import app.claudevoice.EnrolPhase
+import app.claudevoice.core.MicMode
 import app.claudevoice.core.SpeechOutput
+import app.claudevoice.core.VoiceEnrollment
 import app.claudevoice.core.StartKeys
 import app.claudevoice.core.cleanSecret
 
@@ -64,6 +73,8 @@ data class SettingsForm(
     val character: String = "",
     val about: String = "",
     val pauseMusic: Boolean = true,
+    /** Messwerte der Stimme (Pegel, Stimmlage) in der Mitschrift zeigen. */
+    val showMeasurements: Boolean = false,
     val appearance: Appearance = Appearance.System,
 )
 
@@ -76,7 +87,20 @@ data class LinkedFile(val id: String, val name: String)
  * Äußerungen gelernt wurde; null = es gibt keines. [afterForget] erklärt in der Rückfrage, was das
  * Vergessen an diesem Mikrofon bedeutet.
  */
-data class VoiceProfileRow(val mic: String, val label: String, val samples: Int?, val afterForget: String)
+data class VoiceProfileRow(
+    val mic: String,
+    val label: String,
+    val samples: Int?,
+    val afterForget: String,
+    /** Die Zahlen des Profils, z. B. "-27 dBFS · 118 Hz"; null = nicht zeigen. */
+    val numbers: String? = null,
+)
+
+/**
+ * Das Einlernen der Stimme, wie die Einstellungen es zeigen: für welches Mikrofon ([bluetoothMic] = das
+ * der Kopfhörer) und wie weit es ist ([phase]).
+ */
+data class EnrolUi(val bluetoothMic: Boolean = true, val phase: EnrolPhase = EnrolPhase.Idle)
 
 class SettingsActions(
     val onFormChange: (SettingsForm) -> Unit = {},
@@ -85,6 +109,10 @@ class SettingsActions(
     val onDeleteNote: (Int) -> Unit = {},
     /** Das Stimmprofil der Mikrofon-Art mit diesem gespeicherten Namen soll vergessen werden (schon bestätigt). */
     val onForgetVoiceProfile: (String) -> Unit = {},
+    /** Für das Einlernen wurde ein Mikrofon gewählt (true = Kopfhörer-Mikro). */
+    val onEnrolMicChange: (Boolean) -> Unit = {},
+    val onEnrolStart: () -> Unit = {},
+    val onEnrolCancel: () -> Unit = {},
     val onClose: () -> Unit = {},
 )
 
@@ -106,6 +134,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     scrollState: ScrollState = rememberScrollState(),
     voiceProfiles: List<VoiceProfileRow> = emptyList(),
+    /** Stand des Einlernens; null = der Abschnitt "Stimme einlernen" erscheint nicht. */
+    enrol: EnrolUi? = null,
 ) {
     val c = Glass.colors
     val change = actions.onFormChange
@@ -279,6 +309,25 @@ fun SettingsScreen(
                         form.pauseMusic, { change(form.copy(pauseMusic = it)) },
                     )
                 }
+                Pane {
+                    Text(
+                        "Messwerte anzeigen",
+                        Modifier.padding(horizontal = 4.dp),
+                        style = MaterialTheme.typography.bodyLarge, color = c.ink,
+                    )
+                    SegmentedChoice(
+                        listOf(false to "Aus", true to "An"),
+                        form.showMeasurements, { change(form.copy(showMeasurements = it)) },
+                        Modifier.testTag("measurements_choice"),
+                    )
+                    Text(
+                        "Zeigt in der Mitschrift unter jeder Zeile, wie laut (dBFS) und wie hoch (Hz) die Stimme " +
+                            "gemessen wurde. Hilft bei der Suche, wenn die App Ihre Stimme nicht erkennt.",
+                        Modifier.padding(horizontal = 4.dp),
+                        style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
+                    )
+                }
+                if (enrol != null) EnrolPane(enrol, running, actions)
                 if (voiceProfiles.isNotEmpty()) {
                     Pane {
                         SubTitle("Gelerntes Stimmprofil")
@@ -293,13 +342,15 @@ fun SettingsScreen(
                         var pendingForget by remember { mutableStateOf<VoiceProfileRow?>(null) }
                         Column {
                             voiceProfiles.forEachIndexed { index, profile ->
-                                val state = when (profile.samples) {
-                                    null -> "noch kein Profil gelernt"
-                                    1 -> "gelernt aus 1 Äußerung"
+                                val state = when {
+                                    profile.samples == null -> "noch kein Profil gelernt"
+                                    // Ein eingelerntes Profil trägt eine feste, große Probenzahl (siehe :core).
+                                    profile.samples >= VoiceEnrollment.ENROLLED_SAMPLES -> "eingelernt"
+                                    profile.samples == 1 -> "gelernt aus 1 Äußerung"
                                     else -> "gelernt aus ${profile.samples} Äußerungen"
                                 }
                                 ListRow(
-                                    "${profile.label}: $state",
+                                    "${profile.label}: $state" + (profile.numbers?.let { " ($it)" } ?: ""),
                                     // Ohne Profil gibt es nichts zu vergessen: dann steht nur der Text da.
                                     action = if (profile.samples == null) null else "Vergessen",
                                     actionDescription = "Stimmprofil für ${profile.label} vergessen",
@@ -356,6 +407,108 @@ internal const val SPEECH_HINT_DEVICE =
     "Kostenlos und ohne Konto: Es spricht die Sprachausgabe von Android, der Text bleibt auf dem Handy. " +
         "Sie klingt hörbar nach Computer und betont manches falsch. Welche Stimme das ist, bestimmt Android " +
         "(Einstellungen des Handys, „Text-in-Sprache“); dort muss Deutsch geladen sein."
+
+/** Der Text zum Vorlesen. Erfunden, ohne Bezug zu einer Person, mit vielen klingenden Lauten. */
+internal const val ENROL_TEXT =
+    "Guten Morgen. Ich lese jetzt einen kurzen Text vor, damit die App meine Stimme kennenlernt. " +
+        "Am Wochenende gehe ich gern wandern, am liebsten früh am Morgen, wenn die Wege noch leer sind. " +
+        "Danach gibt es eine Tasse Tee und ein gutes Buch. Ist der Text zu Ende, beginne ich einfach von vorn."
+
+private val ENROL_MICS = listOf(true to "AirPods-Mikro", false to "Handy-Mikro")
+
+/**
+ * Der Abschnitt "Stimme einlernen": Mikrofon wählen, starten, vorlesen, Ergebnis lesen.
+ * Zustandslos wie der Rest der Seite: Was gerade passiert, steht in [enrol]; Tipper gehen an [actions].
+ */
+@Composable
+private fun EnrolPane(enrol: EnrolUi, running: Boolean, actions: SettingsActions) {
+    val c = Glass.colors
+    val phase = enrol.phase
+    val busy = phase is EnrolPhase.Starting || phase is EnrolPhase.Recording
+    Pane {
+        SubTitle("Stimme einlernen")
+        // Während der Aufnahme weicht die Erklärung: So passen Balken, Vorlesetext und "Abbrechen" auf einen Bildschirm.
+        if (!busy) {
+            Text(
+                "Stehen Ihre eigenen Sätze in der Mitschrift als NAH oder FERN, kennt die App Ihre Stimme an diesem " +
+                    "Mikrofon nicht. Lesen Sie ihr dann etwa zehn Sekunden lang vor. Sie misst, wie laut und wie hoch " +
+                    "Ihre Stimme ankommt, und speichert nur diese beiden Zahlen. Der Ton selbst wird nicht gespeichert.",
+                Modifier.testTag("enrol_about"),
+                style = MaterialTheme.typography.bodyMedium, color = c.inkSoft,
+            )
+        }
+        // Während der Aufnahme bleibt die Wahl stehen: Gemessen wird das Mikrofon, mit dem begonnen wurde.
+        SegmentedChoice(ENROL_MICS, enrol.bluetoothMic, actions.onEnrolMicChange, Modifier.testTag("enrol_mic"), enabled = !busy)
+        if (!enrol.bluetoothMic) {
+            Text(
+                "Am Handy-Mikro erkennt die App Sie danach an Stimmlage und Lautstärke. Wer ähnlich klingt und " +
+                    "ähnlich nah am Handy spricht, gilt dann auch als Sie und darf merken und stummschalten.",
+                Modifier.padding(horizontal = 4.dp).testTag("enrol_phone_hint"),
+                style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
+            )
+        }
+        when (phase) {
+            EnrolPhase.Starting -> Text(
+                "Mikrofon wird geöffnet …", Modifier.testTag("enrol_status"),
+                style = MaterialTheme.typography.bodyMedium, color = c.ink,
+            )
+            is EnrolPhase.Recording -> {
+                MeterBar("Sprache erkannt: ${(phase.fraction * 100).toInt()} %", phase.fraction, "enrol_progress")
+                // Der Pegelbalken reicht von -60 dBFS (leer) bis 0 dBFS (voll). In Pausen fällt er auf null.
+                val level = phase.levelDb
+                MeterBar(
+                    if (level == null) "Pegel: –" else "Pegel: ${formatMeasurement(level, null)}",
+                    if (level == null) 0f else ((level + 60) / 60).toFloat().coerceIn(0f, 1f),
+                    "enrol_level",
+                )
+                Text("Bitte in normaler Lautstärke vorlesen, bis der obere Balken voll ist:", style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
+                Text(ENROL_TEXT, Modifier.testTag("enrol_text"), style = MaterialTheme.typography.bodyLarge, fontFamily = FontFamily.Serif, color = c.ink)
+            }
+            is EnrolPhase.Done -> {
+                Text(
+                    "Gespeichert für ${ENROL_MICS.first { it.first == (phase.mic == MicMode.AIRPODS) }.second}: " +
+                        "Pegel ${formatMeasurement(phase.profile.levelDb, null)}, " +
+                        "Stimmlage ${formatMeasurement(null, phase.profile.pitchHz)}.",
+                    Modifier.testTag("enrol_result"),
+                    style = MaterialTheme.typography.bodyLarge, color = c.ink,
+                )
+                phase.warning?.let {
+                    Text(it, Modifier.testTag("enrol_warning"), style = MaterialTheme.typography.bodyMedium, color = c.alert)
+                }
+            }
+            is EnrolPhase.Failed -> Text(
+                phase.reason, Modifier.testTag("enrol_error"),
+                style = MaterialTheme.typography.bodyMedium, color = c.alert,
+            )
+            EnrolPhase.Idle -> {}
+        }
+        when {
+            busy -> GlassButton("Abbrechen", actions.onEnrolCancel)
+            // Solange zugehört wird, gehört das Mikrofon dem Dienst. Dann steht statt des Knopfs der Grund da.
+            running -> Text(
+                "Zum Einlernen erst das Zuhören stoppen.", Modifier.testTag("enrol_hint"),
+                style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
+            )
+            else -> GlassButton(if (phase == EnrolPhase.Idle) "Einlernen starten" else "Noch einmal einlernen", actions.onEnrolStart)
+        }
+    }
+}
+
+/** Ein schmaler Balken mit Beschriftung darüber; [fraction] von 0 (leer) bis 1 (voll). */
+@Composable
+private fun MeterBar(label: String, fraction: Float, tag: String) {
+    val c = Glass.colors
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = c.inkSoft)
+        Box(
+            Modifier.fillMaxWidth().height(8.dp).clip(Glass.Capsule).background(c.track)
+                // Für Vorlese-Dienste und Tests: der Balken meldet seinen Stand als Fortschritt.
+                .progressSemantics(fraction.coerceIn(0f, 1f)).testTag(tag)
+        ) {
+            Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().clip(Glass.Capsule).background(c.accent))
+        }
+    }
+}
 
 /** Eine Glasscheibe der Einstellungen: ihr Inhalt steht mit gleichmäßigem Abstand untereinander. */
 @Composable

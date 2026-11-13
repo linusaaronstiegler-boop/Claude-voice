@@ -71,8 +71,8 @@ Schlüssel abgelehnt), nennt die Meldung den Grund und den Ausweg; umstellen mü
 ### Weiteres
 - **Assistent:** Name, weitere Rufnamen, Anrede, Charakter
 - **Gedächtnis:** „Über mich“, Dateien verknüpfen, Notizen ansehen und löschen
-- **Verhalten:** eigene Musik während der Antwort pausieren oder leiser stellen; **gelerntes
-  Stimmprofil** ansehen und vergessen (siehe „Benutzen“)
+- **Verhalten:** eigene Musik während der Antwort pausieren oder leiser stellen; **Stimme einlernen**;
+  **gelerntes Stimmprofil** ansehen und vergessen; Messwerte in der Mitschrift anzeigen (siehe „Benutzen“)
 - **Erscheinungsbild:** System, Hell oder Dunkel
 
 ## Benutzen
@@ -92,14 +92,30 @@ Schlüssel abgelehnt), nennt die Meldung den Grund und den Ausweg; umstellen mü
   Qualität, und die Kopfhörer-Taste stoppt nur die Antwort. Richtig, wenn nebenbei Musik läuft oder das
   Handy im Hörsaal auf dem Tisch liegt. Die eigene Stimme ist hier nicht von anderen zu unterscheiden:
   Merken und Stummschalten per Sprache werden abgelehnt, und der Assistent entscheidet allein am Inhalt,
-  ob es Ihr Gespräch ist.
+  ob es Ihr Gespräch ist. (Ausnahme: Sie haben Ihre Stimme am Handy-Mikro eingelernt, siehe nächster Punkt.)
+- **Stimme einlernen:** Stehen Ihre eigenen Sätze in der Mitschrift als NAH oder FERN, kennt die App Ihre
+  Stimme an diesem Mikrofon nicht. Das passiert, wenn ein Kopfhörer die eigene Stimme leiser liefert, als
+  die App ohne Profil annimmt (etwa -22 dBFS), und von selbst kommt sie da nicht heraus: Sie lernt ein
+  Profil nur von einer Stimme, die sie schon für Ihre hält. Abhilfe unter Einstellungen → Verhalten →
+  „Stimme einlernen“: Zuhören stoppen, Mikrofon wählen (Vorgabe ist das der Hauptseite), „Einlernen
+  starten“ und den angezeigten Text etwa zehn Sekunden in normaler Lautstärke vorlesen, bis der Balken
+  voll ist. Die App nimmt dabei über denselben Weg auf wie beim Zuhören (am Kopfhörer-Mikro über den
+  Telefonkanal). Der Ton bleibt im Arbeitsspeicher und wird danach verworfen; gespeichert werden nur zwei
+  Zahlen je Mikrofon: der Pegel in dBFS und die Stimmlage in Hz. Beide stehen danach im Ergebnis und beim
+  Stimmprofil. Abgelehnt wird die Messung, wenn zu wenig Sprache dabei war oder Pegel und Stimmlage stark
+  streuen (jemand redet dazwischen, Musik). Ist die Stimme sehr leise (unter -38 dBFS), warnt die App:
+  Dann normal laut sprechen und prüfen, ob wirklich das gewählte Mikrofon aufnimmt. Am **Handy-Mikro**
+  gilt nach dem Einlernen: Wer ähnlich klingt und ähnlich nah am Handy spricht, wird ebenfalls für Sie
+  gehalten und darf merken und stummschalten. Wer das nicht will, lernt nur am Kopfhörer-Mikro ein.
+  Mit dem Schalter „Messwerte anzeigen“ (daneben, Standard aus) zeigt die Mitschrift künftig je Zeile
+  Pegel und Stimmlage.
 - **Stimmprofil vergessen:** Die App lernt nebenbei, wie Ihre Stimme am Mikrofon klingt, getrennt für
   Kopfhörer- und Handy-Mikro. Lehnt sie Merken und Stummschalten bei Ihnen dauernd ab, hat sie
   vielleicht eine falsche Stimme gelernt. Unter Einstellungen → Verhalten → „Gelerntes Stimmprofil“
   steht je Mikrofon, ob ein Profil gespeichert ist; „Vergessen“ löscht es nach einer Rückfrage. Das geht
   nur, solange nicht zugehört wird (eine laufende Sitzung schriebe ihr Profil sofort zurück). Danach
-  lernt die App am Kopfhörer-Mikro von vorn; am Handy-Mikro lernt sie kein neues Profil. Vergessen
-  nimmt nur etwas weg: Niemand gilt dadurch als Träger.
+  lernt die App am Kopfhörer-Mikro von vorn; am Handy-Mikro lernt sie von selbst kein neues Profil
+  (nur über „Stimme einlernen“). Vergessen nimmt nur etwas weg: Niemand gilt dadurch als Träger.
 - **Reichweite:** „Nur ich“ (streng, nur die eigene Stimme; sinnvoll nur mit dem Kopfhörer-Mikro),
   „Mein Gespräch“ (Standard), „Ganzer Raum“.
 - **Weckwort:** „Jarvis“ englisch aussprechen („Dschahwis“). Die deutsche Aussprache „Jarwis“ erkennt

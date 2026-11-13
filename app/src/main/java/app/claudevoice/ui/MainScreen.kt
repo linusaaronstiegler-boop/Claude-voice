@@ -126,6 +126,8 @@ fun MainScreen(
     hint: String?,
     actions: MainActions,
     modifier: Modifier = Modifier,
+    /** true = hinter jeder Zeile der Mitschrift stehen die Messwerte der Stimme (Schalter in den Einstellungen). */
+    showMeasurements: Boolean = false,
 ) {
     // Nur mit echter Unschärfe (siehe LocalBackdropBlur) gibt es diesen Zustand. Er verbindet das, was
     // weichgezeichnet werden soll ("Quelle": Hintergrund und Mitschrift), mit dem schwebenden Glas davor.
@@ -169,6 +171,7 @@ fun MainScreen(
                 fadeUnderGlass = if (haze != null) DOCK_GAP + topPaneHeight else DOCK_GAP,
                 // Die Mitte füllt genau den Platz unter der Status-Scheibe; ihre Höhe ist die gesuchte Grenze.
                 Modifier.weight(1f).onSizeChanged { roomBelowStatus = with(density) { it.height.toDp() } }.blurSource(haze, layer = 1f),
+                showMeasurements = showMeasurements,
             )
         }
         CompositionLocalProvider(LocalHaze provides haze) {
@@ -289,8 +292,13 @@ private fun Conversation(
     bottomSpace: Dp,
     fadeUnderGlass: Dp,
     modifier: Modifier = Modifier,
+    showMeasurements: Boolean = false,
 ) {
     val c = Glass.colors
+    // TODO(Messwerte): Die Pipeline liefert die Mitschrift bisher als reine Textzeilen. Sobald der
+    // UI-Zustand je Zeile Pegel und Stimmlage mitbringt, hier in TranscriptLine.levelDb / pitchHz eintragen
+    // (z. B. parseTranscriptLine(text).copy(levelDb = ..., pitchHz = ...)). Die Anzeige dafür steht schon
+    // in TranscriptRow und zeigt sich, sobald die Werte nicht mehr null sind.
     val lines = remember(ui.transcript) { ui.transcript.map(::parseTranscriptLine) }
     val partial = ui.partial.takeIf { it.isNotBlank() }
     val hasTranscript = lines.isNotEmpty() || partial != null
@@ -399,7 +407,7 @@ private fun Conversation(
                 )
             }
         }
-        items(lines) { TranscriptRow(it) }
+        items(lines) { TranscriptRow(it, showMeasurements = showMeasurements) }
         if (partial != null) {
             // Die laufende Äußerung: noch nicht fertig, deshalb kursiv und ohne Sprecher.
             item(key = "partial") { TranscriptRow(TranscriptLine(null, null, "$partial …"), unfinished = true) }
@@ -433,7 +441,7 @@ private fun ChoiceCard(choices: ListenChoices, actions: MainActions, modifier: M
  * Großbuchstaben, rechts der Text. So erkennt man auf einen Blick, wer was gesagt hat.
  */
 @Composable
-private fun TranscriptRow(line: TranscriptLine, unfinished: Boolean = false) {
+internal fun TranscriptRow(line: TranscriptLine, unfinished: Boolean = false, showMeasurements: Boolean = false) {
     val c = Glass.colors
     // Spaltenbreite in "sp" gedacht: stellt jemand die Schrift größer, wächst die Spalte mit.
     val prefixWidth = with(LocalDensity.current) { 66.sp.toDp() }
@@ -450,14 +458,20 @@ private fun TranscriptRow(line: TranscriptLine, unfinished: Boolean = false) {
                 else -> c.inkSoft
             },
         )
-        Text(
-            line.text,
-            Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge,
-            fontFamily = if (isAssistant) FontFamily.Serif else null,
-            fontStyle = if (unfinished) FontStyle.Italic else null,
-            color = if (isBackground || unfinished) c.inkSoft else c.ink,
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                line.text,
+                style = MaterialTheme.typography.bodyLarge,
+                fontFamily = if (isAssistant) FontFamily.Serif else null,
+                fontStyle = if (unfinished) FontStyle.Italic else null,
+                color = if (isBackground || unfinished) c.inkSoft else c.ink,
+            )
+            // Die Messwerte der Stimme, klein unter dem Text. Nur auf Wunsch und nur, wenn es welche gibt.
+            val measured = line.measurement
+            if (showMeasurements && measured.isNotEmpty()) {
+                Text(measured, Modifier.testTag("measurement"), style = MaterialTheme.typography.labelSmall, color = c.inkSoft)
+            }
+        }
     }
 }
 

@@ -113,6 +113,14 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("pausemusic", true)
         set(v) = sp.edit().putBoolean("pausemusic", v).apply()
 
+    /**
+     * true = die Mitschrift zeigt hinter jeder Zeile die Messwerte der Stimme (Pegel, Stimmlage).
+     * Gedacht zur Fehlersuche, wenn die App die eigene Stimme nicht erkennt. Standard: aus.
+     */
+    var showMeasurements: Boolean
+        get() = sp.getBoolean("measurements", false)
+        set(v) = sp.edit().putBoolean("measurements", v).apply()
+
     /** Erscheinungsbild der Oberfläche: "system" (folgt dem Handy), "hell" oder "dunkel". */
     var appearance: String
         get() = sp.getString("appearance", "system") ?: "system"

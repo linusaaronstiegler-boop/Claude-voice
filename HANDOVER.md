@@ -12,6 +12,14 @@
 - **Stimmprofil vergessen** in den Einstellungen, je Mikrofon-Art.
 - Unabhängig gegengeprüft, fehlende Tests ergänzt. 588 Kern-Tests (1 übersprungen), 166 App-Tests, APK mit
   Weckwort, Lint ohne Fehler.
+- **Stimme einlernen** (`VoiceEnrollment.kt` in `core/`, `VoiceEnrol.kt` in `app/`): In den Einstellungen etwa
+  zehn Sekunden vorlesen; gespeichert werden nur Pegel und Stimmlage (Median über 300-ms-Fenster, mindestens
+  5 s Stimme, 75 % der Fenster innerhalb ±6 dB und ±4 Halbtönen). Geht nur, solange nicht zugehört wird, und
+  hat keine Verbindung zur Pipeline: Eine beim Zuhören gehörte Stimme kann darüber nicht zum Träger werden.
+  Achtung Handy-Mikro: Ein dort eingelerntes Profil lässt erstmals Merken und Ruhe am Handy-Mikro zu, und
+  wer ähnlich klingt und nah sitzt, gilt dann ebenfalls als Träger (Hinweis steht im Dialog). Schwellen
+  bisher nur an künstlichen Tönen geprüft. Schalter „Messwerte anzeigen“ ist da, die Werte liefert der Kern
+  noch nicht.
 - **In Arbeit** (nach einem Neustart des Containers neu angesetzt): 18 Funde der Gegenprüfung an der
   Angriffsrunde, darunter vier zur Stimmerkennung (Profil aus einer einzigen Äußerung, Sprecher-Nummern
   des Anbieters übersteuern die Akustik); „Stimme einlernen“ in den Einstellungen; Messwerte in der Mitschrift.

@@ -9,6 +9,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
@@ -42,7 +43,16 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.test.core.app.ApplicationProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import app.claudevoice.EnrolPhase
+import app.claudevoice.FakeEnrolMic
+import app.claudevoice.VoiceEnroller
 import app.claudevoice.applySystemBars
+import app.claudevoice.core.MicMode
+import app.claudevoice.core.VoiceProfile
 import app.claudevoice.core.SpeechOutput
 import app.claudevoice.core.StartKeys
 import app.claudevoice.core.UiState
@@ -262,6 +272,34 @@ class ScreensTest {
         assertTouchTargets()
     }
 
+    // Das Einlernen der Stimme mitten in der Aufnahme und mit Ergebnis samt Warnung. Die Bilder zeigen nur
+    // die Seite ab diesem Abschnitt; alle Zahlen sind erfunden.
+    @Test
+    fun bild_einstellungen_einlernen_aufnahme_412_hell() =
+        shootEnrol("einstellungen_einlernen_aufnahme_412_hell", Appearance.Light, EnrolPhase.Recording(0.6f, -31.0), "enrol_progress")
+
+    @Test
+    fun bild_einstellungen_einlernen_aufnahme_412_dunkel() =
+        shootEnrol("einstellungen_einlernen_aufnahme_412_dunkel", Appearance.Dark, EnrolPhase.Recording(0.6f, -31.0), "enrol_progress")
+
+    @Test
+    fun bild_einstellungen_einlernen_ergebnis_412_hell() = shootEnrol(
+        "einstellungen_einlernen_ergebnis_412_hell", Appearance.Light,
+        EnrolPhase.Done(MicMode.AIRPODS, VoiceProfile(-41.0, 118.0, 50), "Ihre Stimme kommt an diesem Mikrofon sehr leise an."),
+        "enrol_warning",
+    )
+
+    private fun shootEnrol(name: String, appearance: Appearance, phase: EnrolPhase, scrollTo: String) {
+        compose.setContent {
+            ClaudeVoiceTheme(appearance) {
+                SettingsScreen(form, files, null, notes, running = false, SettingsActions(), voiceProfiles = profiles, enrol = EnrolUi(true, phase))
+            }
+        }
+        compose.onNodeWithTag(scrollTo).performScrollTo()
+        shoot(name)
+        assertTouchTargets()
+    }
+
     private fun shootDeleteDialog(name: String, appearance: Appearance) {
         compose.setContent {
             ClaudeVoiceTheme(appearance) { SettingsScreen(form, files, null, notes, running = false, SettingsActions()) }
@@ -285,7 +323,7 @@ class ScreensTest {
             ClaudeVoiceTheme(appearance) {
                 SettingsScreen(
                     shown.copy(appearance = appearance), files, linkError, notes, running = false, SettingsActions(),
-                    scrollState = scroll, voiceProfiles = profiles,
+                    scrollState = scroll, voiceProfiles = profiles, enrol = EnrolUi(),
                 )
             }
         }
@@ -771,6 +809,185 @@ class ScreensTest {
         compose.onAllNodes(isDialog()).assertCountEquals(0)
     }
 
+    // --- Stimme einlernen -------------------------------------------------------------------
+
+    /** Die Einstellungen mit einem bestimmten Stand des Einlernens. */
+    private fun settingsWithEnrol(enrol: () -> EnrolUi, running: () -> Boolean = { false }, actions: SettingsActions = SettingsActions()) {
+        compose.setContent {
+            ClaudeVoiceTheme { SettingsScreen(form, emptyList(), null, emptyList(), running = running(), actions, enrol = enrol()) }
+        }
+    }
+
+    private fun progressOf(tag: String): Float =
+        compose.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo].current
+
+    @Test
+    fun einlernen_zeigt_mikrofonwahl_und_start_und_meldet_die_tipper() {
+        var ui by mutableStateOf(EnrolUi(bluetoothMic = true))
+        var starts = 0
+        settingsWithEnrol({ ui }, actions = SettingsActions(onEnrolMicChange = { ui = ui.copy(bluetoothMic = it) }, onEnrolStart = { starts++ }))
+        compose.onNodeWithText("Stimme einlernen").performScrollTo().assertIsDisplayed()
+        // Vorgabe ist das Mikrofon der Hauptseite; hier das der Kopfhörer.
+        compose.onNode(hasText("AirPods-Mikro") and hasAnyAncestor(hasTestTagValue("enrol_mic"))).performScrollTo().assertIsSelected()
+        compose.onAllNodesWithTag("enrol_phone_hint").assertCountEquals(0)
+
+        // Am Handy-Mikro steht dabei, was ein Profil dort bedeutet.
+        compose.onNode(hasText("Handy-Mikro") and hasAnyAncestor(hasTestTagValue("enrol_mic"))).performClick()
+        assertEquals(false, ui.bluetoothMic)
+        compose.onNodeWithTag("enrol_phone_hint").performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithText("Einlernen starten").performScrollTo().performClick()
+        assertEquals(1, starts)
+        assertTouchTargets()
+    }
+
+    @Test
+    fun einlernen_geht_nur_wenn_nicht_zugehoert_wird() {
+        var running by mutableStateOf(true)
+        settingsWithEnrol({ EnrolUi() }, running = { running })
+        compose.onNodeWithTag("enrol_hint").performScrollTo().assertTextEquals("Zum Einlernen erst das Zuhören stoppen.")
+        compose.onAllNodesWithText("Einlernen starten").assertCountEquals(0)
+        running = false
+        compose.onAllNodesWithTag("enrol_hint").assertCountEquals(0)
+        compose.onNodeWithText("Einlernen starten").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun waehrend_der_aufnahme_stehen_text_fortschritt_pegel_und_abbrechen_da() {
+        var phase by mutableStateOf<EnrolPhase>(EnrolPhase.Starting)
+        var cancels = 0
+        settingsWithEnrol({ EnrolUi(true, phase) }, actions = SettingsActions(onEnrolCancel = { cancels++ }))
+        compose.onNodeWithTag("enrol_status").performScrollTo().assertTextEquals("Mikrofon wird geöffnet …")
+        // Die Erklärung weicht, damit Balken und Vorlesetext zusammen auf den Bildschirm passen.
+        compose.onAllNodesWithTag("enrol_about").assertCountEquals(0)
+
+        phase = EnrolPhase.Recording(0.4f, -31.4)
+        compose.onNodeWithTag("enrol_text").performScrollTo().assertTextEquals(ENROL_TEXT)
+        compose.onNodeWithText("Sprache erkannt: 40 %").performScrollTo().assertIsDisplayed()
+        assertEquals(0.4f, progressOf("enrol_progress"), 0.001f)
+        compose.onNodeWithText("Pegel: -31 dBFS").performScrollTo().assertIsDisplayed()
+        // -31 dBFS auf der Skala von -60 bis 0.
+        assertEquals(0.477f, progressOf("enrol_level"), 0.01f)
+        // Die Mikrofonwahl ist währenddessen gesperrt, und statt "Starten" gibt es "Abbrechen".
+        compose.onNode(hasText("Handy-Mikro") and hasAnyAncestor(hasTestTagValue("enrol_mic"))).assertIsNotEnabled()
+        compose.onAllNodesWithText("Einlernen starten").assertCountEquals(0)
+
+        // In einer Sprechpause fällt der Pegelbalken auf null.
+        phase = EnrolPhase.Recording(0.4f, null)
+        compose.onNodeWithText("Pegel: –").performScrollTo().assertIsDisplayed()
+        assertEquals(0f, progressOf("enrol_level"), 0.001f)
+
+        compose.onNodeWithText("Abbrechen").performScrollTo().performClick()
+        assertEquals(1, cancels)
+    }
+
+    @Test
+    fun das_ergebnis_nennt_mikrofon_pegel_und_stimmlage_und_warnt_bei_leiser_stimme() {
+        var phase by mutableStateOf<EnrolPhase>(EnrolPhase.Done(MicMode.AIRPODS, VoiceProfile(-27.4, 118.2, 50), null))
+        settingsWithEnrol({ EnrolUi(true, phase) })
+        compose.onNodeWithTag("enrol_result").performScrollTo()
+            .assertTextEquals("Gespeichert für AirPods-Mikro: Pegel -27 dBFS, Stimmlage 118 Hz.")
+        compose.onAllNodesWithTag("enrol_warning").assertCountEquals(0)
+        compose.onNodeWithText("Noch einmal einlernen").performScrollTo().assertIsDisplayed()
+
+        phase = EnrolPhase.Done(MicMode.HANDY, VoiceProfile(-43.0, 201.0, 50), "Ihre Stimme kommt sehr leise an.")
+        compose.onNodeWithTag("enrol_result").performScrollTo()
+            .assertTextEquals("Gespeichert für Handy-Mikro: Pegel -43 dBFS, Stimmlage 201 Hz.")
+        compose.onNodeWithTag("enrol_warning").performScrollTo().assertTextEquals("Ihre Stimme kommt sehr leise an.")
+
+        phase = EnrolPhase.Failed("Es war keine Stimme zu hören.")
+        compose.onNodeWithTag("enrol_error").performScrollTo().assertTextEquals("Es war keine Stimme zu hören.")
+        compose.onAllNodesWithTag("enrol_result").assertCountEquals(0)
+        compose.onNodeWithText("Noch einmal einlernen").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun der_ganze_ablauf_mit_nachgestelltem_mikrofon_speichert_das_profil_und_zeigt_es() {
+        // Die Seite, angeschlossen an den echten Ablauf (VoiceEnroller) und ein Mikrofon, das künstliche Töne liefert.
+        val mic = FakeEnrolMic()
+        val saved = mutableStateListOf<Pair<MicMode, VoiceProfile>>() // beobachtbar: die Seite zeichnet neu, wenn gespeichert wird
+        lateinit var enroller: VoiceEnroller
+        compose.setContent {
+            val scope = rememberCoroutineScope()
+            enroller = remember { VoiceEnroller(mic, scope, { false }, { m, p -> saved += m to p }) }
+            val phase by enroller.phase.collectAsState()
+            var headset by remember { mutableStateOf(true) }
+            val rows = saved.lastOrNull()?.let { (_, p) ->
+                listOf(VoiceProfileRow("AIRPODS", "AirPods-Mikro", p.samples, "", formatMeasurement(p.levelDb, p.pitchHz)))
+            } ?: listOf(VoiceProfileRow("AIRPODS", "AirPods-Mikro", null, ""))
+            ClaudeVoiceTheme {
+                SettingsScreen(
+                    form, emptyList(), null, emptyList(), running = false,
+                    SettingsActions(
+                        onEnrolMicChange = { headset = it },
+                        onEnrolStart = { enroller.start(headset) },
+                        onEnrolCancel = { enroller.cancel() },
+                    ),
+                    voiceProfiles = rows, enrol = EnrolUi(headset, phase),
+                )
+            }
+        }
+        compose.onNodeWithText("AirPods-Mikro: noch kein Profil gelernt").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Einlernen starten").performScrollTo().performClick()
+        compose.waitUntil(5_000) { enroller.phase.value is EnrolPhase.Recording }
+        compose.onNodeWithTag("enrol_text").performScrollTo().assertIsDisplayed()
+
+        // Erst zu wenig: Der Balken wächst, fertig ist es noch nicht.
+        mic.push(FakeEnrolMic.reading(3, -33.0, 120.0))
+        compose.waitUntil(5_000) { (enroller.phase.value as? EnrolPhase.Recording)?.fraction?.let { it > 0.4f } == true }
+        assertTrue(saved.isEmpty())
+
+        mic.push(FakeEnrolMic.reading(5, -33.0, 120.0))
+        compose.waitUntil(5_000) { enroller.phase.value is EnrolPhase.Done }
+        compose.onNodeWithTag("enrol_result").performScrollTo()
+            .assertTextEquals("Gespeichert für AirPods-Mikro: Pegel -33 dBFS, Stimmlage 120 Hz.")
+        assertEquals(listOf(MicMode.AIRPODS), saved.map { it.first })
+        assertFalse("das Mikrofon ist wieder frei", mic.isOpen)
+        compose.onNodeWithText("AirPods-Mikro: eingelernt (-33 dBFS · 120 Hz)").performScrollTo().assertIsDisplayed()
+    }
+
+    // --- Messwerte in der Mitschrift ----------------------------------------------------------
+
+    @Test
+    fun messwerte_sind_aus_bis_man_sie_einschaltet() {
+        var current by mutableStateOf(form)
+        compose.setContent {
+            ClaudeVoiceTheme { SettingsScreen(current, emptyList(), null, emptyList(), running = false, SettingsActions(onFormChange = { current = it })) }
+        }
+        assertEquals(false, current.showMeasurements)
+        compose.onNodeWithText("Messwerte anzeigen").performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Aus") and hasAnyAncestor(hasTestTagValue("measurements_choice"))).performScrollTo().assertIsSelected()
+        compose.onNode(hasText("An") and hasAnyAncestor(hasTestTagValue("measurements_choice"))).performClick()
+        assertEquals(true, current.showMeasurements)
+    }
+
+    @Test
+    fun eine_zeile_zeigt_ihre_messwerte_nur_auf_wunsch_und_nur_wenn_es_welche_gibt() {
+        var show by mutableStateOf(false)
+        val measured = TranscriptLine("ICH", "S1", "Wie hoch ist die Zugspitze?", levelDb = -27.3, pitchHz = 118.4)
+        val plain = TranscriptLine("NAH", "S2", "Keine Ahnung.")
+        compose.setContent {
+            ClaudeVoiceTheme {
+                androidx.compose.foundation.layout.Column {
+                    TranscriptRow(measured, showMeasurements = show)
+                    TranscriptRow(plain, showMeasurements = show)
+                }
+            }
+        }
+        compose.onAllNodesWithTag("measurement").assertCountEquals(0)
+        show = true
+        // Nur die Zeile mit Werten bekommt den Anhang.
+        compose.onAllNodesWithTag("measurement").assertCountEquals(1)
+        compose.onNodeWithTag("measurement").assertTextEquals("-27 dBFS · 118 Hz")
+    }
+
+    @Test
+    fun die_hauptseite_bleibt_mit_eingeschalteten_messwerten_unveraendert_solange_keine_geliefert_werden() {
+        compose.setContent { ClaudeVoiceTheme { MainScreen(listening, now, ListenChoices(), true, null, MainActions(), showMeasurements = true) } }
+        compose.onNodeWithText("Dann nehmen wir die frühe Bahn.").assertIsDisplayed()
+        compose.onAllNodesWithTag("measurement").assertCountEquals(0)
+    }
+
     @Test
     fun ohne_stimmprofile_erscheint_der_abschnitt_nicht() {
         compose.setContent { ClaudeVoiceTheme { SettingsScreen(form, emptyList(), null, emptyList(), running = false, SettingsActions()) } }
@@ -859,6 +1076,9 @@ class ScreensTest {
         compose.onNodeWithText("Noch keine. Sag zum Beispiel: „Alfred, merk dir, dass …“").performScrollTo().assertIsDisplayed()
     }
 }
+
+/** Trifft den Knoten mit genau diesem Test-Namen (für "liegt innerhalb von ..."). */
+private fun hasTestTagValue(tag: String) = SemanticsMatcher.expectValue(SemanticsProperties.TestTag, tag)
 
 private const val PHONE_412 = "w412dp-h915dp-xhdpi"
 private const val PHONE_412_NIGHT = "w412dp-h915dp-night-xhdpi"

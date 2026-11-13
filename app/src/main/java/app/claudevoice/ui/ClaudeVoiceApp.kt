@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -19,10 +20,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.claudevoice.AndroidEnrolMic
 import app.claudevoice.AppState
 import app.claudevoice.ListenService
 import app.claudevoice.MemoryStore
 import app.claudevoice.Prefs
+import app.claudevoice.VoiceEnroller
+import app.claudevoice.saveEnrolledVoiceProfile
 import app.claudevoice.core.MicMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -65,6 +69,7 @@ private fun Screens(prefs: Prefs, onAppearanceChange: (Appearance) -> Unit) {
     var hasKeys by remember { mutableStateOf(prefs.hasKeys) }
     var choices by remember { mutableStateOf(ListenChoices(prefs.listenMode, prefs.useBluetoothMic, prefs.reach)) }
     var hint by remember { mutableStateOf<String?>(null) }
+    var showMeasurements by remember { mutableStateOf(prefs.showMeasurements) }
 
     // Android fragt Berechtigungen zur Laufzeit ab; erst nach "Erlauben" darf der Service starten.
     val permissions = rememberLauncherForActivityResult(
@@ -91,10 +96,13 @@ private fun Screens(prefs: Prefs, onAppearanceChange: (Appearance) -> Unit) {
     }
 
     if (showSettings) {
-        val close = { hasKeys = prefs.hasKeys; showSettings = false }
+        val close = { hasKeys = prefs.hasKeys; showMeasurements = prefs.showMeasurements; showSettings = false }
         // Die Zurück-Geste soll die Einstellungen schließen, nicht die App.
         BackHandler(onBack = close)
-        SettingsRoute(prefs, running = ui.running, onAppearanceChange = onAppearanceChange, onClose = close)
+        SettingsRoute(
+            prefs, running = ui.running, bluetoothMic = choices.bluetoothMic,
+            onAppearanceChange = onAppearanceChange, onClose = close,
+        )
     } else {
         MainScreen(
             ui = ui,
@@ -103,6 +111,7 @@ private fun Screens(prefs: Prefs, onAppearanceChange: (Appearance) -> Unit) {
             choices = choices,
             hasKeys = hasKeys,
             hint = hint,
+            showMeasurements = showMeasurements,
             actions = MainActions(
                 // Jede Wahl sofort ablegen: der Service liest sie beim nächsten Start aus den Prefs.
                 onModeChange = { choices = choices.copy(mode = it); prefs.listenMode = it },
@@ -129,10 +138,39 @@ private fun rememberNow(ticking: Boolean): Long {
 
 /** Die Einstellungen samt Anbindung: lädt die Werte, legt Änderungen sofort ab, öffnet den Dateiauswähler. */
 @Composable
-private fun SettingsRoute(prefs: Prefs, running: Boolean, onAppearanceChange: (Appearance) -> Unit, onClose: () -> Unit) {
+private fun SettingsRoute(
+    prefs: Prefs,
+    running: Boolean,
+    /** Das Mikrofon, das auf der Hauptseite gewählt ist: die Vorgabe für das Einlernen der Stimme. */
+    bluetoothMic: Boolean,
+    onAppearanceChange: (Appearance) -> Unit,
+    onClose: () -> Unit,
+) {
     val context = LocalContext.current
     val memory = remember { MemoryStore(context) }
     val scope = rememberCoroutineScope()
+
+    // --- Stimme einlernen ---------------------------------------------------------------------
+    // Der Ablauf selbst steht in VoiceEnroller; hier wird er nur an Seite, Mikrofon und Speicher angeschlossen.
+    var enrolMic by remember { mutableStateOf(bluetoothMic) }
+    val enroller = remember {
+        VoiceEnroller(
+            mic = AndroidEnrolMic(context) { prefs.confirmedOutputs },
+            scope = scope,
+            isListening = { AppState.ui.value.running },
+            save = prefs::saveEnrolledVoiceProfile,
+        )
+    }
+    val enrolPhase by enroller.phase.collectAsStateWithLifecycle()
+    // Wer die Einstellungen verlässt, bricht das Einlernen ab: Das Mikrofon darf nicht offen bleiben.
+    DisposableEffect(Unit) { onDispose { enroller.cancel() } }
+    // Dieselben Berechtigungen wie beim Zuhören: das Mikrofon, und für die Kopfhörer "Geräte in der Nähe".
+    val enrolPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        if (result[Manifest.permission.RECORD_AUDIO] == true ||
+            context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        ) enroller.start(headset = enrolMic)
+        else enroller.fail(VoiceEnroller.NO_PERMISSION)
+    }
 
     var form by remember { mutableStateOf(prefs.toForm()) }
     var linked by remember { mutableStateOf(emptyList<LinkedFile>()) }
@@ -140,7 +178,8 @@ private fun SettingsRoute(prefs: Prefs, running: Boolean, onAppearanceChange: (A
     var linkError by remember { mutableStateOf<String?>(null) }
     var voiceProfiles by remember { mutableStateOf(prefs.voiceProfileRows()) }
     // Nach einer Sitzung kann ein Profil dazugekommen sein: beim Wechsel zwischen "läuft" und "steht" neu lesen.
-    LaunchedEffect(running) { voiceProfiles = prefs.voiceProfileRows() }
+    // Ebenso, sobald das Einlernen fertig ist.
+    LaunchedEffect(running, enrolPhase) { voiceProfiles = prefs.voiceProfileRows() }
 
     // Dateien und Notizen liegen auf Platte oder (bei Drive) hinter dem Netz. Solche Zugriffe gehören
     // nicht auf den Haupt-Thread, sonst ruckelt die Oberfläche; "Dispatchers.IO" ist der Ort dafür.
@@ -168,7 +207,13 @@ private fun SettingsRoute(prefs: Prefs, running: Boolean, onAppearanceChange: (A
         notes = notes,
         running = running,
         voiceProfiles = voiceProfiles,
+        enrol = EnrolUi(enrolMic, enrolPhase),
         actions = SettingsActions(
+            onEnrolMicChange = { enrolMic = it },
+            onEnrolStart = {
+                enrolPermissions.launch(arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.BLUETOOTH_CONNECT))
+            },
+            onEnrolCancel = { enroller.cancel() },
             onFormChange = { changed ->
                 prefs.save(old = form, new = changed)
                 // Das Erscheinungsbild gilt für die ganze App, deshalb zusätzlich nach oben melden.
@@ -218,18 +263,26 @@ internal fun Prefs.forgetVoiceProfileIfStopped(mic: String, running: Boolean): B
 }
 
 /** Die Stimmprofile beider Mikrofon-Arten für die Einstellungen (auch die, die es noch nicht gibt). */
-internal fun Prefs.voiceProfileRows(): List<VoiceProfileRow> = listOf(
-    VoiceProfileRow(
-        MicMode.AIRPODS.name, "AirPods-Mikro", storedVoiceProfile(MicMode.AIRPODS)?.samples,
-        "Die App lernt Ihre Stimme an diesem Mikrofon danach von vorn, sobald Sie den Assistenten deutlich beim " +
-            "Namen ansprechen. Bis dahin kann sie Merken und Stummschalten per Sprache ablehnen, wenn Sie leise sprechen.",
-    ),
-    VoiceProfileRow(
-        MicMode.HANDY.name, "Handy-Mikro", storedVoiceProfile(MicMode.HANDY)?.samples,
-        "Am Handy-Mikro lernt die App kein neues Profil, weil dort alle ähnlich laut klingen. Merken und " +
-            "Stummschalten per Sprache gehen danach nur noch mit dem AirPods-Mikro.",
-    ),
-)
+internal fun Prefs.voiceProfileRows(): List<VoiceProfileRow> {
+    val airpods = storedVoiceProfile(MicMode.AIRPODS)
+    val handy = storedVoiceProfile(MicMode.HANDY)
+    return listOf(
+        VoiceProfileRow(
+            MicMode.AIRPODS.name, "AirPods-Mikro", airpods?.samples,
+            "Die App lernt Ihre Stimme an diesem Mikrofon danach von vorn, sobald Sie den Assistenten deutlich beim " +
+                "Namen ansprechen. Bis dahin kann sie Merken und Stummschalten per Sprache ablehnen, wenn Sie leise " +
+                "sprechen. Schneller geht es mit „Stimme einlernen“.",
+            numbers = airpods?.let { formatMeasurement(it.levelDb, it.pitchHz) },
+        ),
+        VoiceProfileRow(
+            MicMode.HANDY.name, "Handy-Mikro", handy?.samples,
+            "Am Handy-Mikro lernt die App von selbst kein neues Profil, weil dort alle ähnlich laut klingen. Merken " +
+                "und Stummschalten per Sprache gehen danach nur noch mit dem AirPods-Mikro, bis Sie die Stimme " +
+                "am Handy-Mikro neu einlernen.",
+            numbers = handy?.let { formatMeasurement(it.levelDb, it.pitchHz) },
+        ),
+    )
+}
 
 private fun Prefs.toForm() = SettingsForm(
     anthropicKey = anthropicKey,
@@ -243,6 +296,7 @@ private fun Prefs.toForm() = SettingsForm(
     character = character,
     about = about,
     pauseMusic = pauseMusic,
+    showMeasurements = showMeasurements,
     appearance = Appearance.fromKey(appearance),
 )
 
@@ -259,5 +313,6 @@ private fun Prefs.save(old: SettingsForm, new: SettingsForm) {
     if (new.character != old.character) character = new.character
     if (new.about != old.about) about = new.about
     if (new.pauseMusic != old.pauseMusic) pauseMusic = new.pauseMusic
+    if (new.showMeasurements != old.showMeasurements) showMeasurements = new.showMeasurements
     if (new.appearance != old.appearance) appearance = new.appearance.key
 }

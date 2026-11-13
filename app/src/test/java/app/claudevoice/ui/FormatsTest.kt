@@ -13,6 +13,17 @@ import org.junit.Test
 class FormatsTest {
 
     @Test
+    fun `Messwerte einer Zeile werden kurz und ohne Nachkommastellen gezeigt`() {
+        assertEquals("-27 dBFS · 118 Hz", formatMeasurement(-27.4, 118.2))
+        assertEquals("-27 dBFS", formatMeasurement(-27.4, null))
+        assertEquals("118 Hz", formatMeasurement(null, 118.2))
+        assertEquals("", formatMeasurement(null, null))
+        // Eine gewöhnliche Zeile aus der Pipeline hat (noch) keine Messwerte.
+        assertEquals("", parseTranscriptLine("ICH: Hallo.").measurement)
+        assertEquals("-31 dBFS · 205 Hz", TranscriptLine("NAH", null, "Hallo.", -31.0, 205.0).measurement)
+    }
+
+    @Test
     fun `Kuerzel und Text einer Mitschrift-Zeile werden getrennt`() {
         assertEquals(TranscriptLine("ICH", null, "Wie hoch ist die Zugspitze?"), parseTranscriptLine("ICH: Wie hoch ist die Zugspitze?"))
         assertEquals(TranscriptLine("NAH", "S2", "Keine Ahnung."), parseTranscriptLine("NAH S2: Keine Ahnung."))

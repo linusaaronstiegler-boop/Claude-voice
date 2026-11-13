@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.SharedPreferences
 import app.claudevoice.core.MicMode
 import app.claudevoice.core.SpeechOutput
+import app.claudevoice.core.VoiceEnrollment
 import app.claudevoice.core.VoiceProfile
 import app.claudevoice.ui.forgetVoiceProfileIfStopped
 import app.claudevoice.ui.voiceProfileRows
@@ -164,6 +165,24 @@ class PrefsTest {
         val rows = prefs.voiceProfileRows()
         assertEquals(listOf("AIRPODS" to 12, "HANDY" to null), rows.map { it.mic to it.samples })
         assertEquals(listOf("AirPods-Mikro", "Handy-Mikro"), rows.map { it.label })
+    }
+
+    @Test fun `ein eingelerntes Profil wird je Mikrofon gespeichert und in den Einstellungen mit Zahlen gezeigt`() {
+        prefs.saveEnrolledVoiceProfile(MicMode.AIRPODS, VoiceProfile(-33.2, 118.6, VoiceEnrollment.ENROLLED_SAMPLES))
+        assertEquals(VoiceProfile(-33.2, 118.6, 50), Prefs(context).storedVoiceProfile(MicMode.AIRPODS))
+        assertEquals("das andere Mikrofon bleibt ohne Profil", null, prefs.storedVoiceProfile(MicMode.HANDY))
+        val rows = prefs.voiceProfileRows()
+        assertEquals(listOf("-33 dBFS · 119 Hz", null), rows.map { it.numbers })
+        // Einlernen ersetzt ein altes, vielleicht falsch gelerntes Profil.
+        prefs.saveVoiceProfile(MicMode.HANDY.name, "-20.0;210.0;4")
+        prefs.saveEnrolledVoiceProfile(MicMode.HANDY, VoiceProfile(-29.0, 121.0, 50))
+        assertEquals(VoiceProfile(-29.0, 121.0, 50), prefs.storedVoiceProfile(MicMode.HANDY))
+    }
+
+    @Test fun `Messwerte in der Mitschrift sind aus bis man sie einschaltet`() {
+        assertFalse(prefs.showMeasurements)
+        prefs.showMeasurements = true
+        assertTrue(Prefs(context).showMeasurements)
     }
 
     @Test fun `ein unlesbares Stimmprofil gilt als keines`() {

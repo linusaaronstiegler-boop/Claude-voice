@@ -85,6 +85,8 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("androidx.compose.ui:ui-test-junit4") // Version kommt aus der Compose-BOM oben
     testImplementation("io.github.takahirom.roborazzi:roborazzi:1.76.0")
+    // Für Tests von Abläufen mit Wartezeiten (Einlernen der Stimme): Die Zeit wird dort von Hand vorgestellt.
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 }
 
 // --- Glas-Optik --------------------------------------------------------------------------------
