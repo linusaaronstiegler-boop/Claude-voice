@@ -45,6 +45,10 @@ class ListenServiceStartTest {
 
     @Before fun setUp() {
         prefs = FakeAndroidKeyStore.freshPrefs(context)
+        // Die Schlüssel sind hier immer da (erfunden; kein Test hier kommt bis ins Netz). Was geschieht,
+        // wenn einer fehlt, prüft ListenServiceKeysTest.
+        prefs.anthropicKey = "sk-ant-test-0000"
+        prefs.elevenKey = "el-test-0000"
         // Diese Tests beschreiben, wenn nichts anderes gesagt ist, den Betrieb mit dem Handy-Mikro.
         // Der Standard der App ist das Kopfhörer-Mikro; wer es prüfen will, schaltet es im Test selbst ein.
         prefs.useBluetoothMic = false

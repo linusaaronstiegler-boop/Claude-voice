@@ -30,12 +30,49 @@ fragt Claude und spricht eine kurze Antwort ins Ohr. Der Assistent heißt „Alf
 
 ## Einrichten
 In der App unter **Einstellungen**:
-- **Anthropic API-Key** (console.anthropic.com → API Keys)
-- **ElevenLabs API-Key** (elevenlabs.io → Developers → API Keys), für Transkription und Stimme
-- **Voice-ID** (optional, sonst Standardstimme)
-- **Soniox API-Key** (optional): zweiter Transkriptions-Anbieter mit Sprecher-Erkennung je Wort
+
+### Schlüssel
+Welche Schlüssel nötig sind, hängt davon ab, wer mitschreibt und wer spricht:
+
+| Sprachausgabe     | Transkription | nötige Schlüssel              |
+|-------------------|---------------|-------------------------------|
+| ElevenLabs        | ElevenLabs    | Anthropic, ElevenLabs         |
+| ElevenLabs        | Soniox        | Anthropic, ElevenLabs, Soniox |
+| Stimme des Geräts | ElevenLabs    | Anthropic, ElevenLabs         |
+| Stimme des Geräts | Soniox        | Anthropic, Soniox             |
+
+- **Anthropic API-Key** (console.anthropic.com → API Keys): immer nötig.
+- **ElevenLabs API-Key** (elevenlabs.io → Developers → API Keys): für die Sprachausgabe „ElevenLabs“
+  und, solange kein Soniox-Key eingetragen ist, für die Transkription.
+- **Soniox API-Key:** zweiter Transkriptions-Anbieter mit Sprecher-Erkennung je Wort. Ist er eingetragen,
+  schreibt Soniox mit.
+
+Die letzte Zeile der Tabelle kommt ganz ohne ElevenLabs-Konto aus. Fehlt ein Schlüssel, sagen die
+Einstellungen und der Start, welcher fehlt und wofür er gebraucht würde.
+
+### Sprachausgabe
+Zwei stehen zur Wahl. Ohne eigene Wahl spricht ElevenLabs, solange ein ElevenLabs-Key eingetragen ist,
+sonst die Stimme des Geräts. Eine eigene Wahl gilt immer.
+
+- **ElevenLabs:** klingt natürlich, fast wie ein Mensch. Braucht den ElevenLabs-Key und verbraucht dort
+  Guthaben; der Text jeder Antwort geht an ElevenLabs. Die **Voice-ID** ist optional (sonst
+  Standardstimme).
+- **Stimme des Geräts:** die Sprachausgabe, die Android selbst mitbringt („Text-in-Sprache“). Sie kostet
+  nichts und braucht kein Konto. Ehrlich gesagt klingt sie deutlich schlechter: hörbar nach Computer,
+  gleichförmiger, mit mancher falschen Betonung, und englische Wörter spricht sie oft deutsch aus. Wie
+  gut oder schlecht genau, hängt von der Sprach-Engine des Handys ab; zum Verstehen einer kurzen Antwort
+  reicht es. Voraussetzung: In den Android-Einstellungen unter „Text-in-Sprache“ ist eine Engine gewählt
+  und Deutsch geladen. Die App nimmt nur Stimmen, die ohne Netz sprechen. Fehlt etwas davon, steht das
+  beim Start des Zuhörens da und nicht erst bei der ersten Antwort.
+
+Im Betrieb wird nie still zwischen den beiden gewechselt. Scheitert ElevenLabs (Guthaben aufgebraucht,
+Schlüssel abgelehnt), nennt die Meldung den Grund und den Ausweg; umstellen müssen Sie selbst.
+
+### Weiteres
 - **Assistent:** Name, weitere Rufnamen, Anrede, Charakter
 - **Gedächtnis:** „Über mich“, Dateien verknüpfen, Notizen ansehen und löschen
+- **Verhalten:** eigene Musik während der Antwort pausieren oder leiser stellen; **gelerntes
+  Stimmprofil** ansehen und vergessen (siehe „Benutzen“)
 - **Erscheinungsbild:** System, Hell oder Dunkel
 
 ## Benutzen
@@ -56,6 +93,13 @@ In der App unter **Einstellungen**:
   Handy im Hörsaal auf dem Tisch liegt. Die eigene Stimme ist hier nicht von anderen zu unterscheiden:
   Merken und Stummschalten per Sprache werden abgelehnt, und der Assistent entscheidet allein am Inhalt,
   ob es Ihr Gespräch ist.
+- **Stimmprofil vergessen:** Die App lernt nebenbei, wie Ihre Stimme am Mikrofon klingt, getrennt für
+  Kopfhörer- und Handy-Mikro. Lehnt sie Merken und Stummschalten bei Ihnen dauernd ab, hat sie
+  vielleicht eine falsche Stimme gelernt. Unter Einstellungen → Verhalten → „Gelerntes Stimmprofil“
+  steht je Mikrofon, ob ein Profil gespeichert ist; „Vergessen“ löscht es nach einer Rückfrage. Das geht
+  nur, solange nicht zugehört wird (eine laufende Sitzung schriebe ihr Profil sofort zurück). Danach
+  lernt die App am Kopfhörer-Mikro von vorn; am Handy-Mikro lernt sie kein neues Profil. Vergessen
+  nimmt nur etwas weg: Niemand gilt dadurch als Träger.
 - **Reichweite:** „Nur ich“ (streng, nur die eigene Stimme; sinnvoll nur mit dem Kopfhörer-Mikro),
   „Mein Gespräch“ (Standard), „Ganzer Raum“.
 - **Weckwort:** „Jarvis“ englisch aussprechen („Dschahwis“). Die deutsche Aussprache „Jarwis“ erkennt
@@ -75,10 +119,15 @@ Was das Gerät verlässt:
   beginnen, kurz bevor der Satz zu Ende gesprochen ist (so wird die Antwort schneller). Außerdem ein
   kurzer Vorwärm-Aufruf mit Anweisungen und Gedächtnis (ohne Audio, ohne Mitschrift) beim Start, beim
   Weckwort und wenn nach mehr als vier Minuten Pause wieder jemand spricht.
-- **Sprachausgabe (ElevenLabs):** der Text der Antwort, auch wenn sie dann doch nicht zu hören ist, weil
-  in der Wartesekunde ein Mensch geantwortet hat.
+- **Sprachausgabe:** mit „ElevenLabs“ der Text der Antwort, auch wenn sie dann doch nicht zu hören ist,
+  weil in der Wartesekunde ein Mensch geantwortet hat. Mit der „Stimme des Geräts“ verlässt der Text das
+  Handy nicht: Er geht an die Sprach-Engine des Handys (eine App des Herstellers, meist von Google) und
+  wird dort gesprochen; die App wählt nur Stimmen, die ohne Netz auskommen. Was diese Engine sonst tut,
+  bestimmt ihr Hersteller.
 
-Die App selbst speichert weder Audio noch Mitschrift. Für die Anbieter gelten deren eigene
+Die App selbst speichert weder Audio noch Mitschrift. Das gilt auch für die Stimme des Geräts: Android
+kann Sprache nur „in eine Datei“ erzeugen; als Ziel bekommt es eines, in dem alles Geschriebene
+verschwindet, und die App nimmt den Ton unterwegs ab. Für die Anbieter gelten deren eigene
 Aufbewahrungsregeln. Das Gedächtnis liegt nur auf dem Gerät und ist von Backups ausgenommen.
 
 In Deutschland ist es strafbar, das nichtöffentlich gesprochene Wort anderer ohne deren Einwilligung

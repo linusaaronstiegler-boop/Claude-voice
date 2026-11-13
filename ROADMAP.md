@@ -17,8 +17,10 @@
 
 ## In Arbeit
 - [ ] Gegenprüfung der Reparaturen aus der Angriffsrunde; Anschlussfrage auch hinter normal langen Antworten.
-- [ ] Sprachausgabe mit der Stimme des Geräts, damit die App ohne ElevenLabs-Schlüssel läuft.
-- [ ] Gelerntes Stimmprofil in den Einstellungen vergessen können.
+- [x] Sprachausgabe mit der Stimme des Geräts, damit die App ohne ElevenLabs-Schlüssel läuft.
+- [x] Gelerntes Stimmprofil in den Einstellungen vergessen können.
+- [ ] „Stimme einlernen“ in den Einstellungen und Messwerte in der Mitschrift (Befund vom ersten
+      Gerätetest: die eigene Stimme gilt als fremd).
 
 ## Als Nächstes (in dieser Reihenfolge)
 Alles hier braucht den Besitzer: Schlüssel oder das Gerät.

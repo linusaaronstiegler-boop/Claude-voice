@@ -20,13 +20,16 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasParent
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -40,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.test.core.app.ApplicationProvider
 import app.claudevoice.applySystemBars
+import app.claudevoice.core.SpeechOutput
+import app.claudevoice.core.StartKeys
 import app.claudevoice.core.UiState
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlinx.coroutines.runBlocking
@@ -150,6 +155,13 @@ class ScreensTest {
     private val notes = listOf("2026-11-10: Samstag Wanderung, Abfahrt um sieben Uhr", "2026-11-11: Lieblingstee ist Earl Grey")
     private val linkError = "Datei zu groß (41200 Zeichen, Grenze 30000). Bitte eine kürzere Fassung wählen."
 
+    /** Ohne ElevenLabs-Konto: Soniox schreibt mit, die Stimme des Geräts spricht. */
+    private val deviceForm = form.copy(elevenKey = "", sonioxKey = "beispiel-kein-echter-schluessel")
+    private val profiles = listOf(
+        VoiceProfileRow("AIRPODS", "AirPods-Mikro", 12, "Die App lernt Ihre Stimme an diesem Mikrofon danach von vorn."),
+        VoiceProfileRow("HANDY", "Handy-Mikro", null, "Am Handy-Mikro lernt die App kein neues Profil."),
+    )
+
     @Composable
     private fun Main(
         ui: UiState,
@@ -202,6 +214,10 @@ class ScreensTest {
     @Config(qualifiers = PHONE_360)
     fun bild_einstellungen_360_dunkel() = shootSettings("einstellungen_360_dunkel", Appearance.Dark)
 
+    // Dieselbe Seite, wenn die Stimme des Geräts spricht: kein Feld für die Voice-ID, anderer Hinweis.
+    @Test
+    fun bild_einstellungen_geraetestimme_412_hell() = shootSettings("einstellungen_geraetestimme_412_hell", Appearance.Light, deviceForm)
+
     // Nach dem Stopp ist die Mitschrift länger als der Platz über der schwebenden Antwortkarte.
     // Ohne Unschärfe blendet sie davor aus.
     @Test
@@ -232,6 +248,20 @@ class ScreensTest {
     @Test
     fun bild_einstellungen_notiz_loeschen_412_hell() = shootDeleteDialog("einstellungen_notiz_loeschen_412_hell", Appearance.Light)
 
+    // Die Rückfrage vor dem Vergessen des Stimmprofils.
+    @Test
+    fun bild_einstellungen_stimmprofil_vergessen_412_hell() {
+        compose.setContent {
+            ClaudeVoiceTheme(Appearance.Light) {
+                SettingsScreen(form, files, null, notes, running = false, SettingsActions(), voiceProfiles = profiles)
+            }
+        }
+        compose.onNodeWithText("Vergessen").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNode(isDialog()).captureRoboImage("build/outputs/roborazzi/einstellungen_stimmprofil_vergessen_412_hell.png")
+        assertTouchTargets()
+    }
+
     private fun shootDeleteDialog(name: String, appearance: Appearance) {
         compose.setContent {
             ClaudeVoiceTheme(appearance) { SettingsScreen(form, files, null, notes, running = false, SettingsActions()) }
@@ -249,11 +279,14 @@ class ScreensTest {
     }
 
     /** Die Einstellungen sind länger als der Bildschirm: mehrere Bilder, jeweils eine Bildschirmhöhe weiter. */
-    private fun shootSettings(name: String, appearance: Appearance) {
+    private fun shootSettings(name: String, appearance: Appearance, shown: SettingsForm = form) {
         val scroll = ScrollState(0)
         compose.setContent {
             ClaudeVoiceTheme(appearance) {
-                SettingsScreen(form.copy(appearance = appearance), files, linkError, notes, running = false, SettingsActions(), scrollState = scroll)
+                SettingsScreen(
+                    shown.copy(appearance = appearance), files, linkError, notes, running = false, SettingsActions(),
+                    scrollState = scroll, voiceProfiles = profiles,
+                )
             }
         }
         compose.waitForIdle()
@@ -648,6 +681,100 @@ class ScreensTest {
         assertEquals(Appearance.Light, current.appearance)
         // Alles andere bleibt, wie es war.
         assertEquals(form.copy(appearance = Appearance.Light), current)
+    }
+
+    // --- Sprachausgabe, Schlüssel und Stimmprofil in den Einstellungen ------------------------
+
+    @Test
+    fun sprachausgabe_folgt_dem_schluessel_bis_man_selbst_waehlt() {
+        var current by mutableStateOf(deviceForm)
+        compose.setContent {
+            ClaudeVoiceTheme { SettingsScreen(current, emptyList(), null, emptyList(), running = false, SettingsActions(onFormChange = { current = it })) }
+        }
+        // Ohne ElevenLabs-Schlüssel spricht die Stimme des Geräts. Gewählt hat der Nutzer dabei nichts,
+        // und mit Anthropic- und Soniox-Schlüssel fehlt auch nichts.
+        compose.onNodeWithText("Stimme des Geräts").performScrollTo().assertIsSelected()
+        compose.onNodeWithTag("speech_hint").assertTextEquals(SPEECH_HINT_DEVICE)
+        compose.onAllNodesWithText("ElevenLabs Voice-ID").assertCountEquals(0)
+        compose.onAllNodesWithTag("key_problem").assertCountEquals(0)
+        assertEquals(null, current.speech)
+
+        // Trägt er einen ElevenLabs-Schlüssel ein, wandert die Vorgabe mit: so wie die App bisher sprach.
+        compose.onNodeWithText("ElevenLabs API-Key").performScrollTo().performTextReplacement("beispiel")
+        compose.onNodeWithText("ElevenLabs").performScrollTo().assertIsSelected()
+        compose.onNodeWithTag("speech_hint").assertTextEquals(SPEECH_HINT_ELEVEN)
+        compose.onNodeWithText("ElevenLabs Voice-ID").performScrollTo().assertIsDisplayed()
+        assertEquals(null, current.speech)
+
+        // Eine ausdrückliche Wahl gilt, auch wenn ein ElevenLabs-Schlüssel da ist.
+        compose.onNodeWithText("Stimme des Geräts").performScrollTo().performClick()
+        assertEquals(SpeechOutput.DEVICE, current.speech)
+        compose.onNodeWithText("Stimme des Geräts").assertIsSelected()
+        compose.onAllNodesWithText("ElevenLabs Voice-ID").assertCountEquals(0)
+    }
+
+    @Test
+    fun fehlende_schluessel_werden_mit_ihrem_zweck_benannt() {
+        var current by mutableStateOf(SettingsForm(anthropicKey = "beispiel"))
+        compose.setContent {
+            ClaudeVoiceTheme { SettingsScreen(current, emptyList(), null, emptyList(), running = false, SettingsActions(onFormChange = { current = it })) }
+        }
+        compose.onNodeWithTag("key_problem").performScrollTo().assertTextEquals(StartKeys.NO_TRANSCRIPTION)
+        compose.onNodeWithText("Soniox API-Key").performScrollTo().performTextReplacement("beispiel")
+        compose.onAllNodesWithTag("key_problem").assertCountEquals(0)
+
+        // Wer ElevenLabs sprechen lassen will, braucht dessen Schlüssel: Die Meldung sagt, wofür.
+        compose.onNodeWithText("ElevenLabs").performScrollTo().performClick()
+        assertEquals(SpeechOutput.ELEVEN, current.speech)
+        compose.onNodeWithTag("key_problem").performScrollTo().assertTextEquals(StartKeys.NO_ELEVEN_FOR_SPEECH)
+        // Ein Schlüssel nur aus unsichtbaren Zeichen zählt nicht.
+        compose.onNodeWithText("ElevenLabs API-Key").performScrollTo().performTextReplacement(" \n")
+        compose.onNodeWithTag("key_problem").performScrollTo().assertTextEquals(StartKeys.NO_ELEVEN_FOR_SPEECH)
+        compose.onNodeWithText("ElevenLabs API-Key").performScrollTo().performTextReplacement("beispiel")
+        compose.onAllNodesWithTag("key_problem").assertCountEquals(0)
+    }
+
+    @Test
+    fun stimmprofil_laesst_sich_nur_im_stillstand_und_erst_nach_rueckfrage_vergessen() {
+        var running by mutableStateOf(true)
+        val forgotten = mutableListOf<String>()
+        compose.setContent {
+            ClaudeVoiceTheme {
+                SettingsScreen(
+                    form, emptyList(), null, emptyList(), running = running,
+                    SettingsActions(onForgetVoiceProfile = { forgotten += it }), voiceProfiles = profiles,
+                )
+            }
+        }
+        compose.onNodeWithText("AirPods-Mikro: gelernt aus 12 Äußerungen").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Handy-Mikro: noch kein Profil gelernt").performScrollTo().assertIsDisplayed()
+        // Wo es kein Profil gibt, gibt es auch nichts zu vergessen.
+        compose.onAllNodesWithText("Vergessen").assertCountEquals(1)
+
+        // Solange zugehört wird, ist der Knopf gesperrt: Die laufende Sitzung schriebe ihr Profil gleich zurück.
+        compose.onNodeWithText("Vergessen").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithTag("forget_hint").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Vergessen").performClick()
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+
+        // Gestoppt: Es wird erst nachgefragt; "Abbrechen" lässt das Profil liegen.
+        running = false
+        compose.onAllNodesWithTag("forget_hint").assertCountEquals(0)
+        compose.onNodeWithText("Vergessen").performScrollTo().assertIsEnabled().performClick()
+        compose.onNode(hasText("AirPods-Mikro: Die App lernt Ihre Stimme an diesem Mikrofon danach von vorn.")).assertIsDisplayed()
+        compose.onNode(hasText("Abbrechen") and hasAnyAncestor(isDialog())).performClick()
+        assertEquals(emptyList<String>(), forgotten)
+
+        compose.onNodeWithText("Vergessen").performScrollTo().performClick()
+        compose.onNode(hasText("Vergessen") and hasAnyAncestor(isDialog())).performClick()
+        assertEquals("gemeldet wird die Mikrofon-Art, deren Profil vergessen werden soll", listOf("AIRPODS"), forgotten)
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+    }
+
+    @Test
+    fun ohne_stimmprofile_erscheint_der_abschnitt_nicht() {
+        compose.setContent { ClaudeVoiceTheme { SettingsScreen(form, emptyList(), null, emptyList(), running = false, SettingsActions()) } }
+        compose.onAllNodesWithText("Gelerntes Stimmprofil").assertCountEquals(0)
     }
 
     // --- Erscheinungsbild -------------------------------------------------------------------

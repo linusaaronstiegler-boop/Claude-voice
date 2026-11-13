@@ -1,5 +1,22 @@
 # Projektprotokoll (neueste zuerst)
 
+## 2026-11-13 – Stimme des Geräts, Stimmprofil vergessen, erster Lauf auf dem Gerät
+- **Erster Gerätetest durch den Besitzer** (Kopfhörer-Mikro, echte Schlüssel): Die Kette läuft, die Antwort
+  kommt im Ohr an. Befund: Die eigene Stimme wird in der Mitschrift als fremd geführt, mehrere Sprecher
+  werden zu einem zusammengelegt. Ursache nach Lage des Codes: Ohne Profil gilt ein Schätzwert für den
+  eigenen Pegel, und gelernt wird nur von einer Stimme, die schon als die eigene gilt.
+- **Sprachausgabe mit der Stimme des Geräts** (`DeviceVoice.kt`, `SpeechOutput.kt` in `core/`,
+  `AndroidDeviceVoice.kt` in `app/`): Wahl „Sprachausgabe“ in den Einstellungen. Damit braucht die App
+  keinen ElevenLabs-Schlüssel mehr, wenn ein Soniox-Schlüssel die Mitschrift übernimmt. Kein stiller
+  Wechsel zur Laufzeit. Welche Schlüssel für welche Kombination nötig sind, steht in `README.md`.
+- **Stimmprofil vergessen** in den Einstellungen, je Mikrofon-Art.
+- Unabhängig gegengeprüft, fehlende Tests ergänzt. 588 Kern-Tests (1 übersprungen), 166 App-Tests, APK mit
+  Weckwort, Lint ohne Fehler.
+- **In Arbeit** (nach einem Neustart des Containers neu angesetzt): 18 Funde der Gegenprüfung an der
+  Angriffsrunde, darunter vier zur Stimmerkennung (Profil aus einer einzigen Äußerung, Sprecher-Nummern
+  des Anbieters übersteuern die Akustik); „Stimme einlernen“ in den Einstellungen; Messwerte in der Mitschrift.
+- **Nur auf dem Gerät zu prüfen:** ob die Stimme des Geräts über die Kopfhörer kommt und wie sie klingt.
+
 ## 2026-11-12 (Schlussrunde) – Antworten ohne Kopfzeile, Anschlussfrage, Angriffsrunde, CI-Test
 Anlass: zwei offene Punkte aus der Gegenprüfung (Antworten ohne Kopfzeile, die verschluckte Anschlussfrage),
 danach drei unabhängige Angriffs-Prüfer auf die neue Gesprächssteuerung (Nebenläufigkeit, Stimm-Schranke,

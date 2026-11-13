@@ -46,6 +46,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import app.claudevoice.core.SpeechOutput
+import app.claudevoice.core.StartKeys
+import app.claudevoice.core.cleanSecret
 
 /** Alle Textfelder und Schalter der Einstellungen als ein Wert. Rufnamen als ein Text, mit Komma getrennt. */
 data class SettingsForm(
@@ -53,6 +56,8 @@ data class SettingsForm(
     val elevenKey: String = "",
     val sonioxKey: String = "",
     val voiceId: String = "",
+    /** Die gewählte Sprachausgabe; null = nie gewählt, dann richtet sie sich nach dem ElevenLabs-Schlüssel. */
+    val speech: SpeechOutput? = null,
     val name: String = "",
     val aliases: String = "",
     val address: String = "",
@@ -65,11 +70,21 @@ data class SettingsForm(
 /** Eine verknüpfte Gedächtnis-Datei: [id] ist der gespeicherte Verweis, [name] der angezeigte Dateiname. */
 data class LinkedFile(val id: String, val name: String)
 
+/**
+ * Das gelernte Stimmprofil einer Mikrofon-Art, wie die Einstellungen es zeigen.
+ * [mic] ist der Name, unter dem es gespeichert ist, [label] der angezeigte. [samples] sagt, aus wie vielen
+ * Äußerungen gelernt wurde; null = es gibt keines. [afterForget] erklärt in der Rückfrage, was das
+ * Vergessen an diesem Mikrofon bedeutet.
+ */
+data class VoiceProfileRow(val mic: String, val label: String, val samples: Int?, val afterForget: String)
+
 class SettingsActions(
     val onFormChange: (SettingsForm) -> Unit = {},
     val onAddFile: () -> Unit = {},
     val onRemoveFile: (LinkedFile) -> Unit = {},
     val onDeleteNote: (Int) -> Unit = {},
+    /** Das Stimmprofil der Mikrofon-Art mit diesem gespeicherten Namen soll vergessen werden (schon bestätigt). */
+    val onForgetVoiceProfile: (String) -> Unit = {},
     val onClose: () -> Unit = {},
 )
 
@@ -90,9 +105,12 @@ fun SettingsScreen(
     actions: SettingsActions,
     modifier: Modifier = Modifier,
     scrollState: ScrollState = rememberScrollState(),
+    voiceProfiles: List<VoiceProfileRow> = emptyList(),
 ) {
     val c = Glass.colors
     val change = actions.onFormChange
+    // Was gilt, wenn man Wahl und Schlüssel zusammennimmt (dieselbe Regel wie im Dienst).
+    val speech = SpeechOutput.resolve(form.speech, cleanSecret(form.elevenKey).isNotEmpty())
     // Ist nach oben gerollt, blendet der obere Rand des Inhalts weich unter dem Kopf aus.
     val fade by animateDpAsState(if (scrollState.canScrollBackward) 16.dp else 0.dp, label = "rand")
     Box(modifier.fillMaxSize()) {
@@ -123,14 +141,48 @@ fun SettingsScreen(
                 // --- Schlüssel --------------------------------------------------------------
                 SectionTitle("Schlüssel", Modifier.padding(top = 12.dp))
                 Pane {
+                    Text(
+                        "Immer nötig ist der Anthropic-Key. Dazu kommt ein Schlüssel für die Transkription: " +
+                            "ElevenLabs oder Soniox (ist Soniox eingetragen, schreibt Soniox mit). Den " +
+                            "ElevenLabs-Key braucht außerdem die Sprachausgabe „ElevenLabs“.",
+                        style = MaterialTheme.typography.bodyMedium, color = c.inkSoft,
+                    )
                     SecretField("Anthropic API-Key", form.anthropicKey) { change(form.copy(anthropicKey = it)) }
                     SecretField("ElevenLabs API-Key", form.elevenKey) { change(form.copy(elevenKey = it)) }
-                    SecretField("Soniox API-Key (optional)", form.sonioxKey) { change(form.copy(sonioxKey = it)) }
-                    GlassTextField(
-                        "ElevenLabs Voice-ID", form.voiceId, { change(form.copy(voiceId = it)) },
-                        hint = "Die Stimme der Antworten. Leer = Standardstimme.",
-                        keyboard = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrectEnabled = false, imeAction = ImeAction.Next),
+                    SecretField("Soniox API-Key", form.sonioxKey) { change(form.copy(sonioxKey = it)) }
+                    // Sagt genau, welcher Schlüssel für die gewählte Sprachausgabe noch fehlt (dieselbe Regel
+                    // wie beim Start des Zuhörens, siehe StartKeys in :core).
+                    val missing = StartKeys.missing(
+                        cleanSecret(form.anthropicKey), cleanSecret(form.elevenKey), cleanSecret(form.sonioxKey), speech,
                     )
+                    if (missing.isNotEmpty()) {
+                        Text(
+                            missing.joinToString(" "), Modifier.testTag("key_problem"),
+                            style = MaterialTheme.typography.bodyMedium, color = c.alert,
+                        )
+                    }
+                }
+
+                // --- Sprachausgabe ----------------------------------------------------------
+                SectionTitle("Sprachausgabe", Modifier.padding(top = 16.dp))
+                Pane {
+                    SegmentedChoice(
+                        listOf(SpeechOutput.ELEVEN to "ElevenLabs", SpeechOutput.DEVICE to "Stimme des Geräts"),
+                        speech, { change(form.copy(speech = it)) },
+                    )
+                    Text(
+                        if (speech == SpeechOutput.ELEVEN) SPEECH_HINT_ELEVEN else SPEECH_HINT_DEVICE,
+                        Modifier.padding(horizontal = 4.dp).testTag("speech_hint"),
+                        style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
+                    )
+                    // Die Voice-ID gehört zu ElevenLabs; mit der Stimme des Geräts hätte das Feld keine Wirkung.
+                    if (speech == SpeechOutput.ELEVEN) {
+                        GlassTextField(
+                            "ElevenLabs Voice-ID", form.voiceId, { change(form.copy(voiceId = it)) },
+                            hint = "Die Stimme der Antworten. Leer = Standardstimme.",
+                            keyboard = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrectEnabled = false, imeAction = ImeAction.Next),
+                        )
+                    }
                 }
 
                 // --- Assistent --------------------------------------------------------------
@@ -227,6 +279,55 @@ fun SettingsScreen(
                         form.pauseMusic, { change(form.copy(pauseMusic = it)) },
                     )
                 }
+                if (voiceProfiles.isNotEmpty()) {
+                    Pane {
+                        SubTitle("Gelerntes Stimmprofil")
+                        Text(
+                            "Die App lernt nebenbei, wie Ihre Stimme am Mikrofon klingt. Daran erkennt sie, dass Sie " +
+                                "selbst sprechen; nur dann merkt sie sich etwas oder lässt sich per Sprache " +
+                                "stummschalten. Lehnt sie das bei Ihnen dauernd ab, hat sie vielleicht eine " +
+                                "falsche Stimme gelernt. Dann hilft Vergessen.",
+                            style = MaterialTheme.typography.bodyMedium, color = c.inkSoft,
+                        )
+                        // Vergessen lässt sich nicht rückgängig machen, deshalb erst nachfragen.
+                        var pendingForget by remember { mutableStateOf<VoiceProfileRow?>(null) }
+                        Column {
+                            voiceProfiles.forEachIndexed { index, profile ->
+                                val state = when (profile.samples) {
+                                    null -> "noch kein Profil gelernt"
+                                    1 -> "gelernt aus 1 Äußerung"
+                                    else -> "gelernt aus ${profile.samples} Äußerungen"
+                                }
+                                ListRow(
+                                    "${profile.label}: $state",
+                                    // Ohne Profil gibt es nichts zu vergessen: dann steht nur der Text da.
+                                    action = if (profile.samples == null) null else "Vergessen",
+                                    actionDescription = "Stimmprofil für ${profile.label} vergessen",
+                                    divider = index > 0,
+                                    // Solange zugehört wird, schriebe die laufende Sitzung ihr Profil gleich
+                                    // wieder zurück. Deshalb geht es nur im Stillstand.
+                                    enabled = !running,
+                                ) { pendingForget = profile }
+                            }
+                        }
+                        if (running && voiceProfiles.any { it.samples != null }) {
+                            Text(
+                                "Zum Vergessen erst das Zuhören stoppen.",
+                                Modifier.testTag("forget_hint"),
+                                style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
+                            )
+                        }
+                        pendingForget?.let { profile ->
+                            ConfirmDialog(
+                                title = "Stimmprofil vergessen?",
+                                text = "${profile.label}: ${profile.afterForget}",
+                                confirmLabel = "Vergessen",
+                                onConfirm = { pendingForget = null; actions.onForgetVoiceProfile(profile.mic) },
+                                onDismiss = { pendingForget = null },
+                            )
+                        }
+                    }
+                }
 
                 // --- Erscheinungsbild -------------------------------------------------------
                 SectionTitle("Erscheinungsbild", Modifier.padding(top = 16.dp))
@@ -247,6 +348,14 @@ fun SettingsScreen(
 }
 
 private val SENTENCES = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+
+// Die beiden Sprachausgaben in ehrlichen Worten: was sie kosten, wohin der Text geht, wie sie klingen.
+internal const val SPEECH_HINT_ELEVEN =
+    "Klingt natürlich. Braucht den ElevenLabs-Key und verbraucht dort Guthaben; der Text jeder Antwort geht an ElevenLabs."
+internal const val SPEECH_HINT_DEVICE =
+    "Kostenlos und ohne Konto: Es spricht die Sprachausgabe von Android, der Text bleibt auf dem Handy. " +
+        "Sie klingt hörbar nach Computer und betont manches falsch. Welche Stimme das ist, bestimmt Android " +
+        "(Einstellungen des Handys, „Text-in-Sprache“); dort muss Deutsch geladen sein."
 
 /** Eine Glasscheibe der Einstellungen: ihr Inhalt steht mit gleichmäßigem Abstand untereinander. */
 @Composable
@@ -304,9 +413,19 @@ private fun SecretField(label: String, value: String, onChange: (String) -> Unit
     )
 }
 
-/** Listenzeile mit Text links und einer Aktion rechts; mit [divider] trennt eine feine Linie sie von der Zeile darüber. */
+/**
+ * Listenzeile mit Text links und einer Aktion rechts; mit [divider] trennt eine feine Linie sie von der Zeile darüber.
+ * Ohne [action] steht nur der Text da. Mit `enabled = false` ist die Aktion zu sehen, aber gesperrt.
+ */
 @Composable
-private fun ListRow(text: String, action: String, actionDescription: String, divider: Boolean, onAction: () -> Unit) {
+private fun ListRow(
+    text: String,
+    action: String?,
+    actionDescription: String,
+    divider: Boolean,
+    enabled: Boolean = true,
+    onAction: () -> Unit,
+) {
     Column(Modifier.fillMaxWidth()) {
         if (divider) Hairline()
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -314,13 +433,16 @@ private fun ListRow(text: String, action: String, actionDescription: String, div
                 text, Modifier.weight(1f).padding(vertical = 8.dp),
                 style = MaterialTheme.typography.bodyLarge, color = Glass.colors.ink,
             )
-            Spacer(Modifier.width(8.dp))
-            TextButton(
-                onClick = onAction,
-                // Für Vorlese-Dienste: "Entfernen" allein sagt nicht, was entfernt wird.
-                // Der Versatz lässt die Schrift bündig mit dem Rand der Felder darüber enden.
-                modifier = Modifier.offset(x = 12.dp).semantics { contentDescription = actionDescription },
-            ) { Text(action) }
+            if (action != null) {
+                Spacer(Modifier.width(8.dp))
+                TextButton(
+                    onClick = onAction,
+                    enabled = enabled,
+                    // Für Vorlese-Dienste: "Entfernen" allein sagt nicht, was entfernt wird.
+                    // Der Versatz lässt die Schrift bündig mit dem Rand der Felder darüber enden.
+                    modifier = Modifier.offset(x = 12.dp).semantics { contentDescription = actionDescription },
+                ) { Text(action) }
+            }
         }
     }
 }

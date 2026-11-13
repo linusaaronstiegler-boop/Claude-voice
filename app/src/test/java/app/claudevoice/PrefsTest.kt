@@ -2,6 +2,11 @@ package app.claudevoice
 
 import android.app.Application
 import android.content.SharedPreferences
+import app.claudevoice.core.MicMode
+import app.claudevoice.core.SpeechOutput
+import app.claudevoice.core.VoiceProfile
+import app.claudevoice.ui.forgetVoiceProfileIfStopped
+import app.claudevoice.ui.voiceProfileRows
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -74,6 +79,98 @@ class PrefsTest {
         prefs.anthropicKey = "​\n"
         prefs.elevenKey = "sk_1"
         assertFalse(prefs.hasKeys)
+    }
+
+    // --- Sprachausgabe und nötige Schlüssel ---------------------------------------------------
+
+    @Test fun `ohne Wahl richtet sich die Sprachausgabe nach dem ElevenLabs-Schluessel`() {
+        assertEquals("ohne Schlüssel: die Stimme des Geräts", SpeechOutput.DEVICE, prefs.speechOutput)
+        prefs.elevenKey = "sk_1"
+        assertEquals(SpeechOutput.ELEVEN, prefs.speechOutput)
+        assertEquals("gewählt wurde dabei nichts", null, prefs.speechChoice)
+        prefs.elevenKey = ""
+        assertEquals(SpeechOutput.DEVICE, prefs.speechOutput)
+    }
+
+    @Test fun `eine ausdrueckliche Wahl der Sprachausgabe bleibt erhalten und gewinnt`() {
+        prefs.elevenKey = "sk_1"
+        prefs.speechChoice = SpeechOutput.DEVICE
+        assertEquals(SpeechOutput.DEVICE, Prefs(context).speechOutput)
+        prefs.elevenKey = ""
+        prefs.speechChoice = SpeechOutput.ELEVEN
+        assertEquals("auch ohne Schlüssel gilt die Wahl; der Start meldet dann, was fehlt", SpeechOutput.ELEVEN, prefs.speechOutput)
+        prefs.speechChoice = null
+        assertEquals(SpeechOutput.DEVICE, prefs.speechOutput)
+    }
+
+    @Test fun `mit der Stimme des Geraets genuegen Anthropic und Soniox`() {
+        prefs.anthropicKey = "sk-ant-1"
+        assertFalse("es fehlt noch ein Schlüssel für die Transkription", prefs.hasKeys)
+        assertEquals(
+            "Für die Transkription fehlt ein Schlüssel: entweder der ElevenLabs-Key oder der Soniox-Key. " +
+                "Bitte in den Einstellungen eintragen.",
+            prefs.keyProblem,
+        )
+        prefs.sonioxKey = "sx_1"
+        assertTrue(prefs.hasKeys)
+        // Wer ausdrücklich ElevenLabs sprechen lassen will, braucht dessen Schlüssel.
+        prefs.speechChoice = SpeechOutput.ELEVEN
+        assertFalse(prefs.hasKeys)
+        prefs.elevenKey = "sk_1"
+        assertTrue(prefs.hasKeys)
+    }
+
+    // --- Stimmprofil --------------------------------------------------------------------------
+
+    @Test fun `ein gespeichertes Stimmprofil wird gelesen und laesst sich je Mikrofon vergessen`() {
+        assertEquals(null, prefs.storedVoiceProfile(MicMode.AIRPODS))
+        prefs.saveVoiceProfile(MicMode.AIRPODS.name, "-18.5;118.0;12")
+        prefs.saveVoiceProfile(MicMode.HANDY.name, "-30.0;;3")
+        assertEquals(VoiceProfile(-18.5, 118.0, 12), Prefs(context).storedVoiceProfile(MicMode.AIRPODS))
+        assertEquals("ohne gemessene Tonhöhe", VoiceProfile(-30.0, null, 3), prefs.storedVoiceProfile(MicMode.HANDY))
+
+        prefs.forgetVoiceProfile(MicMode.AIRPODS.name)
+        assertEquals(null, Prefs(context).storedVoiceProfile(MicMode.AIRPODS))
+        assertEquals("das andere Mikrofon behält seines", VoiceProfile(-30.0, null, 3), prefs.storedVoiceProfile(MicMode.HANDY))
+        // Vergessen nimmt nur weg: In der Datei steht danach nichts mehr zu diesem Mikrofon.
+        assertFalse(backing(prefs).contains("voice_AIRPODS"))
+    }
+
+    @Test fun `solange zugehoert wird bleibt das Stimmprofil liegen`() {
+        prefs.saveVoiceProfile(MicMode.AIRPODS.name, "-18.5;118.0;12")
+        // Die laufende Sitzung schriebe ihr Profil gleich wieder zurück; deshalb wird gar nicht erst gelöscht.
+        assertFalse(prefs.forgetVoiceProfileIfStopped(MicMode.AIRPODS.name, running = true))
+        assertEquals(VoiceProfile(-18.5, 118.0, 12), prefs.storedVoiceProfile(MicMode.AIRPODS))
+        assertTrue(prefs.forgetVoiceProfileIfStopped(MicMode.AIRPODS.name, running = false))
+        assertEquals(null, prefs.storedVoiceProfile(MicMode.AIRPODS))
+    }
+
+    @Test fun `eine beendete Sitzung bringt ein vergessenes Stimmprofil nicht zurueck`() {
+        // Die laufende Sitzung speichert, was sie gelernt hat, und es laesst sich genauso wieder lesen.
+        assertTrue(prefs.storeVoiceProfile(MicMode.AIRPODS, VoiceProfile(-18.5, 118.0, 12), ended = false))
+        assertEquals(VoiceProfile(-18.5, 118.0, 12), prefs.storedVoiceProfile(MicMode.AIRPODS))
+        assertTrue(prefs.storeVoiceProfile(MicMode.HANDY, VoiceProfile(-30.0, null, 3), ended = false))
+        assertEquals("ohne gemessene Tonhöhe", VoiceProfile(-30.0, null, 3), prefs.storedVoiceProfile(MicMode.HANDY))
+
+        // Die Sitzung ist zu Ende, der Nutzer laesst das Profil vergessen. Meldet sich danach noch ein
+        // Nachzuegler der alten Sitzung, darf das Profil nicht wieder auftauchen.
+        assertTrue(prefs.forgetVoiceProfileIfStopped(MicMode.AIRPODS.name, running = false))
+        assertFalse(prefs.storeVoiceProfile(MicMode.AIRPODS, VoiceProfile(-18.0, 120.0, 13), ended = true))
+        assertEquals(null, Prefs(context).storedVoiceProfile(MicMode.AIRPODS))
+    }
+
+    @Test fun `die Einstellungen zeigen beide Mikrofon-Arten auch ohne Profil`() {
+        prefs.saveVoiceProfile(MicMode.AIRPODS.name, "-18.5;118.0;12")
+        val rows = prefs.voiceProfileRows()
+        assertEquals(listOf("AIRPODS" to 12, "HANDY" to null), rows.map { it.mic to it.samples })
+        assertEquals(listOf("AirPods-Mikro", "Handy-Mikro"), rows.map { it.label })
+    }
+
+    @Test fun `ein unlesbares Stimmprofil gilt als keines`() {
+        assertEquals(null, parseVoiceProfile(null))
+        assertEquals(null, parseVoiceProfile(""))
+        assertEquals(null, parseVoiceProfile("laut;hoch;oft"))
+        assertEquals(VoiceProfile(-20.0, null, 1), parseVoiceProfile("-20.0"))
     }
 
     @Test fun `bestaetigte Ausgabegeraete werden gemerkt und lassen sich wieder vergessen`() {

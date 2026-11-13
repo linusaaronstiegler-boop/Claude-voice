@@ -4,6 +4,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import app.claudevoice.core.MicMode
+import app.claudevoice.core.SpeechOutput
+import app.claudevoice.core.StartKeys
+import app.claudevoice.core.VoiceProfile
 import app.claudevoice.core.cleanSecret
 
 /**
@@ -25,7 +29,10 @@ class Prefs(context: Context) {
         get() = cleanSecret(sp.getString("eleven", "") ?: "")
         set(v) = sp.edit().putString("eleven", cleanSecret(v)).apply()
 
-    /** Optional: Schlüssel für Soniox als zweiten Transkriptions-Anbieter. Ist er gesetzt, wird Soniox genutzt. */
+    /**
+     * Schlüssel für Soniox als zweiten Transkriptions-Anbieter. Ist er gesetzt, wird Soniox genutzt.
+     * Zusammen mit der Stimme des Geräts braucht die App dann gar keinen ElevenLabs-Schlüssel (siehe [keyProblem]).
+     */
     var sonioxKey: String
         get() = cleanSecret(sp.getString("soniox", "") ?: "")
         set(v) = sp.edit().putString("soniox", cleanSecret(v)).apply()
@@ -121,11 +128,37 @@ class Prefs(context: Context) {
         get() = (sp.getString("outputs", "") ?: "").split('\n').filter { it.isNotBlank() }.toSet()
         set(v) = sp.edit().putString("outputs", v.joinToString("\n")).apply()
 
+    /**
+     * Womit die Antworten gesprochen werden, so wie der Nutzer es ausdrücklich gewählt hat: ElevenLabs oder
+     * die Stimme des Geräts. null = noch nie gewählt. Was dann gilt, sagt [speechOutput].
+     */
+    var speechChoice: SpeechOutput?
+        get() = SpeechOutput.fromKey(sp.getString("speech", null))
+        set(v) = sp.edit().run { if (v == null) remove("speech") else putString("speech", v.key) }.apply()
+
+    /**
+     * Die Sprachausgabe, die gilt: die gewählte, und ohne Wahl ElevenLabs, solange dessen Schlüssel
+     * eingetragen ist, sonst die Stimme des Geräts (Regel in :core, siehe [SpeechOutput.resolve]).
+     */
+    val speechOutput: SpeechOutput get() = SpeechOutput.resolve(speechChoice, elevenKey.isNotEmpty())
+
     /** Gelerntes Stimmprofil je Mikrofon-Art, als "pegel;tonhoehe;proben". */
     fun voiceProfile(mic: String): String? = sp.getString("voice_$mic", null)
     fun saveVoiceProfile(mic: String, value: String) = sp.edit().putString("voice_$mic", value).apply()
 
-    val hasKeys: Boolean get() = anthropicKey.isNotEmpty() && elevenKey.isNotEmpty()
+    /**
+     * Vergisst das gelernte Stimmprofil einer Mikrofon-Art. Mehr passiert nicht: Niemand gilt dadurch als
+     * Träger. Die App steht danach da wie frisch installiert und muss die Stimme erst wieder nachweisen.
+     */
+    fun forgetVoiceProfile(mic: String) = sp.edit().remove("voice_$mic").apply()
+
+    /** Das gespeicherte Stimmprofil als Wert; null, wenn keines da ist. */
+    fun storedVoiceProfile(mic: MicMode): VoiceProfile? = parseVoiceProfile(voiceProfile(mic.name))
+
+    /** Meldung, welcher Schlüssel für die gewählte Sprachausgabe noch fehlt; null, wenn alles da ist. */
+    val keyProblem: String? get() = StartKeys.problem(anthropicKey, elevenKey, sonioxKey, speechOutput)
+
+    val hasKeys: Boolean get() = keyProblem == null
 
     companion object {
         const val DEFAULT_VOICE = "JBFqnCBsd6RMkjVDRZzb"
@@ -148,4 +181,26 @@ class Prefs(context: Context) {
             }.also { shared = it }
         }
     }
+}
+
+/**
+ * Legt das Stimmprofil ab, das eine Sitzung gerade gelernt hat, als "pegel;tonhoehe;proben" (das Gegenstück
+ * zu [parseVoiceProfile]). Mit `ended = true` (die Sitzung ist schon zu Ende) passiert nichts: Sonst könnte
+ * ein Nachzügler der alten Sitzung ein Profil zurückbringen, das der Nutzer inzwischen vergessen ließ.
+ * @return true, wenn gespeichert wurde.
+ */
+internal fun Prefs.storeVoiceProfile(mic: MicMode, profile: VoiceProfile, ended: Boolean): Boolean {
+    if (ended) return false
+    saveVoiceProfile(mic.name, "${profile.levelDb};${profile.pitchHz ?: ""};${profile.samples}")
+    return true
+}
+
+/**
+ * Liest ein gespeichertes Stimmprofil ("pegel;tonhoehe;proben").
+ * null, wenn nichts gespeichert ist oder der Wert sich nicht lesen lässt.
+ */
+internal fun parseVoiceProfile(stored: String?): VoiceProfile? {
+    val parts = stored?.split(';') ?: return null
+    val level = parts.getOrNull(0)?.toDoubleOrNull() ?: return null
+    return VoiceProfile(level, parts.getOrNull(1)?.toDoubleOrNull(), parts.getOrNull(2)?.toIntOrNull() ?: 1)
 }

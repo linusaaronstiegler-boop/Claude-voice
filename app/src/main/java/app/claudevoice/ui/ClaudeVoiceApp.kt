@@ -23,6 +23,7 @@ import app.claudevoice.AppState
 import app.claudevoice.ListenService
 import app.claudevoice.MemoryStore
 import app.claudevoice.Prefs
+import app.claudevoice.core.MicMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -137,6 +138,9 @@ private fun SettingsRoute(prefs: Prefs, running: Boolean, onAppearanceChange: (A
     var linked by remember { mutableStateOf(emptyList<LinkedFile>()) }
     var notes by remember { mutableStateOf(emptyList<String>()) }
     var linkError by remember { mutableStateOf<String?>(null) }
+    var voiceProfiles by remember { mutableStateOf(prefs.voiceProfileRows()) }
+    // Nach einer Sitzung kann ein Profil dazugekommen sein: beim Wechsel zwischen "läuft" und "steht" neu lesen.
+    LaunchedEffect(running) { voiceProfiles = prefs.voiceProfileRows() }
 
     // Dateien und Notizen liegen auf Platte oder (bei Drive) hinter dem Netz. Solche Zugriffe gehören
     // nicht auf den Haupt-Thread, sonst ruckelt die Oberfläche; "Dispatchers.IO" ist der Ort dafür.
@@ -163,6 +167,7 @@ private fun SettingsRoute(prefs: Prefs, running: Boolean, onAppearanceChange: (A
         linkError = linkError,
         notes = notes,
         running = running,
+        voiceProfiles = voiceProfiles,
         actions = SettingsActions(
             onFormChange = { changed ->
                 prefs.save(old = form, new = changed)
@@ -185,16 +190,53 @@ private fun SettingsRoute(prefs: Prefs, running: Boolean, onAppearanceChange: (A
                     reload()
                 }
             },
+            onForgetVoiceProfile = { mic ->
+                prefs.forgetVoiceProfileIfStopped(mic, running)
+                voiceProfiles = prefs.voiceProfileRows()
+            },
             onClose = onClose,
         ),
     )
 }
+
+/**
+ * Vergisst das Stimmprofil der Mikrofon-Art [mic], aber nur, solange nicht zugehört wird.
+ *
+ * Warum die Einschränkung: Eine laufende Sitzung hat ihr Profil im Arbeitsspeicher und speichert es bei
+ * jeder weiteren Äußerung des Trägers neu. Das Vergessene läge wenige Sekunden später wieder da. Statt die
+ * Sitzung von außen umzubauen, gilt die einfache Regel "erst stoppen, dann vergessen"; die Seite sperrt den
+ * Knopf entsprechend, und hier steht die Regel noch einmal, falls doch ein Tipper durchrutscht.
+ *
+ * Vergessen nimmt nur etwas weg. Niemand wird dadurch zum Träger: Die App steht an diesem Mikrofon danach
+ * da wie frisch installiert und verlangt denselben Nachweis wie beim ersten Start.
+ * @return true, wenn vergessen wurde.
+ */
+internal fun Prefs.forgetVoiceProfileIfStopped(mic: String, running: Boolean): Boolean {
+    if (running) return false
+    forgetVoiceProfile(mic)
+    return true
+}
+
+/** Die Stimmprofile beider Mikrofon-Arten für die Einstellungen (auch die, die es noch nicht gibt). */
+internal fun Prefs.voiceProfileRows(): List<VoiceProfileRow> = listOf(
+    VoiceProfileRow(
+        MicMode.AIRPODS.name, "AirPods-Mikro", storedVoiceProfile(MicMode.AIRPODS)?.samples,
+        "Die App lernt Ihre Stimme an diesem Mikrofon danach von vorn, sobald Sie den Assistenten deutlich beim " +
+            "Namen ansprechen. Bis dahin kann sie Merken und Stummschalten per Sprache ablehnen, wenn Sie leise sprechen.",
+    ),
+    VoiceProfileRow(
+        MicMode.HANDY.name, "Handy-Mikro", storedVoiceProfile(MicMode.HANDY)?.samples,
+        "Am Handy-Mikro lernt die App kein neues Profil, weil dort alle ähnlich laut klingen. Merken und " +
+            "Stummschalten per Sprache gehen danach nur noch mit dem AirPods-Mikro.",
+    ),
+)
 
 private fun Prefs.toForm() = SettingsForm(
     anthropicKey = anthropicKey,
     elevenKey = elevenKey,
     sonioxKey = sonioxKey,
     voiceId = voiceId,
+    speech = speechChoice,
     name = assistantName,
     aliases = aliases.joinToString(", "),
     address = address,
@@ -210,6 +252,7 @@ private fun Prefs.save(old: SettingsForm, new: SettingsForm) {
     if (new.elevenKey != old.elevenKey) elevenKey = new.elevenKey
     if (new.sonioxKey != old.sonioxKey) sonioxKey = new.sonioxKey
     if (new.voiceId != old.voiceId) voiceId = new.voiceId
+    if (new.speech != old.speech) speechChoice = new.speech
     if (new.name != old.name) assistantName = new.name
     if (new.aliases != old.aliases) aliases = new.aliases.split(',').map { it.trim() }.filter { it.isNotEmpty() }
     if (new.address != old.address) address = new.address

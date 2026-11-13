@@ -20,11 +20,16 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import app.claudevoice.core.AccountHintSynth
 import app.claudevoice.core.AnthropicClaude
 import app.claudevoice.core.AudioGate
 import app.claudevoice.core.Brain
 import app.claudevoice.core.ConnectionReport
 import app.claudevoice.core.CurrentOnlyListener
+import app.claudevoice.core.DeviceVoiceEngine
+import app.claudevoice.core.DeviceVoiceReport
+import app.claudevoice.core.DeviceVoiceSynth
+import app.claudevoice.core.DeviceVoiceUnavailable
 import app.claudevoice.core.ElevenTts
 import app.claudevoice.core.MicMode
 import app.claudevoice.core.OutputConfirmation
@@ -34,8 +39,11 @@ import app.claudevoice.core.Reach
 import app.claudevoice.core.RouteVerdict
 import app.claudevoice.core.ScribeClient
 import app.claudevoice.core.SonioxClient
+import app.claudevoice.core.SpeechOutput
+import app.claudevoice.core.SpeechSynth
 import app.claudevoice.core.SpokenPart
 import app.claudevoice.core.StartFailure
+import app.claudevoice.core.StartKeys
 import app.claudevoice.core.Transcriber
 import app.claudevoice.core.UiState
 import app.claudevoice.core.VoiceProfile
@@ -78,8 +86,12 @@ import java.util.concurrent.atomic.AtomicReference
  * auf eigenen Threads; sie treffen sich in der [AudioGate], die dafür gesperrt ist.
  *
  * Grundsatz "im Zweifel zu" (fail closed): Lässt sich etwas nicht herstellen oder nicht prüfen
- * (Kopfhörer, Weckwort-Erkenner, Mikrofon, Schlüssel), wird weder gesprochen noch übertragen. Der Dienst
- * endet dann mit einer Meldung, die den Grund nennt ([fail]).
+ * (Kopfhörer, Weckwort-Erkenner, Mikrofon, Schlüssel, Stimme des Geräts), wird weder gesprochen noch
+ * übertragen. Der Dienst endet dann mit einer Meldung, die den Grund nennt ([fail]).
+ *
+ * Zwei Sprachausgaben stehen zur Wahl (Einstellungen): ElevenLabs oder die Stimme des Geräts. Gewechselt
+ * wird nur dort. Fällt ElevenLabs im Betrieb aus (Guthaben leer, Schlüssel abgelehnt), springt NICHT still
+ * die andere Stimme ein: Die Meldung nennt den Grund und den Ausweg, entscheiden soll der Nutzer.
  */
 class ListenService : Service() {
 
@@ -122,6 +134,8 @@ class ListenService : Service() {
     private var speaker: AndroidSpeaker? = null
     @Volatile private var pipeline: Pipeline? = null
     private var synth: ElevenTts? = null
+    /** Die Sprach-Engine des Handys, falls die Stimme des Geräts spricht. Wird am Ende freigegeben. */
+    private var deviceVoice: DeviceVoiceEngine? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var standbyWatch: Job? = null
     private var tone: ToneGenerator? = null
@@ -235,6 +249,8 @@ class ListenService : Service() {
         val elevenKey = prefs.elevenKey
         val sonioxKey = prefs.sonioxKey
         val voiceId = prefs.voiceId
+        /** Womit gesprochen wird: die Wahl des Nutzers, sonst nach dem ElevenLabs-Schlüssel (siehe SpeechOutput). */
+        val speech = SpeechOutput.resolve(prefs.speechChoice, elevenKey.isNotEmpty())
         val names = (listOf(name) + aliases).distinct()
     }
 
@@ -250,7 +266,16 @@ class ListenService : Service() {
         val s = withContext(Dispatchers.IO) { Settings(Prefs(applicationContext)) }
         val route = OutputRoute(this) { s.prefs.confirmedOutputs }
 
-        // Zwei Dinge müssen vor dem ersten Ton feststehen, sonst startet gar nichts.
+        // Zuallererst die Schlüssel. Welche nötig sind, hängt von der Sprachausgabe ab: Mit der Stimme des
+        // Geräts genügt neben dem Anthropic-Schlüssel einer für die Transkription (ElevenLabs ODER Soniox).
+        // Die Oberfläche fragt dieselbe Regel und lässt den Start sonst gar nicht zu; hier steht sie noch
+        // einmal, damit der Dienst nie mit einem leeren Schlüssel ins Netz geht.
+        StartKeys.problem(s.anthropicKey, s.elevenKey, s.sonioxKey, s.speech)?.let { missing ->
+            fail(missing)
+            return
+        }
+
+        // Drei Dinge müssen vor dem ersten Ton feststehen, sonst startet gar nichts.
         // Erstens: Antworten gehen in Kopfhörer. Geprüft wird das, bevor das Mikrofon überhaupt aufgeht.
         if (!headphonesReady(route, s)) return
 
@@ -284,7 +309,32 @@ class ListenService : Service() {
             fail("Weckwort-Erkennung nicht verfügbar. Bitte „Dauer-Zuhören“ wählen oder die App neu installieren.")
             return
         }
-        wire(s, route, ready, detector)
+
+        // Drittens (nur mit der Stimme des Geräts): Die Sprach-Engine des Handys ist da, hat eine deutsche
+        // Stimme und liefert wirklich Ton. Das zeigt sich jetzt und nicht erst bei der ersten Antwort.
+        val voice: DeviceVoiceSynth? = try {
+            if (s.speech == SpeechOutput.DEVICE) openDeviceVoice() else null
+        } catch (e: DeviceVoiceUnavailable) {
+            detector?.close()
+            fail(e.message ?: DeviceVoiceReport.NO_ENGINE)
+            return
+        } catch (e: Throwable) {
+            detector?.close()
+            throw e
+        }
+        wire(s, route, ready, detector, voice)
+    }
+
+    /**
+     * Verbindet sich mit der Sprach-Engine des Handys und lässt sie einen Probesatz erzeugen (nicht hörbar).
+     * Aus der Probe stammt die Abtastrate, für die gleich der Abspieler gebaut wird.
+     * @throws DeviceVoiceUnavailable mit einer Meldung für den Nutzer, wenn die Stimme des Geräts nicht taugt.
+     */
+    private suspend fun openDeviceVoice(): DeviceVoiceSynth {
+        val engine = AndroidDeviceVoice.open(applicationContext)
+        // Ab hier kennt der Dienst die Engine: Endet er (auch mitten in der Probe), gibt shutDown() sie frei.
+        deviceVoice = engine
+        return withContext(Dispatchers.IO) { DeviceVoiceSynth.start(engine) }
     }
 
     /**
@@ -321,7 +371,13 @@ class ListenService : Service() {
     }
 
     /** Alles ist vorbereitet: Mikrofon öffnen, Sprachausgabe und Pipeline verdrahten, loslegen. */
-    private suspend fun wire(s: Settings, route: OutputRoute, ready: Prepared, detector: WakeWordDetector?) {
+    private suspend fun wire(
+        s: Settings,
+        route: OutputRoute,
+        ready: Prepared,
+        detector: WakeWordDetector?,
+        deviceSpeech: DeviceVoiceSynth?,
+    ) {
         // Ab hier gehört der Erkenner der Weiche; sie gibt ihn frei, wenn der Dienst endet.
         val weiche = AudioGate(detector, measure = { pcm, n -> pipeline?.onAudio(pcm, n) })
         gate = weiche
@@ -357,16 +413,28 @@ class ListenService : Service() {
             )
         }
 
-        val tts = ElevenTts(s.elevenKey, http, s.voiceId)
-        synth = tts
-        // Scheitert der schnelle Weg der Sprachausgabe (WebSocket), antwortet die App trotzdem, nur langsamer.
-        // Das soll man sehen können. Die Meldung nennt nur den Grund, nie Antworttext oder Schlüssel.
-        tts.onTrouble = { reason ->
+        // Lief eine Antwort nicht sauber, war aber (wenigstens langsamer oder teilweise) zu hören, soll man
+        // das sehen können: bei ElevenLabs etwa, wenn der schnelle Weg (WebSocket) scheitert, bei der Stimme
+        // des Geräts, wenn ein Satz stumm blieb. Die Meldung nennt nur den Grund, nie Antworttext oder Schlüssel.
+        val trouble: (String) -> Unit = { reason ->
             val line = "Sprachausgabe um ${LocalTime.now().format(CLOCK)}: $reason"
             speechNotice = line
             // Die Prüfung steht IN der Aktualisierung (wie beim Listener in openStream): Endet der Dienst
             // genau jetzt, bleibt sein Grund stehen und wird nicht von dieser Zeile überschrieben.
             AppState.ui.update { if (stopping) it else it.copy(error = line) }
+        }
+        // Wer spricht, steht in den Einstellungen und wechselt im Betrieb nicht. Beide erfüllen dieselbe
+        // Schnittstelle (SpeechSynth); der Abspieler dahinter, mit Kopfhörer-Prüfung, Audiofokus und Stopp,
+        // ist für beide derselbe.
+        val tts: SpeechSynth = if (deviceSpeech != null) {
+            deviceSpeech.onTrouble = trouble
+            deviceSpeech
+        } else {
+            val eleven = ElevenTts(s.elevenKey, http, s.voiceId)
+            synth = eleven
+            eleven.onTrouble = trouble
+            // Scheitert ElevenLabs am Konto, nennt die Meldung zusätzlich den Ausweg (die Stimme des Geräts).
+            AccountHintSynth(eleven)
         }
         val out = AndroidSpeaker(
             this, tts, microphone.usingBluetooth, s.pauseMusic, route,
@@ -383,8 +451,9 @@ class ListenService : Service() {
         }
 
         // Vorwärmen, während der Nutzer noch gar nichts gesagt hat: Die Verbindung zur Sprachausgabe steht
-        // dann schon, und Claude hat Regeln und Gedächtnis bereits zwischengespeichert.
-        tts.warmUp()
+        // dann schon (bei der Stimme des Geräts gibt es nichts zu verbinden), und Claude hat Regeln und
+        // Gedächtnis bereits zwischengespeichert.
+        tts.prepare()
         // runInterruptible: Endet der Dienst, während dieser Aufruf noch unterwegs ist, wird sein Thread
         // unterbrochen. Ohne das liefe er unbeirrt weiter, und der Client von Anthropic versuchte es nach einem
         // Fehlschlag sogar noch einmal: Regeln und Gedächtnis gingen dann ein zweites Mal hinaus, obwohl schon
@@ -403,15 +472,19 @@ class ListenService : Service() {
                 mic = micMode,
                 reach = s.reach,
                 echoRisk = false, // Kopfhörer sind Pflicht (vor jeder Antwort geprüft), die Ausgabe schallt nicht ins Mikro zurück
-                voiceProfile = loadVoiceProfile(s.prefs, micMode),
+                voiceProfile = s.prefs.storedVoiceProfile(micMode),
             ),
             object : Pipeline.Env {
                 private val format = DateTimeFormatter.ofPattern("EEEE, d. MMMM yyyy, HH:mm", Locale.GERMAN)
                 override fun localTime(): String = LocalDateTime.now().format(format)
                 override fun musicPlaying(): Boolean = audio.isMusicActive
                 override fun saveNote(text: String) = ready.memory.addNote(text)
-                override fun saveVoiceProfile(profile: VoiceProfile) =
-                    s.prefs.saveVoiceProfile(micMode.name, "${profile.levelDb};${profile.pitchHz ?: ""};${profile.samples}")
+                // Nach dem Ende wird nichts mehr geschrieben ("ended"). Die Einstellungen lassen das Profil nur
+                // vergessen, solange nicht zugehört wird; ein Nachzügler dieser Sitzung darf es dann nicht
+                // wieder hinlegen.
+                override fun saveVoiceProfile(profile: VoiceProfile) {
+                    s.prefs.storeVoiceProfile(micMode, profile, ended = stopping)
+                }
             },
         )
         pipeline = pipe
@@ -521,7 +594,8 @@ class ListenService : Service() {
         // die Anzeige setzen oder der Pipeline eine Äußerung nachreichen, aus der ein neuer Aufruf an Claude wurde.
         val current = CurrentOnlyListener(listener) { !stopping && mine.get()?.let(weiche::isCurrent) == true }
         // Zwei Anbieter stehen zur Wahl. Soniox (eigener Schlüssel) liefert Sprecher-Kürzel je Wort;
-        // ohne Soniox-Schlüssel läuft die Transkription über ElevenLabs.
+        // ohne Soniox-Schlüssel läuft die Transkription über ElevenLabs. Dass dessen Schlüssel dann da ist,
+        // hat der Start geprüft (StartKeys).
         val client: Transcriber =
             if (sonioxKey.isNotEmpty()) SonioxClient(sonioxKey, http, current, keyterms = keyterms)
             else ScribeClient(elevenKey, http, current, keyterms = keyterms)
@@ -625,16 +699,11 @@ class ListenService : Service() {
         runCatching { pipeline?.stop() }
         runCatching { speaker?.release() }
         runCatching { synth?.close() }
+        runCatching { deviceVoice?.close() }
         runCatching { tone?.release() }
         // Bricht auch einen Aufbau ab, der noch im Hintergrund arbeitet: Er kehrt nicht mehr zurück.
         scope.cancel()
         runCatching { wakeLock?.let { if (it.isHeld) it.release() } }
-    }
-
-    private fun loadVoiceProfile(prefs: Prefs, mic: MicMode): VoiceProfile? {
-        val parts = prefs.voiceProfile(mic.name)?.split(';') ?: return null
-        val level = parts.getOrNull(0)?.toDoubleOrNull() ?: return null
-        return VoiceProfile(level, parts.getOrNull(1)?.toDoubleOrNull(), parts.getOrNull(2)?.toIntOrNull() ?: 1)
     }
 
     override fun onDestroy() {

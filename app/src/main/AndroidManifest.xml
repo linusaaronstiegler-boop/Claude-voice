@@ -10,6 +10,16 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!--
+      Für die Sprachausgabe "Stimme des Geräts": Seit Android 11 sieht eine App andere Apps nur, wenn sie
+      vorher sagt, wonach sie sucht. Ohne diesen Eintrag fände sie die Sprach-Engine des Handys nicht.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
