@@ -47,6 +47,11 @@
   zusammengelegt). Ursache noch unbekannt. Die Meldung nennt jetzt in Klammern, was Android anbietet und
   wie die Bitte um den Telefonkanal ausging (`OutputRoute.headsetReport`, `MicSource.linkNote`); zusätzlich
   sieht `MicSource` alle 200 ms selbst nach, statt sich allein auf den Beobachter zu verlassen.
+- **Ursache gefunden** (Diagnose vom Gerät: „Typ 7: Ask“): Der Musikweg der Ohrhörer galt als privat, ihr
+  Telefonkanal (eigenes Gerät bei Android) aber als „noch zu bestätigen“. `headphonesReady` meldete wegen des
+  Musikwegs sofort „privat“, fragte nie nach, und das Mikro fiel auf das Handy zurück. Jetzt wird beim Start
+  mit Kopfhörer-Mikro auch der Telefonkanal erfragt (zweiter Tipp auf Start). Ein Test für genau diesen Fall
+  fehlt noch.
 - **Nur auf dem Gerät zu prüfen:** ob die Stimme des Geräts über die Kopfhörer kommt und wie sie klingt.
 
 ## 2026-11-12 (Schlussrunde) – Antworten ohne Kopfzeile, Anschlussfrage, Angriffsrunde, CI-Test

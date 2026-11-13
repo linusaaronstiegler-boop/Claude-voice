@@ -347,7 +347,15 @@ class ListenService : Service() {
         val media = AndroidSpeaker.attributes(voiceCallRoute = false)
         fun judge(): RouteVerdict {
             val forMedia = route.verdict(media)
-            if (forMedia == RouteVerdict.Private || forMedia is RouteVerdict.Ask || !s.headsetMic) return forMedia
+            if (forMedia is RouteVerdict.Ask || !s.headsetMic) return forMedia
+            // Auch wenn der Musikweg schon als Kopfhörer gilt: Für das Kopfhörer-Mikro zählt der Telefonkanal,
+            // und den führt Android als eigenes Gerät. Auf dem Testgerät galt der Musikweg als privat, der
+            // Telefonkanal derselben Ohrhörer aber als "noch zu bestätigen". Früher wurde hier sofort "privat"
+            // gemeldet, nie nachgefragt, und das Mikro fiel stillschweigend auf das Handy zurück.
+            if (forMedia == RouteVerdict.Private && route.privateHeadset() == null) {
+                route.headsetToConfirm()?.let { return it }
+                return forMedia
+            }
             // Mit Kopfhörer-Mikro läuft auch die Antwort über den Telefonkanal des Headsets; dann zählt dieses
             // Gerät. Ob der Kanal zustande kommt, zeigt sich erst beim Öffnen des Mikrofons; die verbindliche
             // Prüfung folgt deshalb in wire().
