@@ -69,6 +69,23 @@ class OutputRoute(context: Context, private val confirmed: () -> Set<String>) {
      * Ein Headset, dessen Telefonkanal genutzt werden kann und das der Träger als seines bestätigt hat.
      * Eine Auto-Freisprechanlage meldet denselben Gerätetyp und wird hier aussortiert.
      */
+    /**
+     * Für die Fehlersuche auf dem Gerät: Welche Geräte bietet Android für den Telefonkanal an, und wie
+     * beurteilt die App jedes davon? Gerätenamen kommen bewusst nicht vor, nur Typ-Nummer und Urteil.
+     */
+    fun headsetReport(): String {
+        val all = audio.availableCommunicationDevices
+        val parts = all.map { d ->
+            val urteil = if (isHeadsetType(d)) verdict(d)::class.simpleName else "kein Headset"
+            "Typ ${d.type}: $urteil"
+        }
+        return "Geräte in der Nähe erlaubt: ${if (canReadBluetooth) "ja" else "nein"}; " +
+            if (parts.isEmpty()) "Android bietet kein Gerät an" else parts.joinToString(", ")
+    }
+
+    private fun isHeadsetType(d: AudioDeviceInfo) =
+        d.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || d.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+
     fun privateHeadset(): AudioDeviceInfo? = headsets().firstOrNull { verdict(it) == RouteVerdict.Private }
 
     /**

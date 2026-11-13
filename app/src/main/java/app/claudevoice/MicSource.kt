@@ -11,6 +11,9 @@ import android.os.Handler
 import android.os.Looper
 import app.claudevoice.core.OutputRule
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.concurrent.thread
 
@@ -89,6 +92,10 @@ class MicSource(context: Context, private val onLost: (String) -> Unit) {
         }
     }
 
+    /** Kurze Auskunft zum letzten Aufbau des Telefonkanals, für die Meldung auf dem Bildschirm. */
+    @Volatile var linkNote: String = ""
+        private set
+
     private suspend fun connect(headset: AudioDeviceInfo): Boolean {
         val up = CompletableDeferred<Unit>()
         linkUp = up
@@ -100,8 +107,25 @@ class MicSource(context: Context, private val onLost: (String) -> Unit) {
         try {
             val accepted = audio.setCommunicationDevice(headset)
             // "true" heißt nur "Bitte angenommen". Ob der Kanal steht, zeigt allein das wirklich gewählte Gerät.
-            connected = accepted &&
-                (isHeadsetLink(audio.communicationDevice) || withTimeoutOrNull(LINK_WAIT_MS) { up.await() } != null)
+            // Nicht jedes Gerät meldet den Wechsel über den Beobachter; deshalb wird zusätzlich alle 200 ms
+            // nachgesehen, welches Gerät Android wirklich gewählt hat.
+            connected = accepted && (
+                isHeadsetLink(audio.communicationDevice) ||
+                    withTimeoutOrNull(LINK_WAIT_MS) {
+                        coroutineScope {
+                            // Der Nachseher meldet über dasselbe Signal wie der Beobachter; wer zuerst kommt, gewinnt.
+                            val poll = launch {
+                                while (!isHeadsetLink(audio.communicationDevice)) delay(200)
+                                up.complete(Unit)
+                            }
+                            up.await()
+                            poll.cancel()
+                        }
+                    } != null
+                )
+            // Für die Fehlersuche auf dem Gerät: Was hat Android zur Bitte gesagt, und welches Gerät ist es
+            // am Ende geworden? Steht nur in der Meldung auf dem Bildschirm, nie in einer Datei.
+            linkNote = "Bitte ${if (accepted) "angenommen" else "abgelehnt"}, gewählt: Typ ${audio.communicationDevice?.type ?: "keins"}"
         } finally {
             linkUp = null
             // Auch wenn der Start währenddessen abgebrochen wird: nie im Telefonie-Modus hängen bleiben.

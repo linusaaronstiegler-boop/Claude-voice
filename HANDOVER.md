@@ -42,6 +42,11 @@
 - **Offen:** ein Knopf „Ruhe aufheben“ (Ruhe ohne Stimme beenden); die Reparaturen dieser Runde hat außer
   ihrem Autor niemand gegengeprüft; das Einlernen misst den Median, die Pipeline das obere Viertel des
   Pegels (erwarteter Unterschied 1 bis 2 dB).
+- **Zweiter Befund vom Gerät:** Das Kopfhörer-Mikro kommt nicht zustande, die App weicht beim Zuhören und
+  beim Einlernen auf das Handy-Mikro aus. Das erklärt auch den ersten Befund (eigene Stimme fremd, Sprecher
+  zusammengelegt). Ursache noch unbekannt. Die Meldung nennt jetzt in Klammern, was Android anbietet und
+  wie die Bitte um den Telefonkanal ausging (`OutputRoute.headsetReport`, `MicSource.linkNote`); zusätzlich
+  sieht `MicSource` alle 200 ms selbst nach, statt sich allein auf den Beobachter zu verlassen.
 - **Nur auf dem Gerät zu prüfen:** ob die Stimme des Geräts über die Kopfhörer kommt und wie sie klingt.
 
 ## 2026-11-12 (Schlussrunde) – Antworten ohne Kopfzeile, Anschlussfrage, Angriffsrunde, CI-Test

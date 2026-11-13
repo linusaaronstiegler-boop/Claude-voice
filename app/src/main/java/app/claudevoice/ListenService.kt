@@ -408,8 +408,9 @@ class ListenService : Service() {
         if (s.headsetMic && !microphone.usingBluetooth) {
             problems.add(
                 0,
-                if (headset == null) "Kein Kopfhörer-Mikro gefunden, nutze das Handy-Mikro."
-                else "Das Kopfhörer-Mikro kam nicht zustande, nutze das Handy-Mikro.",
+                // Der Zusatz in Klammern sagt, woran es lag; ohne ihn lässt sich das nur am Gerät erraten.
+                if (headset == null) "Kein Kopfhörer-Mikro gefunden, nutze das Handy-Mikro. (${route.headsetReport()})"
+                else "Das Kopfhörer-Mikro kam nicht zustande, nutze das Handy-Mikro. (${microphone.linkNote})",
             )
         }
 
